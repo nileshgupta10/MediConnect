@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
+import { compressImage } from '../lib/imageCompress';
 
 export default function StoreProfile() {
   const router = useRouter();
@@ -10,10 +11,12 @@ export default function StoreProfile() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+
       if (!user) {
         router.replace('/simple-login');
         return;
@@ -38,39 +41,55 @@ export default function StoreProfile() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage('Image must be under 5 MB.');
-      return;
-    }
+    setUploading(true);
+    setMessage('Compressing and uploading...');
 
-    setMessage('Uploading...');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
+      // ✅ COMPRESS IMAGE
+      const compressedFile = await compressImage(file);
 
-    const filePath = `store-licenses/${user.id}.jpg`;
+      const filePath = `store-licenses/${user.id}.jpg`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('licenses')
-      .upload(filePath, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from('licenses')
+        .upload(filePath, compressedFile, {
+          upsert: true,
+          contentType: 'image/jpeg',
+        });
 
-    if (uploadError) {
-      setMessage(uploadError.message);
-      return;
-    }
+      if (uploadError) throw uploadError;
 
-    const { data: urlData } = supabase.storage
-      .from('licenses')
-      .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage
+        .from('licenses')
+        .getPublicUrl(filePath);
 
-    await supabase
-      .from('store_profiles')
-      .update({
+      const { error: updateError } = await supabase
+        .from('store_profiles')
+        .update({
+          license_url: urlData.publicUrl,
+          is_verified: false,
+        })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setMessage('License uploaded. Verification pending.');
+
+      // refresh profile state
+      setProfile({
+        ...profile,
         license_url: urlData.publicUrl,
         is_verified: false,
-      })
-      .eq('user_id', user.id);
-
-    setMessage('License uploaded. Verification pending.');
+      });
+    } catch (err) {
+      console.error(err);
+      setMessage('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) return <p style={{ padding: 40 }}>Loading...</p>;
@@ -110,13 +129,21 @@ export default function StoreProfile() {
               <img
                 src={preview}
                 alt="License preview"
-                style={{ width: '100%', maxWidth: 300, border: '1px solid #ccc' }}
+                style={{
+                  width: '100%',
+                  maxWidth: 300,
+                  border: '1px solid #ccc',
+                }}
               />
             </div>
           )}
 
-          <button onClick={handleUpload} style={{ marginTop: 10 }}>
-            Upload License
+          <button
+            onClick={handleUpload}
+            disabled={uploading}
+            style={{ marginTop: 10 }}
+          >
+            {uploading ? 'Uploading...' : 'Upload License'}
           </button>
 
           {message && <p>{message}</p>}
