@@ -46,7 +46,7 @@ export default function StoreProfile() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user');
+      if (!user) throw new Error('User not logged in');
 
       const compressedFile = await compressImage(file);
 
@@ -54,23 +54,20 @@ export default function StoreProfile() {
 
       const filePath = `store-licenses/${user.id}.jpg`;
 
-      const uploadRes = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('licenses')
         .upload(filePath, compressedFile, {
           upsert: true,
           contentType: 'image/jpeg',
         });
 
-      if (uploadRes.error) {
-        console.error('Storage error:', uploadRes.error);
-        throw uploadRes.error;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
         .from('licenses')
         .getPublicUrl(filePath);
 
-      const dbRes = await supabase
+      const { error: dbError } = await supabase
         .from('store_profiles')
         .upsert({
           user_id: user.id,
@@ -78,10 +75,7 @@ export default function StoreProfile() {
           is_verified: false,
         });
 
-      if (dbRes.error) {
-        console.error('DB error:', dbRes.error);
-        throw dbRes.error;
-      }
+      if (dbError) throw dbError;
 
       setProfile({
         license_url: urlData.publicUrl,
@@ -90,8 +84,8 @@ export default function StoreProfile() {
 
       setMessage('License uploaded. Verification pending.');
     } catch (err) {
-      console.error('FINAL ERROR:', err);
-      setMessage(err.message || 'Upload failed. Please try again.');
+      console.error(err);
+      setMessage(err.message || 'Upload failed.');
     } finally {
       setUploading(false);
     }
@@ -104,21 +98,12 @@ export default function StoreProfile() {
       <h1>Store Profile</h1>
 
       {!profile?.license_url && (
-        <div
-          style={{
-            border: '2px dashed #2563eb',
-            padding: 20,
-            borderRadius: 8,
-            background: '#f9fafb',
-            marginBottom: 20,
-          }}
-        >
+        <div style={{ border: '2px dashed #2563eb', padding: 20 }}>
           <h3>Upload Store License</h3>
 
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(e) => {
               const selected = e.target.files[0];
               setFile(selected);
@@ -134,11 +119,7 @@ export default function StoreProfile() {
             />
           )}
 
-          <button
-            onClick={handleUpload}
-            disabled={uploading}
-            style={{ marginTop: 10 }}
-          >
+          <button onClick={handleUpload} disabled={uploading}>
             {uploading ? 'Uploading...' : 'Upload License'}
           </button>
 
@@ -147,15 +128,7 @@ export default function StoreProfile() {
       )}
 
       {profile?.license_url && !profile.is_verified && (
-        <p style={{ color: 'orange' }}>
-          ⏳ License uploaded. Verification pending.
-        </p>
-      )}
-
-      {profile?.is_verified && (
-        <p style={{ color: 'green' }}>
-          ✅ Store verified
-        </p>
+        <p style={{ color: 'orange' }}>⏳ Verification pending</p>
       )}
     </div>
   );
