@@ -22,11 +22,15 @@ export default function StoreProfile() {
         return;
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('store_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+      }
 
       setProfile(data);
       setLoading(false);
@@ -48,11 +52,12 @@ export default function StoreProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // ✅ COMPRESS IMAGE
+      // ✅ Compress image
       const compressedFile = await compressImage(file);
 
       const filePath = `store-licenses/${user.id}.jpg`;
 
+      // ✅ Upload to storage
       const { error: uploadError } = await supabase.storage
         .from('licenses')
         .upload(filePath, compressedFile, {
@@ -66,19 +71,19 @@ export default function StoreProfile() {
         .from('licenses')
         .getPublicUrl(filePath);
 
-      const { error: updateError } = await supabase
+      // ✅ UPSERT profile row (INSERT or UPDATE safely)
+      const { error: dbError } = await supabase
         .from('store_profiles')
-        .update({
+        .upsert({
+          user_id: user.id,
           license_url: urlData.publicUrl,
           is_verified: false,
-        })
-        .eq('user_id', user.id);
+        });
 
-      if (updateError) throw updateError;
+      if (dbError) throw dbError;
 
       setMessage('License uploaded. Verification pending.');
 
-      // refresh profile state
       setProfile({
         ...profile,
         license_url: urlData.publicUrl,
