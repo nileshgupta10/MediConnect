@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/router';
 
 export default function PharmacistProfile() {
   const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [file, setFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -24,6 +26,7 @@ export default function PharmacistProfile() {
         .single();
 
       setProfile(data);
+      setLoading(false);
     };
 
     loadProfile();
@@ -31,33 +34,32 @@ export default function PharmacistProfile() {
 
   const handleUpload = async () => {
     if (!file) {
-      setMessage('Please select or capture an image.');
+      setMessage('Please select an image first.');
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setMessage('Image must be under 2 MB.');
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Image must be under 5 MB.');
       return;
     }
 
-    setUploading(true);
-    setMessage('');
+    setMessage('Uploading...');
 
     const { data: { user } } = await supabase.auth.getUser();
-    const filePath = `pharmacist-${user.id}.jpg`;
+
+    const filePath = `pharmacist-licenses/${user.id}.jpg`;
 
     const { error: uploadError } = await supabase.storage
-      .from('license-documents')
-      .upload(filePath, file, { upsert: false });
+      .from('licenses')
+      .upload(filePath, file, { upsert: true });
 
     if (uploadError) {
-      setMessage('Upload failed or already uploaded.');
-      setUploading(false);
+      setMessage(uploadError.message);
       return;
     }
 
     const { data: urlData } = supabase.storage
-      .from('license-documents')
+      .from('licenses')
       .getPublicUrl(filePath);
 
     await supabase
@@ -69,57 +71,69 @@ export default function PharmacistProfile() {
       .eq('user_id', user.id);
 
     setMessage('License uploaded. Verification pending.');
-    setUploading(false);
   };
 
-  if (!profile) return <p style={{ padding: 30 }}>Loading…</p>;
-
-  const needsVerification = !profile.license_url || profile.is_verified === false;
+  if (loading) return <p style={{ padding: 40 }}>Loading...</p>;
 
   return (
-    <div style={{ padding: 30 }}>
+    <div style={{ padding: 40, maxWidth: 600, margin: 'auto' }}>
       <h1>Pharmacist Profile</h1>
 
-      {needsVerification && (
-        <div style={{ border: '1px solid #ccc', padding: 20, marginBottom: 20 }}>
-          <h3>License Verification Required</h3>
-          <p>Please upload your pharmacy license.</p>
+      {!profile?.license_url && (
+        <div
+          style={{
+            border: '2px dashed #2563eb',
+            padding: 20,
+            borderRadius: 8,
+            background: '#f9fafb',
+            marginBottom: 20,
+          }}
+        >
+          <h3>Upload Pharmacy License</h3>
 
           <input
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={(e) => {
+              const selected = e.target.files[0];
+              setFile(selected);
+              if (selected) {
+                setPreview(URL.createObjectURL(selected));
+              }
+            }}
           />
 
-          <br /><br />
+          {preview && (
+            <div style={{ marginTop: 10 }}>
+              <p>Selected Image:</p>
+              <img
+                src={preview}
+                alt="License preview"
+                style={{ width: '100%', maxWidth: 300, border: '1px solid #ccc' }}
+              />
+            </div>
+          )}
 
-          <button onClick={handleUpload} disabled={uploading}>
-            {uploading ? 'Uploading…' : 'Upload License'}
+          <button onClick={handleUpload} style={{ marginTop: 10 }}>
+            Upload License
           </button>
 
-          <p>{message}</p>
+          {message && <p>{message}</p>}
         </div>
       )}
 
-      <h3>Name</h3>
-      <p>{profile.name || 'Not provided'}</p>
-
-      <h3>Status</h3>
-      <p>{profile.is_verified ? '✅ Verified' : '⏳ Verification Pending'}</p>
-
-      {!profile.is_verified && (
-        <p style={{ color: 'red' }}>
-          Applying to jobs is disabled until verification.
+      {profile?.license_url && !profile.is_verified && (
+        <p style={{ color: 'orange' }}>
+          ⏳ License uploaded. Verification pending.
         </p>
       )}
 
-      <button
-        disabled={!profile.is_verified}
-        onClick={() => router.push('/jobs')}
-      >
-        Browse Jobs
-      </button>
+      {profile?.is_verified && (
+        <p style={{ color: 'green' }}>
+          ✅ Pharmacist verified
+        </p>
+      )}
     </div>
   );
 }
