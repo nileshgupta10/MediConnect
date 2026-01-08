@@ -22,15 +22,11 @@ export default function StoreProfile() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('store_profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
-
-      if (error) {
-        console.error(error);
-      }
 
       setProfile(data);
       setLoading(false);
@@ -46,33 +42,35 @@ export default function StoreProfile() {
     }
 
     setUploading(true);
-    setMessage('Compressing and uploading...');
+    setMessage('Compressing image...');
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) throw new Error('No user');
 
-      // ✅ Compress image
       const compressedFile = await compressImage(file);
+
+      setMessage(`Uploading (${Math.round(compressedFile.size / 1024)} KB)...`);
 
       const filePath = `store-licenses/${user.id}.jpg`;
 
-      // ✅ Upload to storage
-      const { error: uploadError } = await supabase.storage
+      const uploadRes = await supabase.storage
         .from('licenses')
         .upload(filePath, compressedFile, {
           upsert: true,
           contentType: 'image/jpeg',
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadRes.error) {
+        console.error('Storage error:', uploadRes.error);
+        throw uploadRes.error;
+      }
 
       const { data: urlData } = supabase.storage
         .from('licenses')
         .getPublicUrl(filePath);
 
-      // ✅ UPSERT profile row (INSERT or UPDATE safely)
-      const { error: dbError } = await supabase
+      const dbRes = await supabase
         .from('store_profiles')
         .upsert({
           user_id: user.id,
@@ -80,18 +78,20 @@ export default function StoreProfile() {
           is_verified: false,
         });
 
-      if (dbError) throw dbError;
-
-      setMessage('License uploaded. Verification pending.');
+      if (dbRes.error) {
+        console.error('DB error:', dbRes.error);
+        throw dbRes.error;
+      }
 
       setProfile({
-        ...profile,
         license_url: urlData.publicUrl,
         is_verified: false,
       });
+
+      setMessage('License uploaded. Verification pending.');
     } catch (err) {
-      console.error(err);
-      setMessage('Upload failed. Please try again.');
+      console.error('FINAL ERROR:', err);
+      setMessage(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -122,25 +122,16 @@ export default function StoreProfile() {
             onChange={(e) => {
               const selected = e.target.files[0];
               setFile(selected);
-              if (selected) {
-                setPreview(URL.createObjectURL(selected));
-              }
+              if (selected) setPreview(URL.createObjectURL(selected));
             }}
           />
 
           {preview && (
-            <div style={{ marginTop: 10 }}>
-              <p>Selected Image:</p>
-              <img
-                src={preview}
-                alt="License preview"
-                style={{
-                  width: '100%',
-                  maxWidth: 300,
-                  border: '1px solid #ccc',
-                }}
-              />
-            </div>
+            <img
+              src={preview}
+              alt="Preview"
+              style={{ width: '100%', maxWidth: 300, marginTop: 10 }}
+            />
           )}
 
           <button
