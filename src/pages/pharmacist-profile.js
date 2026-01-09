@@ -9,22 +9,17 @@ export default function PharmacistProfile() {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState(false);
 
-  // form fields
   const [name, setName] = useState('');
   const [yearsExperience, setYearsExperience] = useState('');
   const [softwareExperience, setSoftwareExperience] = useState('');
 
-  // file handling
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      if (!user) return;
 
       const { data } = await supabase
         .from('pharmacist_profiles')
@@ -41,59 +36,11 @@ export default function PharmacistProfile() {
 
       setLoading(false);
     };
-
-    loadProfile();
+    load();
   }, []);
-
-  const handleImageUpload = async (rawFile) => {
-    if (!rawFile) return;
-
-    setUploading(true);
-    setMessage('Uploading license…');
-
-    try {
-      const compressed = await compressImage(rawFile);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const path = `pharmacist-licenses/${user.id}.jpg`;
-
-      const { error: storageError } = await supabase.storage
-        .from('licenses')
-        .upload(path, compressed, { upsert: true });
-
-      if (storageError) throw storageError;
-
-      const { data: urlData } = supabase.storage
-        .from('licenses')
-        .getPublicUrl(path);
-
-      const { error: dbError } = await supabase
-        .from('pharmacist_profiles')
-        .upsert({
-          user_id: user.id,
-          license_url: urlData.publicUrl,
-          is_verified: false,
-        });
-
-      if (dbError) throw dbError;
-
-      setProfile(prev => ({
-        ...prev,
-        license_url: urlData.publicUrl,
-        is_verified: false,
-      }));
-
-      setMessage('License uploaded. Verification pending.');
-    } catch (e) {
-      setMessage(e.message);
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const saveProfile = async () => {
     setMessage('Saving profile…');
-
     const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase
@@ -118,7 +65,39 @@ export default function PharmacistProfile() {
     }));
 
     setEditing(false);
-    setMessage('Profile updated.');
+    setMessage('Profile updated successfully.');
+  };
+
+  const uploadLicense = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    setMessage('Uploading license…');
+
+    try {
+      const compressed = await compressImage(file);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const path = `pharmacist-licenses/${user.id}.jpg`;
+
+      await supabase.storage.from('licenses').upload(path, compressed, { upsert: true });
+
+      const { data: url } = supabase.storage.from('licenses').getPublicUrl(path);
+
+      await supabase
+        .from('pharmacist_profiles')
+        .upsert({
+          user_id: user.id,
+          license_url: url.publicUrl,
+          is_verified: false,
+        });
+
+      setProfile(prev => ({ ...prev, license_url: url.publicUrl, is_verified: false }));
+      setMessage('License uploaded. Verification pending.');
+    } catch (e) {
+      setMessage(e.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
@@ -128,19 +107,17 @@ export default function PharmacistProfile() {
       <div style={styles.card}>
         <h1 style={styles.heading}>Pharmacist Profile</h1>
 
-        {/* STATUS */}
-        {profile?.is_verified ? (
-          <span style={styles.verified}>✅ Verified</span>
-        ) : (
-          <span style={styles.pending}>⏳ Verification Pending</span>
-        )}
+        <p style={profile?.is_verified ? styles.verified : styles.pending}>
+          {profile?.is_verified ? '✅ Verified Pharmacist' : '⏳ Verification Pending'}
+        </p>
 
-        {/* PROFILE DETAILS */}
+        <h3>Professional Details</h3>
+
         {!editing ? (
           <>
-            <p><b>Name:</b> {profile?.name || '—'}</p>
-            <p><b>Experience:</b> {profile?.years_experience || '—'} years</p>
-            <p><b>Software:</b> {profile?.software_experience || '—'}</p>
+            <p><b>Full Name:</b> {profile?.name || '—'}</p>
+            <p><b>Years of Experience:</b> {profile?.years_experience || '—'}</p>
+            <p><b>Software Experience:</b> {profile?.software_experience || '—'}</p>
 
             <button style={styles.secondaryBtn} onClick={() => setEditing(true)}>
               ✏️ Edit Profile
@@ -148,23 +125,18 @@ export default function PharmacistProfile() {
           </>
         ) : (
           <>
+            <label style={styles.label}>Full Name</label>
+            <input style={styles.input} value={name} onChange={e => setName(e.target.value)} />
+
+            <label style={styles.label}>Years of Experience</label>
+            <input style={styles.input} value={yearsExperience} onChange={e => setYearsExperience(e.target.value)} />
+
+            <label style={styles.label}>Pharmacy Software Experience</label>
             <input
               style={styles.input}
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <input
-              style={styles.input}
-              placeholder="Years of Experience"
-              value={yearsExperience}
-              onChange={(e) => setYearsExperience(e.target.value)}
-            />
-            <input
-              style={styles.input}
-              placeholder="Software Experience"
+              placeholder="e.g. Marg, GoFrugal, PharmERP"
               value={softwareExperience}
-              onChange={(e) => setSoftwareExperience(e.target.value)}
+              onChange={e => setSoftwareExperience(e.target.value)}
             />
 
             <button style={styles.primaryBtn} onClick={saveProfile}>
@@ -173,47 +145,29 @@ export default function PharmacistProfile() {
           </>
         )}
 
-        <hr style={{ margin: '25px 0' }} />
+        <hr />
 
-        {/* LICENSE UPLOAD */}
-        <h3>Upload License</h3>
+        <h3>Upload Pharmacy License</h3>
 
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={cameraInputRef}
-          style={{ display: 'none' }}
-          onChange={(e) => handleImageUpload(e.target.files[0])}
-        />
+        <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])} />
 
-        <input
-          type="file"
-          accept="image/*"
-          ref={galleryInputRef}
-          style={{ display: 'none' }}
-          onChange={(e) => handleImageUpload(e.target.files[0])}
-        />
+        <input type="file" accept="image/*" ref={galleryInputRef} style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])} />
 
         <div style={styles.btnRow}>
-          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>
-            📷 Take Photo
-          </button>
-          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>
-            🖼️ Choose from Gallery
-          </button>
+          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>📷 Take Photo</button>
+          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>🖼️ Choose from Gallery</button>
         </div>
 
-        {message && <p style={{ marginTop: 10 }}>{message}</p>}
+        {message && <p>{message}</p>}
 
-        <hr style={{ margin: '25px 0' }} />
+        <hr />
         <a href="/jobs">➡️ Go to Job Listings</a>
       </div>
     </div>
   );
 }
-
-/* ---------- STYLES ---------- */
 
 const styles = {
   page: {
@@ -232,18 +186,10 @@ const styles = {
     width: '100%',
     boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
   },
-  heading: {
-    marginBottom: 10,
-    color: '#0f172a',
-  },
-  verified: {
-    color: 'green',
-    fontWeight: 'bold',
-  },
-  pending: {
-    color: '#b45309',
-    fontWeight: 'bold',
-  },
+  heading: { marginBottom: 10 },
+  verified: { color: 'green', fontWeight: 'bold' },
+  pending: { color: '#b45309', fontWeight: 'bold' },
+  label: { fontSize: 14, marginTop: 10, display: 'block' },
   input: {
     width: '100%',
     padding: 10,
@@ -251,11 +197,7 @@ const styles = {
     borderRadius: 6,
     border: '1px solid #ccc',
   },
-  btnRow: {
-    display: 'flex',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
+  btnRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
   primaryBtn: {
     background: '#2563eb',
     color: 'white',
