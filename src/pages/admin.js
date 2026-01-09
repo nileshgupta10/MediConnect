@@ -1,13 +1,31 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
+const ADMIN_EMAILS = [
+  'nilesh_gupta10@yahoo.com', // 🔴 CHANGE THIS
+];
+
 export default function AdminPanel() {
+  const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   const [pharmacists, setPharmacists] = useState([]);
   const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user || !ADMIN_EMAILS.includes(user.email)) {
+        await supabase.auth.signOut();
+        window.location.href = '/simple-login';
+        return;
+      }
+
+      setAuthorized(true);
+      loadData();
+    };
+
+    init();
   }, []);
 
   const loadData = async () => {
@@ -46,53 +64,93 @@ export default function AdminPanel() {
     loadData();
   };
 
-  if (loading) return <p style={{ padding: 40 }}>Loading admin panel…</p>;
+  if (!authorized || loading) {
+    return <p style={{ padding: 40 }}>Loading admin panel…</p>;
+  }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>🛡️ Admin Verification Panel</h1>
+    <div style={styles.page}>
+      <h1 style={styles.heading}>🛡️ Admin Verification Panel</h1>
 
-      <h2>Unverified Pharmacists</h2>
-      {pharmacists.length === 0 && <p>No pending pharmacists.</p>}
+      <Section title="Unverified Pharmacists">
+        {pharmacists.length === 0 && <p>No pending pharmacists.</p>}
+        {pharmacists.map(p => (
+          <Card key={p.user_id}>
+            <p><b>Name:</b> {p.name || '—'}</p>
+            <a href={p.license_url} target="_blank">View License</a>
+            <button style={styles.primaryBtn} onClick={() => verifyPharmacist(p.user_id)}>
+              ✅ Verify
+            </button>
+          </Card>
+        ))}
+      </Section>
 
-      {pharmacists.map(p => (
-        <Card key={p.user_id}>
-          <p><b>Name:</b> {p.name}</p>
-          <a href={p.license_url} target="_blank">View License</a>
-          <br />
-          <button onClick={() => verifyPharmacist(p.user_id)}>
-            ✅ Verify Pharmacist
-          </button>
-        </Card>
-      ))}
+      <Section title="Unverified Stores">
+        {stores.length === 0 && <p>No pending stores.</p>}
+        {stores.map(s => (
+          <Card key={s.user_id}>
+            <p><b>Store:</b> {s.store_name || '—'}</p>
+            <a href={s.license_url} target="_blank">View License</a>
+            <button style={styles.primaryBtn} onClick={() => verifyStore(s.user_id)}>
+              ✅ Verify
+            </button>
+          </Card>
+        ))}
+      </Section>
+    </div>
+  );
+}
 
-      <h2 style={{ marginTop: 40 }}>Unverified Stores</h2>
-      {stores.length === 0 && <p>No pending stores.</p>}
-
-      {stores.map(s => (
-        <Card key={s.user_id}>
-          <p><b>Store:</b> {s.store_name || s.name}</p>
-          <a href={s.license_url} target="_blank">View License</a>
-          <br />
-          <button onClick={() => verifyStore(s.user_id)}>
-            ✅ Verify Store
-          </button>
-        </Card>
-      ))}
+function Section({ title, children }) {
+  return (
+    <div style={{ marginTop: 30 }}>
+      <h2 style={styles.sectionTitle}>{title}</h2>
+      {children}
     </div>
   );
 }
 
 function Card({ children }) {
   return (
-    <div style={{
-      background: '#fff',
-      padding: 20,
-      marginBottom: 15,
-      borderRadius: 8,
-      boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-    }}>
+    <div style={styles.card}>
       {children}
     </div>
   );
 }
+
+/* ---------- MOBILE-FIRST STYLES ---------- */
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+    padding: 16,
+  },
+  heading: {
+    fontSize: 22,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  card: {
+    background: 'white',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 12,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  primaryBtn: {
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    padding: '10px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    marginTop: 8,
+  },
+};
