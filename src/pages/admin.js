@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const ADMIN_EMAILS = [
-  'nilesh_gupta10@yahoo.com', // 🔴 CHANGE THIS
+  'maniac.gupta@gmail.com', // 🔴 CHANGE THIS
 ];
 
 export default function AdminPanel() {
