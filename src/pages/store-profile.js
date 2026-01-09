@@ -35,6 +35,7 @@ export default function StoreProfile() {
 
       setLoading(false);
     };
+
     load();
   }, []);
 
@@ -42,12 +43,17 @@ export default function StoreProfile() {
     setMessage('Saving store profile…');
     const { data: { user } } = await supabase.auth.getUser();
 
-    await supabase.from('store_profiles').upsert({
+    const { error } = await supabase.from('store_profiles').upsert({
       user_id: user.id,
       store_name: storeName,
       contact_person: contactPerson,
       store_timings: storeTimings,
     });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
 
     setProfile(prev => ({
       ...prev,
@@ -63,23 +69,36 @@ export default function StoreProfile() {
   const uploadLicense = async (file) => {
     if (!file) return;
 
-    const compressed = await compressImage(file);
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const compressed = await compressImage(file);
+      const { data: { user } } = await supabase.auth.getUser();
 
-    const path = `store-licenses/${user.id}.jpg`;
+      const path = `store-licenses/${user.id}.jpg`;
 
-    await supabase.storage.from('licenses').upload(path, compressed, { upsert: true });
+      await supabase.storage
+        .from('licenses')
+        .upload(path, compressed, { upsert: true });
 
-    const { data: url } = supabase.storage.from('licenses').getPublicUrl(path);
+      const { data: url } = supabase.storage
+        .from('licenses')
+        .getPublicUrl(path);
 
-    await supabase.from('store_profiles').upsert({
-      user_id: user.id,
-      license_url: url.publicUrl,
-      is_verified: false,
-    });
+      await supabase.from('store_profiles').upsert({
+        user_id: user.id,
+        license_url: url.publicUrl,
+        is_verified: false,
+      });
 
-    setProfile(prev => ({ ...prev, license_url: url.publicUrl, is_verified: false }));
-    setMessage('License uploaded. Verification pending.');
+      setProfile(prev => ({
+        ...prev,
+        license_url: url.publicUrl,
+        is_verified: false,
+      }));
+
+      setMessage('License uploaded. Verification pending.');
+    } catch (e) {
+      setMessage(e.message);
+    }
   };
 
   if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
@@ -108,15 +127,29 @@ export default function StoreProfile() {
         ) : (
           <>
             <label style={styles.label}>Store Name</label>
-            <input style={styles.input} value={storeName} onChange={e => setStoreName(e.target.value)} />
+            <input
+              style={styles.input}
+              value={storeName}
+              onChange={e => setStoreName(e.target.value)}
+            />
 
             <label style={styles.label}>Contact Person</label>
-            <input style={styles.input} value={contactPerson} onChange={e => setContactPerson(e.target.value)} />
+            <input
+              style={styles.input}
+              value={contactPerson}
+              onChange={e => setContactPerson(e.target.value)}
+            />
 
             <label style={styles.label}>Store Timings</label>
-            <input style={styles.input} value={storeTimings} onChange={e => setStoreTimings(e.target.value)} />
+            <input
+              style={styles.input}
+              value={storeTimings}
+              onChange={e => setStoreTimings(e.target.value)}
+            />
 
-            <button style={styles.primaryBtn} onClick={saveProfile}>Save Store Profile</button>
+            <button style={styles.primaryBtn} onClick={saveProfile}>
+              Save Store Profile
+            </button>
           </>
         )}
 
@@ -124,15 +157,30 @@ export default function StoreProfile() {
 
         <h3>Upload Store License</h3>
 
-        <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])} />
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={cameraInputRef}
+          style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])}
+        />
 
-        <input type="file" accept="image/*" ref={galleryInputRef} style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])} />
+        <input
+          type="file"
+          accept="image/*"
+          ref={galleryInputRef}
+          style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])}
+        />
 
         <div style={styles.btnRow}>
-          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>📷 Take Photo</button>
-          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>🖼️ Choose from Gallery</button>
+          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>
+            📷 Take Photo
+          </button>
+          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>
+            🖼️ Choose from Gallery
+          </button>
         </div>
 
         {message && <p>{message}</p>}
@@ -143,3 +191,64 @@ export default function StoreProfile() {
     </div>
   );
 }
+
+/* ---------- STYLES (REQUIRED) ---------- */
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: 'linear-gradient(120deg, #e0f2fe, #f0fdf4)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  card: {
+    background: 'white',
+    borderRadius: 12,
+    padding: 30,
+    maxWidth: 420,
+    width: '100%',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+  },
+  verified: {
+    color: 'green',
+    fontWeight: 'bold',
+  },
+  pending: {
+    color: '#b45309',
+    fontWeight: 'bold',
+  },
+  label: {
+    fontSize: 14,
+    marginTop: 10,
+    display: 'block',
+  },
+  input: {
+    width: '100%',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 6,
+    border: '1px solid #ccc',
+  },
+  btnRow: {
+    display: 'flex',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  primaryBtn: {
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    padding: '10px 14px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+  secondaryBtn: {
+    background: '#e5e7eb',
+    border: 'none',
+    padding: '10px 14px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+};
