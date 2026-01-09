@@ -1,26 +1,30 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
 export default function RoleSelect() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
         router.replace('/simple-login');
         return;
       }
 
-      const userId = session.user.id;
+      setUser(user);
 
       const { data: roleRow } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .maybeSingle();
 
+      // ✅ ROLE EXISTS → REDIRECT IMMEDIATELY
       if (roleRow?.role === 'pharmacist') {
         router.replace('/pharmacist-profile');
         return;
@@ -31,20 +35,20 @@ export default function RoleSelect() {
         return;
       }
 
-      // Otherwise show role selection UI
+      // ❌ No role → show role selection UI
+      setLoading(false);
     };
 
     init();
   }, [router]);
 
   const setRole = async (role) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+    if (!user) return;
 
     await supabase
       .from('user_roles')
       .upsert({
-        user_id: session.user.id,
+        user_id: user.id,
         role: role,
       });
 
@@ -54,6 +58,8 @@ export default function RoleSelect() {
         : '/store-profile'
     );
   };
+
+  if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
 
   return (
     <div style={{ padding: 40, textAlign: 'center' }}>
