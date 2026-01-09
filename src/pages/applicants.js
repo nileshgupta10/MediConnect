@@ -1,139 +1,144 @@
-// src/pages/applicants.js
-
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
 export default function ApplicantsPage() {
-  const router = useRouter();
-  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [applicants, setApplicants] = useState([]);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    loadApplicants();
+  }, []);
 
-      if (!session?.user) {
-        router.replace('/simple-login');
-        return;
-      }
+  const loadApplicants = async () => {
+    setLoading(true);
 
-      const { data, error } = await supabase
-        .from('job_applications')
-        .select(`
-          id,
-          created_at,
-          jobs (
-            title,
-            location
-          ),
-          pharmacist_profiles (
-            name,
-            age,
-            sex,
-            marital_status,
-            current_address,
-            ready_to_move,
-            years_experience,
-            software_experience
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        setError(error.message);
-      } else {
-        setApplications(data || []);
-      }
-
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       setLoading(false);
-    };
+      return;
+    }
 
-    init();
-  }, [router]);
+    const { data: jobs } = await supabase
+      .from('jobs')
+      .select('id')
+      .eq('store_owner_id', user.id);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/simple-login');
+    if (!jobs || jobs.length === 0) {
+      setApplicants([]);
+      setLoading(false);
+      return;
+    }
+
+    const jobIds = jobs.map(j => j.id);
+
+    const { data: applications } = await supabase
+      .from('job_applications')
+      .select(`
+        job_id,
+        pharmacist_profiles (
+          user_id,
+          name,
+          years_experience,
+          software_experience,
+          is_verified,
+          license_url
+        )
+      `)
+      .in('job_id', jobIds);
+
+    setApplicants(applications || []);
+    setLoading(false);
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading applicants…
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        {error}
-      </div>
-    );
+    return <p style={{ padding: 20 }}>Loading applicants…</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-indigo-700">
-          Job Applicants
-        </h1>
+    <div style={styles.page}>
+      <h1 style={styles.heading}>Job Applicants</h1>
 
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg"
-        >
-          Logout
-        </button>
-      </div>
-
-      {applications.length === 0 ? (
-        <p className="text-center text-gray-500">
-          No applications yet.
-        </p>
-      ) : (
-        <div className="max-w-6xl mx-auto grid gap-6">
-          {applications.map((app) => {
-            const p = app.pharmacist_profiles;
-
-            return (
-              <div
-                key={app.id}
-                className="bg-white p-6 rounded-xl shadow-sm border"
-              >
-                {/* Job Info */}
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    {app.jobs?.title}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    📍 {app.jobs?.location}
-                  </p>
-                </div>
-
-                {/* Pharmacist Info */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-                  <p><strong>Name:</strong> {p?.name || 'N/A'}</p>
-                  <p><strong>Age:</strong> {p?.age || 'N/A'}</p>
-                  <p><strong>Sex:</strong> {p?.sex || 'N/A'}</p>
-                  <p><strong>Marital Status:</strong> {p?.marital_status || 'N/A'}</p>
-                  <p><strong>Current Address:</strong> {p?.current_address || 'N/A'}</p>
-                  <p><strong>Ready to Move:</strong> {p?.ready_to_move ? 'Yes' : 'No'}</p>
-                  <p><strong>Experience:</strong> {p?.years_experience || 'N/A'} years</p>
-                  <p><strong>Software Experience:</strong> {p?.software_experience || 'N/A'}</p>
-                </div>
-
-                {/* Applied Date */}
-                <p className="mt-4 text-xs text-gray-400">
-                  Applied on {new Date(app.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            );
-          })}
+      {applicants.length === 0 && (
+        <div style={styles.empty}>
+          No applications yet.  
+          Once pharmacists apply, they will appear here.
         </div>
       )}
+
+      {applicants.map((app, index) => {
+        const p = app.pharmacist_profiles;
+        if (!p) return null;
+
+        return (
+          <div key={index} style={styles.card}>
+            <div style={styles.header}>
+              <h2 style={styles.name}>{p.name || 'Unnamed Pharmacist'}</h2>
+              {p.is_verified ? (
+                <span style={styles.verified}>✅ Verified</span>
+              ) : (
+                <span style={styles.pending}>⏳ Pending</span>
+              )}
+            </div>
+
+            <p><b>Experience:</b> {p.years_experience || '—'} years</p>
+            <p><b>Software:</b> {p.software_experience || '—'}</p>
+
+            {p.is_verified && p.license_url && (
+              <a href={p.license_url} target="_blank">
+                View License
+              </a>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+/* ---------- MOBILE-FIRST STYLES ---------- */
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+    padding: 16,
+  },
+  heading: {
+    fontSize: 22,
+    marginBottom: 14,
+  },
+  empty: {
+    background: '#fff',
+    padding: 16,
+    borderRadius: 10,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+    fontSize: 14,
+  },
+  card: {
+    background: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  name: {
+    fontSize: 18,
+    margin: 0,
+  },
+  verified: {
+    color: 'green',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  pending: {
+    color: '#b45309',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+};
