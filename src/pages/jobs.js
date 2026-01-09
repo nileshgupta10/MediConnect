@@ -1,5 +1,3 @@
-// src/pages/jobs.js
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
@@ -9,17 +7,27 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [appliedJobIds, setAppliedJobIds] = useState([]);
   const [user, setUser] = useState(null);
+  const [verified, setVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        setLoading(false);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace('/simple-login');
         return;
       }
 
-      setUser(session.user);
+      setUser(user);
+
+      // 🔍 Check pharmacist verification
+      const { data: profile } = await supabase
+        .from('pharmacist_profiles')
+        .select('is_verified')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setVerified(profile?.is_verified === true);
 
       const { data: jobsData } = await supabase
         .from('jobs')
@@ -29,7 +37,7 @@ export default function JobsPage() {
       const { data: applications } = await supabase
         .from('job_applications')
         .select('job_id')
-        .eq('pharmacist_id', session.user.id);
+        .eq('pharmacist_id', user.id);
 
       setJobs(jobsData || []);
       setAppliedJobIds(applications?.map(a => a.job_id) || []);
@@ -40,7 +48,7 @@ export default function JobsPage() {
   }, [router]);
 
   const handleApply = async (jobId) => {
-    if (!user) return;
+    if (!verified) return;
 
     await supabase.from('job_applications').insert({
       job_id: jobId,
@@ -50,62 +58,99 @@ export default function JobsPage() {
     setAppliedJobIds([...appliedJobIds, jobId]);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/simple-login');
-  };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading jobs…
-      </div>
-    );
+    return <p style={{ padding: 20 }}>Loading jobs…</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-indigo-700">
-          Available Jobs
-        </h1>
+    <div style={styles.page}>
+      <h1 style={styles.heading}>Available Jobs</h1>
 
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg"
-        >
-          Logout
-        </button>
-      </div>
+      {!verified && (
+        <div style={styles.warning}>
+          ⚠️ Your profile is under verification.  
+          You can apply to jobs once verified.
+        </div>
+      )}
 
-      <div className="max-w-5xl mx-auto grid gap-6">
-        {jobs.map((job) => {
-          const applied = appliedJobIds.includes(job.id);
+      {jobs.map(job => {
+        const applied = appliedJobIds.includes(job.id);
 
-          return (
-            <div
-              key={job.id}
-              className="bg-white p-6 rounded-xl shadow border"
+        return (
+          <div key={job.id} style={styles.card}>
+            <h2 style={styles.title}>{job.title}</h2>
+            <p style={styles.location}>{job.location}</p>
+            <p>{job.description}</p>
+
+            <button
+              disabled={!verified || applied}
+              onClick={() => handleApply(job.id)}
+              style={{
+                ...styles.applyBtn,
+                background: applied
+                  ? '#9ca3af'
+                  : verified
+                  ? '#16a34a'
+                  : '#d1d5db',
+                cursor: verified && !applied ? 'pointer' : 'not-allowed',
+              }}
             >
-              <h2 className="text-xl font-semibold">{job.title}</h2>
-              <p className="text-sm text-gray-500">{job.location}</p>
-              <p className="mt-3">{job.description}</p>
-
-              <button
-                disabled={applied}
-                onClick={() => handleApply(job.id)}
-                className={`mt-4 px-4 py-2 rounded-lg text-white ${
-                  applied
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {applied ? 'Applied ✓' : 'Apply'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+              {applied
+                ? 'Applied ✓'
+                : verified
+                ? 'Apply'
+                : 'Verification Pending'}
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
+
+/* ---------- MOBILE-FIRST STYLES ---------- */
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+    padding: 16,
+  },
+  heading: {
+    fontSize: 22,
+    marginBottom: 12,
+  },
+  warning: {
+    background: '#fff7ed',
+    border: '1px solid #fed7aa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    fontSize: 14,
+  },
+  card: {
+    background: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 14,
+    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+  },
+  title: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  location: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  applyBtn: {
+    width: '100%',
+    border: 'none',
+    padding: '12px',
+    borderRadius: 8,
+    color: 'white',
+    fontSize: 16,
+    marginTop: 10,
+  },
+};
