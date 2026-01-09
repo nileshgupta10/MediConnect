@@ -11,6 +11,7 @@ export default function PharmacistProfile() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -21,15 +22,11 @@ export default function PharmacistProfile() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('pharmacist_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        console.error(error);
-      }
+        .maybeSingle();
 
       setProfile(data);
       setLoading(false);
@@ -38,12 +35,13 @@ export default function PharmacistProfile() {
     loadProfile();
   }, [router]);
 
-  // ✅ CORRECT async handler
   const handleFileChange = async (e) => {
     const rawFile = e.target.files[0];
     if (!rawFile) return;
 
+    setMessage('Compressing image...');
     const compressed = await compressImage(rawFile);
+
     setFile(compressed);
     setPreview(URL.createObjectURL(compressed));
     setMessage('');
@@ -55,59 +53,73 @@ export default function PharmacistProfile() {
       return;
     }
 
+    setUploading(true);
     setMessage('Uploading...');
 
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not logged in');
 
-    const filePath = `pharmacist-licenses/${user.id}.jpg`;
+      const filePath = `pharmacist-licenses/${user.id}.jpg`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('licenses')
-      .upload(filePath, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from('licenses')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: 'image/jpeg',
+        });
 
-    if (uploadError) {
-      setMessage(uploadError.message);
-      return;
-    }
+      if (uploadError) throw uploadError;
 
-    const { data: urlData } = supabase.storage
-      .from('licenses')
-      .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage
+        .from('licenses')
+        .getPublicUrl(filePath);
 
-    await supabase
-      .from('pharmacist_profiles')
-      .update({
+      const { error: dbError } = await supabase
+        .from('pharmacist_profiles')
+        .upsert({
+          user_id: user.id,
+          license_url: urlData.publicUrl,
+          is_verified: false,
+        });
+
+      if (dbError) throw dbError;
+
+      setProfile({
         license_url: urlData.publicUrl,
         is_verified: false,
-      })
-      .eq('user_id', user.id);
+      });
 
-    setMessage('License uploaded. Verification pending.');
+      setMessage('License uploaded. Verification pending.');
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) return <p style={{ padding: 40 }}>Loading...</p>;
-  if (!profile) return <p style={{ padding: 40 }}>Profile not found</p>;
 
   return (
     <div style={{ padding: 40, maxWidth: 600, margin: 'auto' }}>
       <h1>Pharmacist Profile</h1>
 
-      {!profile.license_url && (
+      {!profile?.license_url && (
         <div
           style={{
-            border: '2px dashed #2563eb',
+            border: '2px dashed #16a34a',
             padding: 20,
             borderRadius: 8,
             background: '#f9fafb',
             marginBottom: 20,
           }}
         >
-          <h3>Upload Pharmacy License</h3>
+          <h3>Upload Pharmacist License</h3>
 
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleFileChange}
           />
 
@@ -126,21 +138,25 @@ export default function PharmacistProfile() {
             </div>
           )}
 
-          <button onClick={handleUpload} style={{ marginTop: 10 }}>
-            Upload License
+          <button
+            onClick={handleUpload}
+            disabled={uploading}
+            style={{ marginTop: 10 }}
+          >
+            {uploading ? 'Uploading...' : 'Upload License'}
           </button>
 
           {message && <p>{message}</p>}
         </div>
       )}
 
-      {profile.license_url && !profile.is_verified && (
+      {profile?.license_url && !profile.is_verified && (
         <p style={{ color: 'orange' }}>
           ⏳ License uploaded. Verification pending.
         </p>
       )}
 
-      {profile.is_verified && (
+      {profile?.is_verified && (
         <p style={{ color: 'green' }}>
           ✅ Pharmacist verified
         </p>
