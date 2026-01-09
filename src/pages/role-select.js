@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
+const ADMIN_EMAILS = [
+  'maniac.gupta@gmail.com', // 🔴 SAME AS admin.js
+];
+
 export default function RoleSelect() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const init = async () => {
@@ -16,7 +19,11 @@ export default function RoleSelect() {
         return;
       }
 
-      setUser(user);
+      // 🛡️ ADMIN OVERRIDE
+      if (ADMIN_EMAILS.includes(user.email)) {
+        router.replace('/admin');
+        return;
+      }
 
       const { data: roleRow } = await supabase
         .from('user_roles')
@@ -24,7 +31,6 @@ export default function RoleSelect() {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // ✅ ROLE EXISTS → REDIRECT IMMEDIATELY
       if (roleRow?.role === 'pharmacist') {
         router.replace('/pharmacist-profile');
         return;
@@ -35,21 +41,21 @@ export default function RoleSelect() {
         return;
       }
 
-      // ❌ No role → show role selection UI
-      setLoading(false);
+      setLoading(false); // show role select only if no role
     };
 
     init();
   }, [router]);
 
   const setRole = async (role) => {
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase
       .from('user_roles')
       .upsert({
         user_id: user.id,
-        role: role,
+        role,
       });
 
     router.replace(
