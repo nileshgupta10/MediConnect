@@ -15,7 +15,7 @@ export default function JobsPage() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        router.replace('/simple-login');
+        setLoading(false);
         return;
       }
 

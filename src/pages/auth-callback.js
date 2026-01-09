@@ -1,5 +1,3 @@
-// src/pages/auth-callback.js
-
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
@@ -9,14 +7,16 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const finishLogin = async () => {
-      // This restores the session after OAuth redirect
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (session?.user) {
-        router.replace('/role-select');
-      } else {
+      if (!user) {
         router.replace('/simple-login');
+        return;
       }
+
+      // ✅ Always go to role-select.
+      // Role-based routing is handled later.
+      router.replace('/role-select');
     };
 
     finishLogin();
