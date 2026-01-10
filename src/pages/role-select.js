@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
-const ADMIN_EMAILS = [
-  'maniac.gupta@gmail.com', // 🔴 SAME AS admin.js
-];
-
 export default function RoleSelect() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -16,12 +12,6 @@ export default function RoleSelect() {
 
       if (!user) {
         router.replace('/simple-login');
-        return;
-      }
-
-      // 🛡️ ADMIN OVERRIDE
-      if (ADMIN_EMAILS.includes(user.email)) {
-        router.replace('/admin');
         return;
       }
 
@@ -41,7 +31,8 @@ export default function RoleSelect() {
         return;
       }
 
-      setLoading(false); // show role select only if no role
+      // Only reach here if role not set
+      setLoading(false);
     };
 
     init();
