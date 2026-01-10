@@ -2,109 +2,85 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
+
 export default function Layout({ children }) {
+  const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
 
   useEffect(() => {
-    const loadRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const loadUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) return;
+
+      setUser(user);
 
       const { data } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
       setRole(data?.role || null);
     };
 
-    loadRole();
+    loadUser();
   }, []);
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/simple-login';
-  };
+  if (!user) return <>{children}</>;
+
+  const isAdmin = user.email === ADMIN_EMAIL;
 
   return (
-    <div>
-      <nav style={styles.nav}>
-        <div style={styles.brand}>MediConnect</div>
+    <>
+      {/* 🔝 TOP NAV BAR */}
+      <div
+        style={{
+          padding: 12,
+          borderBottom: '1px solid #ddd',
+          display: 'flex',
+          gap: 16,
+        }}
+      >
+        {/* Pharmacist Nav */}
+        {role === 'pharmacist' && (
+          <>
+            <Link href="/jobs">Jobs</Link>
+            <Link href="/training">Training</Link>
+            <Link href="/pharmacist-profile">Profile</Link>
+          </>
+        )}
 
-        <div style={styles.links}>
-          {role === 'pharmacist' && (
-            <>
-              <NavLink href="/jobs">Jobs</NavLink>
-              <NavLink href="/training">Training</NavLink>
-              <NavLink href="/pharmacist-profile">Profile</NavLink>
-            </>
-          )}
+        {/* Store Owner Nav */}
+        {role === 'store_owner' && (
+          <>
+            <Link href="/post-job">Post Job</Link>
+            <Link href="/applicants">Applicants</Link>
+            <Link href="/store-profile">Profile</Link>
+          </>
+        )}
 
-          {role === 'store_owner' && (
-            <>
-              <NavLink href="/post-job">Post Job</NavLink>
-              <NavLink href="/applicants">Applicants</NavLink>
-              <NavLink href="/store-profile">Profile</NavLink>
-            </>
-          )}
+        {/* 🔐 ADMIN TAB (EMAIL-BASED) */}
+        {isAdmin && (
+          <Link href="/admin" style={{ fontWeight: 'bold' }}>
+            Admin Panel
+          </Link>
+        )}
 
-          {role && (
-            <button onClick={logout} style={styles.logout}>
-              Logout
-            </button>
-          )}
-        </div>
-      </nav>
+        {/* Logout */}
+        <button
+          onClick={() => supabase.auth.signOut()}
+          style={{ marginLeft: 'auto', cursor: 'pointer' }}
+        >
+          Logout
+        </button>
+      </div>
 
-      <main style={styles.main}>{children}</main>
-    </div>
+      {/* PAGE CONTENT */}
+      <main>{children}</main>
+    </>
   );
 }
-
-function NavLink({ href, children }) {
-  return (
-    <Link href={href}>
-      <span style={styles.link}>{children}</span>
-    </Link>
-  );
-}
-
-const styles = {
-  nav: {
-    height: 56,
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 16px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-  },
-  brand: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: '#2563eb',
-  },
-  links: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    fontSize: 14,
-  },
-  link: {
-    cursor: 'pointer',
-  },
-  logout: {
-    background: 'transparent',
-    border: 'none',
-    color: '#dc2626',
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  main: {
-    padding: 16,
-  },
-};
