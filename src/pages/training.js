@@ -1,25 +1,28 @@
+import Link from 'next/link';
+
 export default function TrainingPage() {
   return (
     <div style={styles.page}>
       <h1 style={styles.heading}>Training & Skill Development</h1>
 
-      {/* MANAGEMENT */}
+      {/* MANAGEMENT TRAINING */}
       <section style={styles.section}>
-        <h2>Management Training</h2>
+        <h2 style={styles.sectionTitle}>Management Training</h2>
         <p style={styles.text}>
-          Short management crash courses curated from Maharashtra-based pharmacy professionals.
+          Short crash courses on pharmacy management, inventory discipline,
+          and day-to-day operations, curated from Maharashtra-based professionals.
         </p>
 
         <div style={styles.videoBox}>
-          ▶ YouTube Video – Pharmacy Management Basics (Placeholder)
+          ▶ YouTube Video: Pharmacy Management Basics (placeholder)
         </div>
       </section>
 
-      {/* SOFTWARE */}
+      {/* SOFTWARE TRAINING */}
       <section style={styles.section}>
-        <h2>Software Training</h2>
+        <h2 style={styles.sectionTitle}>Software Training</h2>
         <p style={styles.text}>
-          Learn commonly used pharmacy software through guided tutorials.
+          Learn commonly used pharmacy software through guided video tutorials.
         </p>
 
         <ul style={styles.list}>
@@ -33,29 +36,34 @@ export default function TrainingPage() {
 
       {/* MANDATORY TRAINING */}
       <section style={styles.section}>
-        <h2>Mandatory Practical Training</h2>
+        <h2 style={styles.sectionTitle}>Mandatory Practical Training</h2>
         <p style={styles.text}>
           D.Pharmacy students are required to complete three months of practical
-          training at a recognised pharmacy before license eligibility.
+          training at a recognised pharmacy before becoming eligible for a license.
         </p>
 
         <p style={styles.note}>
           Selected verified pharmacies offer structured training programs.
-          Completion will earn an <b>Industry-Ready</b> badge.
+          Completion of training earns an <b>Industry-Ready</b> badge.
         </p>
 
-        <div style={styles.infoBox}>
-          Training listings will appear here.
-        </div>
+        <Link href="/training/mandatory">
+          <span style={styles.link}>
+            View training pharmacies →
+          </span>
+        </Link>
       </section>
     </div>
   );
 }
 
+/* ---------- STYLES ---------- */
+
 const styles = {
   page: {
     maxWidth: 900,
     margin: '0 auto',
+    padding: 16,
   },
   heading: {
     fontSize: 24,
@@ -68,9 +76,17 @@ const styles = {
     marginBottom: 20,
     boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
   },
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 8,
+  },
   text: {
     fontSize: 14,
     color: '#475569',
+    marginBottom: 12,
+  },
+  note: {
+    fontSize: 14,
     marginBottom: 12,
   },
   list: {
@@ -84,15 +100,10 @@ const styles = {
     borderRadius: 8,
     fontSize: 14,
   },
-  infoBox: {
-    background: '#f8fafc',
-    padding: 14,
-    borderRadius: 8,
+  link: {
+    color: '#2563eb',
     fontSize: 14,
-    color: '#64748b',
-  },
-  note: {
-    fontSize: 14,
-    marginBottom: 10,
+    cursor: 'pointer',
+    fontWeight: 500,
   },
 };
