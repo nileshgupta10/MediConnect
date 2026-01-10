@@ -1,43 +1,23 @@
-// src/pages/post-job.js
-
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 
-export default function PostJobPage() {
+export default function PostJob() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('');
+  const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        router.replace('/simple-login');
-        return;
-      }
-      setUser(session.user);
-    };
-    init();
-  }, [router]);
+  const submitJob = async () => {
+    setMessage('Posting job…');
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/simple-login');
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) return;
-
-    setLoading(true);
-    setStatus('');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push('/simple-login');
+      return;
+    }
 
     const { error } = await supabase.from('jobs').insert({
       title,
@@ -46,108 +26,108 @@ export default function PostJobPage() {
       store_owner_id: user.id,
     });
 
-    setLoading(false);
-
     if (error) {
-      setStatus(error.message);
-    } else {
-      setStatus('Job posted successfully.');
-      setTitle('');
-      setLocation('');
-      setDescription('');
+      setMessage(error.message);
+      return;
     }
+
+    setMessage('Job posted successfully.');
+    setTitle('');
+    setLocation('');
+    setDescription('');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* 🔵 STORE OWNER DASHBOARD HEADER */}
-      <div className="max-w-5xl mx-auto flex justify-between items-center mb-8">
-        <div className="flex gap-6 items-center">
-          <span className="text-xl font-bold text-indigo-700">
-            Store Owner Dashboard
-          </span>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <h1 style={styles.heading}>Post a Job</h1>
 
-          {/* 🔗 WIRED LINKS */}
-          <Link
-            href="/post-job"
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            Post Job
-          </Link>
+        <label style={styles.label}>Job Title</label>
+        <input
+          style={styles.input}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Full-time Pharmacist"
+        />
 
-          <Link
-            href="/store-profile"
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            Store Profile
-          </Link>
+        <label style={styles.label}>Location</label>
+        <input
+          style={styles.input}
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="e.g. Dehu Road, Pune"
+        />
 
-          <Link
-            href="/applicants"
-            className="text-sm text-indigo-600 hover:underline"
-          >
-            View Applicants
-          </Link>
-        </div>
+        <label style={styles.label}>Job Description</label>
+        <textarea
+          style={styles.textarea}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Working hours, experience required, shift details"
+        />
 
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-lg"
-        >
-          Logout
+        <button style={styles.primaryBtn} onClick={submitJob}>
+          Post Job
         </button>
+
+        {message && <p style={{ marginTop: 12 }}>{message}</p>}
       </div>
-
-      {/* 🔽 POST JOB FORM */}
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow"
-      >
-        <h1 className="text-2xl font-bold text-indigo-700 mb-6 text-center">
-          Post a New Pharmacy Job
-        </h1>
-
-        <div className="space-y-5">
-          <input
-            placeholder="Job Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="w-full p-3 border rounded-lg"
-          />
-
-          <input
-            placeholder="Location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-            className="w-full p-3 border rounded-lg"
-          />
-
-          <textarea
-            placeholder="Job Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            required
-            className="w-full p-3 border rounded-lg"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-8 w-full py-3 bg-indigo-600 text-white font-bold rounded-lg"
-        >
-          {loading ? 'Posting…' : 'Post Job'}
-        </button>
-
-        {status && (
-          <p className="mt-4 text-center text-sm text-green-600">
-            {status}
-          </p>
-        )}
-      </form>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+    padding: 20,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 520,
+    background: 'white',
+    padding: 24,
+    borderRadius: 12,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+  },
+  heading: {
+    fontSize: 22,
+    marginBottom: 20,
+  },
+  label: {
+    display: 'block',
+    marginTop: 12,
+    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: 500,
+  },
+  input: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    border: '1px solid #cbd5f5',
+    fontSize: 14,
+  },
+  textarea: {
+    width: '100%',
+    minHeight: 100,
+    padding: 12,
+    borderRadius: 8,
+    border: '1px solid #cbd5f5',
+    fontSize: 14,
+  },
+  primaryBtn: {
+    marginTop: 20,
+    width: '100%',
+    padding: 14,
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    borderRadius: 8,
+    fontSize: 16,
+    cursor: 'pointer',
+  },
+};
