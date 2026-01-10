@@ -18,7 +18,8 @@ export default function MandatoryTrainingPage() {
       const { data } = await supabase
         .from('store_profiles')
         .select('store_name, store_timings')
-        .eq('is_verified', true);
+        .eq('is_verified', true)
+        .eq('is_training_eligible', true);
 
       setStores(data || []);
       setLoading(false);
