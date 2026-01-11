@@ -1,115 +1,114 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useRouter } from 'next/router';
 
-export default function MandatoryTrainingPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+export default function MandatoryTraining() {
+  const [user, setUser] = useState(null);
   const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const init = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        router.replace('/simple-login');
+        setLoading(false);
         return;
       }
 
-      const { data } = await supabase
+      setUser(user);
+
+      const { data, error } = await supabase
         .from('store_profiles')
-        .select('store_name, store_timings')
+        .select('user_id, store_name')
         .eq('is_verified', true)
         .eq('is_training_eligible', true);
 
-      setStores(data || []);
+      if (!error) {
+        setStores(data || []);
+      }
+
       setLoading(false);
     };
 
-    load();
-  }, [router]);
+    init();
+  }, []);
+
+  const requestTraining = async (storeId) => {
+    if (!user) {
+      alert('Please login to request training');
+      return;
+    }
+
+    const { error } = await supabase.from('training_requests').insert({
+      pharmacist_id: user.id,
+      store_id: storeId,
+    });
+
+    if (error) {
+      alert('You have already requested training or an error occurred.');
+      return;
+    }
+
+    setMessage('✅ Training request submitted successfully');
+  };
 
   if (loading) {
-    return <p style={{ padding: 20 }}>Loading training pharmacies…</p>;
+    return <p style={{ padding: 20 }}>Loading training opportunities…</p>;
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={styles.heading}>Mandatory Practical Training</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Mandatory Industry Training</h1>
 
-      <p style={styles.intro}>
-        Below is a list of verified pharmacies offering structured
-        three-month practical training for D.Pharmacy students.
+      <p>
+        Selected pharmacies offer <b>3-month mandatory industry training</b>{' '}
+        for pharmacists and students.
       </p>
 
-      {stores.length === 0 && (
-        <div style={styles.empty}>
-          No training pharmacies listed yet.
-        </div>
+      {!user && (
+        <p style={{ color: 'red' }}>
+          Please login to request training.
+        </p>
       )}
 
-      {stores.map((s, idx) => (
-        <div key={idx} style={styles.card}>
-          <h2 style={styles.name}>
-            {s.store_name || 'Unnamed Pharmacy'}
-          </h2>
+      {message && (
+        <p style={{ color: 'green', marginTop: 10 }}>{message}</p>
+      )}
 
-          <p><b>Training Duration:</b> 3 Months</p>
-          <p><b>Slots Available:</b> Limited</p>
-          <p><b>Software Used:</b> Inventory & Billing Software</p>
-          <p><b>Timings:</b> {s.store_timings || 'As per store'}</p>
+      {stores.length === 0 && (
+        <p>No training-eligible stores available.</p>
+      )}
 
-          <div style={styles.badge}>
-            🎓 Industry-Ready Training
-          </div>
+      {stores.map((store) => (
+        <div
+          key={store.user_id}
+          style={{
+            border: '1px solid #ccc',
+            padding: 12,
+            marginBottom: 12,
+            borderRadius: 6,
+          }}
+        >
+          <h3>{store.store_name}</h3>
+
+          <p>Duration: 3 months</p>
+          <p>Badge: Industry-Ready Training</p>
+
+          <button
+            onClick={() => requestTraining(store.user_id)}
+            style={{
+              padding: '6px 12px',
+              cursor: 'pointer',
+              marginTop: 8,
+            }}
+          >
+            Request Training
+          </button>
         </div>
       ))}
     </div>
   );
 }
-
-/* ---------- STYLES ---------- */
-
-const styles = {
-  page: {
-    maxWidth: 900,
-    margin: '0 auto',
-    padding: 16,
-  },
-  heading: {
-    fontSize: 24,
-    marginBottom: 10,
-  },
-  intro: {
-    fontSize: 14,
-    color: '#475569',
-    marginBottom: 20,
-  },
-  empty: {
-    background: '#fff',
-    padding: 16,
-    borderRadius: 10,
-    boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-    fontSize: 14,
-  },
-  card: {
-    background: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-  },
-  name: {
-    fontSize: 18,
-    marginBottom: 6,
-  },
-  badge: {
-    marginTop: 10,
-    display: 'inline-block',
-    padding: '6px 10px',
-    background: '#ecfdf5',
-    color: '#065f46',
-    fontSize: 12,
-    borderRadius: 999,
-    fontWeight: 600,
-  },
-};
