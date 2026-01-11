@@ -6,11 +6,14 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [tab, setTab] = useState('pharmacists');
+  const [pharmacists, setPharmacists] = useState([]);
   const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAdmin = async () => {
+    const init = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -21,96 +24,189 @@ export default function AdminPage() {
       }
 
       if (user.email !== ADMIN_EMAIL) {
-        alert('Unauthorized access');
+        alert('Unauthorized');
         router.replace('/');
         return;
       }
 
-      const { data, error } = await supabase
-        .from('store_profiles')
-        .select('*');
+      setUser(user);
 
-      if (error) {
-        console.error(error);
-        alert('Failed to load stores');
-      } else {
-        setStores(data || []);
-      }
+      await loadPharmacists();
+      await loadStores();
 
       setLoading(false);
     };
 
-    initAdmin();
+    init();
   }, [router]);
 
-  const toggleTrainingEligibility = async (userId, currentStatus) => {
-    const { error } = await supabase
-      .from('store_profiles')
-      .update({ is_training_eligible: !currentStatus })
-      .eq('user_id', userId);
+  const loadPharmacists = async () => {
+    const { data } = await supabase
+      .from('pharmacist_profiles')
+      .select('*');
 
-    if (error) {
-      alert('Update failed');
-      return;
-    }
-
-    setStores((prev) =>
-      prev.map((s) =>
-        s.user_id === userId
-          ? { ...s, is_training_eligible: !currentStatus }
-          : s
-      )
-    );
+    setPharmacists(data || []);
   };
 
-  if (loading) {
-    return <p style={{ padding: 20 }}>Loading admin panel…</p>;
-  }
+  const loadStores = async () => {
+    const { data } = await supabase
+      .from('store_profiles')
+      .select('*');
+
+    setStores(data || []);
+  };
+
+  const updatePharmacistStatus = async (id, status, remark) => {
+    await supabase
+      .from('pharmacist_profiles')
+      .update({
+        verification_status: status,
+        verification_remark: remark,
+        is_verified: status === 'approved',
+      })
+      .eq('user_id', id);
+
+    loadPharmacists();
+  };
+
+  const updateStoreStatus = async (id, status, remark) => {
+    await supabase
+      .from('store_profiles')
+      .update({
+        verification_status: status,
+        verification_remark: remark,
+        is_verified: status === 'approved',
+      })
+      .eq('user_id', id);
+
+    loadStores();
+  };
+
+  if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>;
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Admin Panel</h1>
-      <p>
-        Logged in as <b>{ADMIN_EMAIL}</b>
-      </p>
 
-      {stores.length === 0 && <p>No stores found.</p>}
+      {/* Tabs */}
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={() => setTab('pharmacists')}>
+          Verify Pharmacists
+        </button>{' '}
+        <button onClick={() => setTab('stores')}>
+          Verify Stores
+        </button>
+      </div>
 
-      {stores.map((store) => (
-        <div
-          key={store.user_id}
-          style={{
-            border: '1px solid #ccc',
-            padding: 12,
-            marginBottom: 12,
-            borderRadius: 6,
-          }}
-        >
-          <h3>{store.store_name || 'Unnamed Store'}</h3>
-          <p>
-            <b>Verified:</b>{' '}
-            {store.is_verified ? '✅ Yes' : '❌ No'}
-          </p>
-          <p>
-            <b>Training Eligible:</b>{' '}
-            {store.is_training_eligible ? '✅ Yes' : '❌ No'}
-          </p>
-
-          <button
-            onClick={() =>
-              toggleTrainingEligibility(
-                store.user_id,
-                store.is_training_eligible
-              )
-            }
-            style={{ padding: '6px 12px', cursor: 'pointer' }}
+      {/* Pharmacists */}
+      {tab === 'pharmacists' &&
+        pharmacists.map((p) => (
+          <div
+            key={p.user_id}
+            style={{
+              border: '1px solid #ccc',
+              padding: 12,
+              marginBottom: 12,
+              borderRadius: 6,
+            }}
           >
-            {store.is_training_eligible
-              ? 'Revoke Training Eligibility'
-              : 'Approve for Training'}
-          </button>
-        </div>
-      ))}
+            <h3>{p.name || 'Unnamed Pharmacist'}</h3>
+            <p>Status: <b>{p.verification_status}</b></p>
+
+            {p.license_url && (
+              <p>
+                <a href={p.license_url} target="_blank" rel="noreferrer">
+                  View License
+                </a>
+              </p>
+            )}
+
+            <textarea
+              placeholder="Admin remark"
+              defaultValue={p.verification_remark || ''}
+              id={`remark-ph-${p.user_id}`}
+              style={{ width: '100%', marginBottom: 8 }}
+            />
+
+            <button
+              onClick={() =>
+                updatePharmacistStatus(
+                  p.user_id,
+                  'approved',
+                  document.getElementById(`remark-ph-${p.user_id}`).value
+                )
+              }
+            >
+              Approve
+            </button>{' '}
+            <button
+              onClick={() =>
+                updatePharmacistStatus(
+                  p.user_id,
+                  'rejected',
+                  document.getElementById(`remark-ph-${p.user_id}`).value
+                )
+              }
+            >
+              Reject
+            </button>
+          </div>
+        ))}
+
+      {/* Stores */}
+      {tab === 'stores' &&
+        stores.map((s) => (
+          <div
+            key={s.user_id}
+            style={{
+              border: '1px solid #ccc',
+              padding: 12,
+              marginBottom: 12,
+              borderRadius: 6,
+            }}
+          >
+            <h3>{s.store_name || 'Unnamed Store'}</h3>
+            <p>Status: <b>{s.verification_status}</b></p>
+
+            {s.license_url && (
+              <p>
+                <a href={s.license_url} target="_blank" rel="noreferrer">
+                  View License
+                </a>
+              </p>
+            )}
+
+            <textarea
+              placeholder="Admin remark"
+              defaultValue={s.verification_remark || ''}
+              id={`remark-st-${s.user_id}`}
+              style={{ width: '100%', marginBottom: 8 }}
+            />
+
+            <button
+              onClick={() =>
+                updateStoreStatus(
+                  s.user_id,
+                  'approved',
+                  document.getElementById(`remark-st-${s.user_id}`).value
+                )
+              }
+            >
+              Approve
+            </button>{' '}
+            <button
+              onClick={() =>
+                updateStoreStatus(
+                  s.user_id,
+                  'rejected',
+                  document.getElementById(`remark-st-${s.user_id}`).value
+                )
+              }
+            >
+              Reject
+            </button>
+          </div>
+        ))}
     </div>
   );
 }
