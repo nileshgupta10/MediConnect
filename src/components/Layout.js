@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
 const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
@@ -7,6 +8,7 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -30,22 +32,26 @@ export default function Layout({ children }) {
     loadUser();
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/simple-login');
+  };
+
   if (!user) return <>{children}</>;
 
   const isAdmin = user.email === ADMIN_EMAIL;
 
   return (
     <>
-      {/* 🔝 TOP NAV BAR */}
       <div
         style={{
           padding: 12,
           borderBottom: '1px solid #ddd',
           display: 'flex',
           gap: 16,
+          alignItems: 'center',
         }}
       >
-        {/* Pharmacist Nav */}
         {role === 'pharmacist' && (
           <>
             <Link href="/jobs">Jobs</Link>
@@ -54,7 +60,6 @@ export default function Layout({ children }) {
           </>
         )}
 
-        {/* Store Owner Nav */}
         {role === 'store_owner' && (
           <>
             <Link href="/post-job">Post Job</Link>
@@ -63,23 +68,20 @@ export default function Layout({ children }) {
           </>
         )}
 
-        {/* 🔐 ADMIN TAB (EMAIL-BASED) */}
         {isAdmin && (
           <Link href="/admin" style={{ fontWeight: 'bold' }}>
             Admin Panel
           </Link>
         )}
 
-        {/* Logout */}
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={handleLogout}
           style={{ marginLeft: 'auto', cursor: 'pointer' }}
         >
           Logout
         </button>
       </div>
 
-      {/* PAGE CONTENT */}
       <main>{children}</main>
     </>
   );

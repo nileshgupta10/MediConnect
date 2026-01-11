@@ -1,120 +1,116 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
-const ADMIN_EMAILS = ['maniac.gupta@gmail.com'];
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
-export default function AdminPanel() {
+export default function AdminPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [authorized, setAuthorized] = useState(false);
   const [stores, setStores] = useState([]);
 
   useEffect(() => {
-    let subscription;
+    const initAdmin = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // If session not ready yet, wait for auth change
       if (!user) {
-        const { data } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
-            if (session?.user) {
-              validateAdmin(session.user);
-            } else {
-              redirectToLogin();
-            }
-          }
-        );
-        subscription = data.subscription;
+        router.replace('/simple-login');
         return;
       }
 
-      validateAdmin(user);
-    };
-
-    const validateAdmin = async (user) => {
-      if (!ADMIN_EMAILS.includes(user.email)) {
-        redirectToLogin();
+      if (user.email !== ADMIN_EMAIL) {
+        alert('Unauthorized access');
+        router.replace('/');
         return;
       }
 
-      setAuthorized(true);
-      await loadStores();
+      const { data, error } = await supabase
+        .from('store_profiles')
+        .select('*');
+
+      if (error) {
+        console.error(error);
+        alert('Failed to load stores');
+      } else {
+        setStores(data || []);
+      }
+
       setLoading(false);
     };
 
-    const redirectToLogin = async () => {
-      await supabase.auth.signOut();
-      window.location.href = '/simple-login';
-    };
+    initAdmin();
+  }, [router]);
 
-    const loadStores = async () => {
-      const { data } = await supabase
-        .from('store_profiles')
-        .select('*')
-        .eq('is_verified', true);
-
-      setStores(data || []);
-    };
-
-    init();
-
-    return () => {
-      if (subscription) subscription.unsubscribe();
-    };
-  }, []);
-
-  if (loading || !authorized) {
-    return <p style={{ padding: 40 }}>Loading admin panel…</p>;
-  }
-
-  const toggleTraining = async (user_id, current) => {
-    await supabase
+  const toggleTrainingEligibility = async (userId, currentStatus) => {
+    const { error } = await supabase
       .from('store_profiles')
-      .update({ is_training_eligible: !current })
-      .eq('user_id', user_id);
+      .update({ is_training_eligible: !currentStatus })
+      .eq('user_id', userId);
 
-    const { data } = await supabase
-      .from('store_profiles')
-      .select('*')
-      .eq('is_verified', true);
+    if (error) {
+      alert('Update failed');
+      return;
+    }
 
-    setStores(data || []);
+    setStores((prev) =>
+      prev.map((s) =>
+        s.user_id === userId
+          ? { ...s, is_training_eligible: !currentStatus }
+          : s
+      )
+    );
   };
+
+  if (loading) {
+    return <p style={{ padding: 20 }}>Loading admin panel…</p>;
+  }
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Admin Panel – Training Eligibility</h1>
+      <h1>Admin Panel</h1>
+      <p>
+        Logged in as <b>{ADMIN_EMAIL}</b>
+      </p>
 
-      {stores.length === 0 && <p>No verified stores found.</p>}
+      {stores.length === 0 && <p>No stores found.</p>}
 
-      {stores.map(s => (
-        <div key={s.user_id} style={card}>
-          <b>{s.store_name || 'Unnamed Store'}</b>
+      {stores.map((store) => (
+        <div
+          key={store.user_id}
+          style={{
+            border: '1px solid #ccc',
+            padding: 12,
+            marginBottom: 12,
+            borderRadius: 6,
+          }}
+        >
+          <h3>{store.store_name || 'Unnamed Store'}</h3>
           <p>
-            Training Eligible:{' '}
-            {s.is_training_eligible ? 'Yes' : 'No'}
+            <b>Verified:</b>{' '}
+            {store.is_verified ? '✅ Yes' : '❌ No'}
+          </p>
+          <p>
+            <b>Training Eligible:</b>{' '}
+            {store.is_training_eligible ? '✅ Yes' : '❌ No'}
           </p>
 
           <button
             onClick={() =>
-              toggleTraining(s.user_id, s.is_training_eligible)
+              toggleTrainingEligibility(
+                store.user_id,
+                store.is_training_eligible
+              )
             }
+            style={{ padding: '6px 12px', cursor: 'pointer' }}
           >
-            {s.is_training_eligible
-              ? 'Remove Eligibility'
-              : 'Mark as Training Store'}
+            {store.is_training_eligible
+              ? 'Revoke Training Eligibility'
+              : 'Approve for Training'}
           </button>
         </div>
       ))}
     </div>
   );
 }
-
-const card = {
-  background: 'white',
-  padding: 16,
-  borderRadius: 10,
-  marginBottom: 12,
-  boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-};
