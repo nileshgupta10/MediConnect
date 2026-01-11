@@ -6,85 +6,69 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [tab, setTab] = useState('pharmacists');
-  const [pharmacists, setPharmacists] = useState([]);
+  const [tab, setTab] = useState('stores');
   const [stores, setStores] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         router.replace('/simple-login');
         return;
       }
-
       if (user.email !== ADMIN_EMAIL) {
-        alert('Unauthorized');
         router.replace('/');
         return;
       }
-
-      await loadPharmacists();
       await loadStores();
+      await loadRequests();
       setLoading(false);
     };
-
     init();
   }, [router]);
-
-  const loadPharmacists = async () => {
-    const { data } = await supabase
-      .from('pharmacist_profiles')
-      .select('*')
-      .order('name', { ascending: true });
-
-    setPharmacists(data || []);
-  };
 
   const loadStores = async () => {
     const { data } = await supabase
       .from('store_profiles')
       .select('*')
       .order('store_name', { ascending: true });
-
     setStores(data || []);
   };
 
-  const updatePharmacistStatus = async (id, status, remark) => {
-    await supabase
-      .from('pharmacist_profiles')
-      .update({
-        verification_status: status,
-        verification_remark: remark,
-        is_verified: status === 'approved',
-      })
-      .eq('user_id', id);
-
-    loadPharmacists();
+  const loadRequests = async () => {
+    const { data } = await supabase
+      .from('training_requests')
+      .select(`
+        id,
+        created_at,
+        appointment_date,
+        status,
+        pharmacist_id,
+        store_id
+      `)
+      .order('created_at', { ascending: false });
+    setRequests(data || []);
   };
 
-  const updateStoreStatus = async (id, status, remark) => {
-    await supabase
-      .from('store_profiles')
-      .update({
-        verification_status: status,
-        verification_remark: remark,
-        is_verified: status === 'approved',
-      })
-      .eq('user_id', id);
-
-    loadStores();
-  };
-
-  const toggleTrainingEligibility = async (id, current) => {
+  const toggleTrainingEligibility = async (userId, current) => {
     await supabase
       .from('store_profiles')
       .update({ is_training_eligible: !current })
-      .eq('user_id', id);
-
+      .eq('user_id', userId);
     loadStores();
+  };
+
+  const setAppointment = async (id, date) => {
+    await supabase
+      .from('training_requests')
+      .update({
+        appointment_date: date,
+        status: 'scheduled',
+      })
+      .eq('id', id);
+    loadRequests();
   };
 
   if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>;
@@ -94,100 +78,19 @@ export default function AdminPage() {
       <h1>Admin Panel</h1>
 
       <div style={{ marginBottom: 20 }}>
-        <button onClick={() => setTab('pharmacists')}>Verify Pharmacists</button>{' '}
-        <button onClick={() => setTab('stores')}>Verify Stores</button>
+        <button onClick={() => setTab('stores')}>Training Eligibility</button>{' '}
+        <button onClick={() => setTab('requests')}>Training Requests</button>
       </div>
-
-      {/* PHARMACISTS */}
-      {tab === 'pharmacists' &&
-        pharmacists.map((p) => (
-          <div key={p.user_id} style={styles.card}>
-            <h3>{p.name || 'Unnamed Pharmacist'}</h3>
-            <p>Status: <b>{p.verification_status}</b></p>
-
-            {p.license_url && (
-              <a href={p.license_url} target="_blank" rel="noreferrer">
-                View License
-              </a>
-            )}
-
-            <textarea
-              id={`ph-${p.user_id}`}
-              defaultValue={p.verification_remark || ''}
-              placeholder="Admin remark"
-              style={styles.textarea}
-            />
-
-            <button
-              onClick={() =>
-                updatePharmacistStatus(
-                  p.user_id,
-                  'approved',
-                  document.getElementById(`ph-${p.user_id}`).value
-                )
-              }
-            >
-              Approve
-            </button>{' '}
-            <button
-              onClick={() =>
-                updatePharmacistStatus(
-                  p.user_id,
-                  'rejected',
-                  document.getElementById(`ph-${p.user_id}`).value
-                )
-              }
-            >
-              Reject
-            </button>
-          </div>
-        ))}
 
       {/* STORES */}
       {tab === 'stores' &&
         stores.map((s) => (
           <div key={s.user_id} style={styles.card}>
-            <h3>{s.store_name || 'Unnamed Store'}</h3>
+            <h3>{s.store_name}</h3>
             <p>Status: <b>{s.verification_status}</b></p>
 
-            {s.license_url && (
-              <a href={s.license_url} target="_blank" rel="noreferrer">
-                View License
-              </a>
-            )}
-
-            <textarea
-              id={`st-${s.user_id}`}
-              defaultValue={s.verification_remark || ''}
-              placeholder="Admin remark"
-              style={styles.textarea}
-            />
-
-            <button
-              onClick={() =>
-                updateStoreStatus(
-                  s.user_id,
-                  'approved',
-                  document.getElementById(`st-${s.user_id}`).value
-                )
-              }
-            >
-              Approve
-            </button>{' '}
-            <button
-              onClick={() =>
-                updateStoreStatus(
-                  s.user_id,
-                  'rejected',
-                  document.getElementById(`st-${s.user_id}`).value
-                )
-              }
-            >
-              Reject
-            </button>
-
             {s.verification_status === 'approved' && (
-              <div style={{ marginTop: 10 }}>
+              <div style={styles.toggleBox}>
                 <label>
                   <input
                     type="checkbox"
@@ -199,10 +102,28 @@ export default function AdminPage() {
                       )
                     }
                   />{' '}
-                  Training Eligible
+                  <b>Approved Training Pharmacy</b>
                 </label>
               </div>
             )}
+          </div>
+        ))}
+
+      {/* REQUESTS */}
+      {tab === 'requests' &&
+        requests.map((r) => (
+          <div key={r.id} style={styles.card}>
+            <p><b>Request ID:</b> {r.id}</p>
+            <p>Status: {r.status || 'requested'}</p>
+
+            <label>Appointment Date</label>
+            <input
+              type="date"
+              defaultValue={r.appointment_date || ''}
+              onChange={(e) =>
+                setAppointment(r.id, e.target.value)
+              }
+            />
           </div>
         ))}
     </div>
@@ -212,13 +133,14 @@ export default function AdminPage() {
 const styles = {
   card: {
     border: '1px solid #ccc',
-    padding: 12,
-    borderRadius: 6,
-    marginBottom: 12,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 14,
   },
-  textarea: {
-    width: '100%',
-    margin: '8px 0',
-    padding: 8,
+  toggleBox: {
+    marginTop: 10,
+    padding: 10,
+    background: '#ecfdf5',
+    borderRadius: 6,
   },
 };
