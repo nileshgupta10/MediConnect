@@ -11,25 +11,39 @@ export default function Layout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    const loadUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const getUserAndRole = async (sessionUser) => {
+      if (!sessionUser) {
+        setUser(null);
+        setRole(null);
+        return;
+      }
 
-      if (!user) return;
-
-      setUser(user);
+      setUser(sessionUser);
 
       const { data } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', sessionUser.id)
+        .maybeSingle();
 
       setRole(data?.role || null);
     };
 
-    loadUser();
+    // Initial load
+    supabase.auth.getUser().then(({ data }) => {
+      getUserAndRole(data.user);
+    });
+
+    // 🔥 Listen to auth changes (THIS FIXES LOGOUT)
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        getUserAndRole(session?.user || null);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
