@@ -6,7 +6,6 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function AdminPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
   const [tab, setTab] = useState('pharmacists');
   const [pharmacists, setPharmacists] = useState([]);
   const [stores, setStores] = useState([]);
@@ -14,9 +13,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
         router.replace('/simple-login');
@@ -29,11 +26,8 @@ export default function AdminPage() {
         return;
       }
 
-      setUser(user);
-
       await loadPharmacists();
       await loadStores();
-
       setLoading(false);
     };
 
@@ -43,7 +37,8 @@ export default function AdminPage() {
   const loadPharmacists = async () => {
     const { data } = await supabase
       .from('pharmacist_profiles')
-      .select('*');
+      .select('*')
+      .order('name', { ascending: true });
 
     setPharmacists(data || []);
   };
@@ -51,7 +46,8 @@ export default function AdminPage() {
   const loadStores = async () => {
     const { data } = await supabase
       .from('store_profiles')
-      .select('*');
+      .select('*')
+      .order('store_name', { ascending: true });
 
     setStores(data || []);
   };
@@ -82,50 +78,44 @@ export default function AdminPage() {
     loadStores();
   };
 
+  const toggleTrainingEligibility = async (id, current) => {
+    await supabase
+      .from('store_profiles')
+      .update({ is_training_eligible: !current })
+      .eq('user_id', id);
+
+    loadStores();
+  };
+
   if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>;
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Admin Panel</h1>
 
-      {/* Tabs */}
       <div style={{ marginBottom: 20 }}>
-        <button onClick={() => setTab('pharmacists')}>
-          Verify Pharmacists
-        </button>{' '}
-        <button onClick={() => setTab('stores')}>
-          Verify Stores
-        </button>
+        <button onClick={() => setTab('pharmacists')}>Verify Pharmacists</button>{' '}
+        <button onClick={() => setTab('stores')}>Verify Stores</button>
       </div>
 
-      {/* Pharmacists */}
+      {/* PHARMACISTS */}
       {tab === 'pharmacists' &&
         pharmacists.map((p) => (
-          <div
-            key={p.user_id}
-            style={{
-              border: '1px solid #ccc',
-              padding: 12,
-              marginBottom: 12,
-              borderRadius: 6,
-            }}
-          >
+          <div key={p.user_id} style={styles.card}>
             <h3>{p.name || 'Unnamed Pharmacist'}</h3>
             <p>Status: <b>{p.verification_status}</b></p>
 
             {p.license_url && (
-              <p>
-                <a href={p.license_url} target="_blank" rel="noreferrer">
-                  View License
-                </a>
-              </p>
+              <a href={p.license_url} target="_blank" rel="noreferrer">
+                View License
+              </a>
             )}
 
             <textarea
-              placeholder="Admin remark"
+              id={`ph-${p.user_id}`}
               defaultValue={p.verification_remark || ''}
-              id={`remark-ph-${p.user_id}`}
-              style={{ width: '100%', marginBottom: 8 }}
+              placeholder="Admin remark"
+              style={styles.textarea}
             />
 
             <button
@@ -133,7 +123,7 @@ export default function AdminPage() {
                 updatePharmacistStatus(
                   p.user_id,
                   'approved',
-                  document.getElementById(`remark-ph-${p.user_id}`).value
+                  document.getElementById(`ph-${p.user_id}`).value
                 )
               }
             >
@@ -144,7 +134,7 @@ export default function AdminPage() {
                 updatePharmacistStatus(
                   p.user_id,
                   'rejected',
-                  document.getElementById(`remark-ph-${p.user_id}`).value
+                  document.getElementById(`ph-${p.user_id}`).value
                 )
               }
             >
@@ -153,34 +143,24 @@ export default function AdminPage() {
           </div>
         ))}
 
-      {/* Stores */}
+      {/* STORES */}
       {tab === 'stores' &&
         stores.map((s) => (
-          <div
-            key={s.user_id}
-            style={{
-              border: '1px solid #ccc',
-              padding: 12,
-              marginBottom: 12,
-              borderRadius: 6,
-            }}
-          >
+          <div key={s.user_id} style={styles.card}>
             <h3>{s.store_name || 'Unnamed Store'}</h3>
             <p>Status: <b>{s.verification_status}</b></p>
 
             {s.license_url && (
-              <p>
-                <a href={s.license_url} target="_blank" rel="noreferrer">
-                  View License
-                </a>
-              </p>
+              <a href={s.license_url} target="_blank" rel="noreferrer">
+                View License
+              </a>
             )}
 
             <textarea
-              placeholder="Admin remark"
+              id={`st-${s.user_id}`}
               defaultValue={s.verification_remark || ''}
-              id={`remark-st-${s.user_id}`}
-              style={{ width: '100%', marginBottom: 8 }}
+              placeholder="Admin remark"
+              style={styles.textarea}
             />
 
             <button
@@ -188,7 +168,7 @@ export default function AdminPage() {
                 updateStoreStatus(
                   s.user_id,
                   'approved',
-                  document.getElementById(`remark-st-${s.user_id}`).value
+                  document.getElementById(`st-${s.user_id}`).value
                 )
               }
             >
@@ -199,14 +179,46 @@ export default function AdminPage() {
                 updateStoreStatus(
                   s.user_id,
                   'rejected',
-                  document.getElementById(`remark-st-${s.user_id}`).value
+                  document.getElementById(`st-${s.user_id}`).value
                 )
               }
             >
               Reject
             </button>
+
+            {s.verification_status === 'approved' && (
+              <div style={{ marginTop: 10 }}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={s.is_training_eligible === true}
+                    onChange={() =>
+                      toggleTrainingEligibility(
+                        s.user_id,
+                        s.is_training_eligible
+                      )
+                    }
+                  />{' '}
+                  Training Eligible
+                </label>
+              </div>
+            )}
           </div>
         ))}
     </div>
   );
 }
+
+const styles = {
+  card: {
+    border: '1px solid #ccc',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 12,
+  },
+  textarea: {
+    width: '100%',
+    margin: '8px 0',
+    padding: 8,
+  },
+};
