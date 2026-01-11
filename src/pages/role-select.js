@@ -2,16 +2,26 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
+
 export default function RoleSelect() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         router.replace('/simple-login');
+        return;
+      }
+
+      // 🔐 ADMIN BYPASS (CRITICAL, MINIMAL)
+      if (user.email === ADMIN_EMAIL) {
+        router.replace('/admin');
         return;
       }
 
@@ -39,7 +49,9 @@ export default function RoleSelect() {
   }, [router]);
 
   const setRole = async (role) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     await supabase
