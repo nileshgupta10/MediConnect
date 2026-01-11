@@ -69,7 +69,7 @@ export default function Layout({ children }) {
         {role === 'pharmacist' && (
           <>
             <Link href="/jobs">Jobs</Link>
-            <Link href="/training">Training</Link>
+            {<Link href="/training">Training</Link>}
             <Link href="/pharmacist-profile">Profile</Link>
           </>
         )}
