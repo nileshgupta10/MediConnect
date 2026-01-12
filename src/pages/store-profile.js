@@ -88,6 +88,7 @@ export default function StoreProfile() {
         license_url: url.publicUrl,
         is_verified: false,
         verification_status: 'pending',
+        is_training_eligible: false,
       });
 
       setProfile(prev => ({
@@ -95,6 +96,7 @@ export default function StoreProfile() {
         license_url: url.publicUrl,
         is_verified: false,
         verification_status: 'pending',
+        is_training_eligible: false,
       }));
 
       setMessage('License uploaded. Verification pending.');
@@ -110,20 +112,17 @@ export default function StoreProfile() {
       <div style={styles.card}>
         <h1>Store Profile</h1>
 
-        {/* ✅ TRAINING BADGE (ONLY ADDITION) */}
-        {profile?.verification_status === 'approved' &&
-          profile?.is_training_eligible === true && (
-            <div style={styles.trainingApproved}>
-              🟢 <b>Approved Training Pharmacy</b>
-              <div style={{ fontSize: 12, marginTop: 4 }}>
-                Authorized to provide industry training under MediConnect.
-              </div>
-            </div>
-        )}
-
+        {/* VERIFICATION STATUS */}
         <p style={profile?.is_verified ? styles.verified : styles.pending}>
           {profile?.is_verified ? '✅ Verified Store' : '⏳ Verification Pending'}
         </p>
+
+        {/* TRAINING BADGE */}
+        {profile?.is_verified && profile?.is_training_eligible && (
+          <div style={styles.trainingBadge}>
+            🏅 Approved Training Pharmacy
+          </div>
+        )}
 
         <h3>Store Details</h3>
 
@@ -197,9 +196,6 @@ export default function StoreProfile() {
         </div>
 
         {message && <p>{message}</p>}
-
-        <hr />
-        <a href="/post-job">➡️ Post a Job</a>
       </div>
     </div>
   );
@@ -232,13 +228,15 @@ const styles = {
     color: '#b45309',
     fontWeight: 'bold',
   },
-  trainingApproved: {
-    background: '#ecfdf5',
-    border: '1px solid #6ee7b7',
-    padding: 10,
+  trainingBadge: {
+    background: '#ecfeff',
+    border: '1px solid #67e8f9',
+    color: '#0369a1',
+    padding: '8px 12px',
     borderRadius: 8,
-    marginBottom: 10,
-    color: '#065f46',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
