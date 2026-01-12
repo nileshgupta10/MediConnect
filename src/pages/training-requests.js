@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
+
 export default function TrainingRequests() {
   const [requests, setRequests] = useState([]);
   const [dateTime, setDateTime] = useState({});
@@ -14,12 +16,16 @@ export default function TrainingRequests() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
+    const isAdmin = user.email === ADMIN_EMAIL;
+
+    let query = supabase
       .from('training_requests')
       .select(`
         id,
         appointment_at,
         status,
+        pharmacist_id,
+        store_id,
         pharmacist_profiles (
           name,
           phone
@@ -31,7 +37,19 @@ export default function TrainingRequests() {
       `)
       .order('created_at', { ascending: false });
 
-    setRequests(data || []);
+    // 🔒 STORE OWNER SEES ONLY THEIR REQUESTS
+    if (!isAdmin) {
+      query = query.eq('store_id', user.id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      alert(error.message);
+    } else {
+      setRequests(data || []);
+    }
+
     setLoading(false);
   };
 
@@ -55,34 +73,45 @@ export default function TrainingRequests() {
   if (loading) return <p style={{ padding: 20 }}>Loading…</p>;
 
   return (
-    <div style={styles.page}>
-      <h1>Training Requests – Scheduling</h1>
+    <div style={{ padding: 20, maxWidth: 900, margin: '0 auto' }}>
+      <h1>Training Requests</h1>
 
-      {requests.length === 0 && <p>No training requests.</p>}
+      {requests.length === 0 && (
+        <p>No training requests yet.</p>
+      )}
 
       {requests.map(r => (
-        <div key={r.id} style={styles.card}>
-          <h3>{r.pharmacist_profiles?.name || 'Pharmacist'}</h3>
+        <div
+          key={r.id}
+          style={{
+            border: '1px solid #ccc',
+            padding: 16,
+            marginBottom: 16,
+            borderRadius: 8,
+            background: 'white',
+          }}
+        >
+          <h3>👨‍⚕️ {r.pharmacist_profiles?.name || 'Pharmacist'}</h3>
           <p>
-            Store: <b>{r.store_profiles?.store_name}</b>
+            🏪 Store: <b>{r.store_profiles?.store_name}</b>
           </p>
 
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'pending' && (
             <>
-              <label>Select Appointment Date & Time</label>
+              <label>Schedule Appointment</label>
               <input
                 type="datetime-local"
                 value={dateTime[r.id] || ''}
                 onChange={e =>
                   setDateTime({ ...dateTime, [r.id]: e.target.value })
                 }
-                style={styles.input}
+                style={{ display: 'block', marginBottom: 10 }}
               />
 
-              <button style={styles.primaryBtn} onClick={() => schedule(r.id)}>
-                Schedule Appointment
+              <button onClick={() => schedule(r.id)}>
+                Schedule
               </button>
             </>
           )}
@@ -90,18 +119,17 @@ export default function TrainingRequests() {
           {r.status === 'scheduled' && (
             <>
               <p>
-                📅 Scheduled for:{' '}
-                {new Date(r.appointment_at).toLocaleString()}
+                📅 {new Date(r.appointment_at).toLocaleString()}
               </p>
 
               <p>
                 📞 Pharmacist Phone:{' '}
-                <b>{r.pharmacist_profiles?.phone || '—'}</b>
+                <b>{r.pharmacist_profiles?.phone}</b>
               </p>
 
               <p>
                 📞 Store Phone:{' '}
-                <b>{r.store_profiles?.phone || '—'}</b>
+                <b>{r.store_profiles?.phone}</b>
               </p>
             </>
           )}
@@ -110,33 +138,3 @@ export default function TrainingRequests() {
     </div>
   );
 }
-
-const styles = {
-  page: {
-    padding: 20,
-    maxWidth: 800,
-    margin: '0 auto',
-  },
-  card: {
-    border: '1px solid #ccc',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-    background: 'white',
-  },
-  input: {
-    display: 'block',
-    marginTop: 8,
-    marginBottom: 10,
-    padding: 8,
-    width: '100%',
-  },
-  primaryBtn: {
-    background: '#2563eb',
-    color: 'white',
-    border: 'none',
-    padding: '8px 14px',
-    borderRadius: 6,
-    cursor: 'pointer',
-  },
-};
