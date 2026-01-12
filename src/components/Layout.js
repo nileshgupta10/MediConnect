@@ -11,39 +11,22 @@ export default function Layout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    const getUserAndRole = async (sessionUser) => {
-      if (!sessionUser) {
-        setUser(null);
-        setRole(null);
-        return;
-      }
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      setUser(sessionUser);
+      setUser(user);
 
       const { data } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', sessionUser.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       setRole(data?.role || null);
     };
 
-    // Initial load
-    supabase.auth.getUser().then(({ data }) => {
-      getUserAndRole(data.user);
-    });
-
-    // 🔥 Listen to auth changes (THIS FIXES LOGOUT)
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        getUserAndRole(session?.user || null);
-      }
-    );
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
+    loadUser();
   }, []);
 
   const handleLogout = async () => {
@@ -66,26 +49,36 @@ export default function Layout({ children }) {
           alignItems: 'center',
         }}
       >
+        {/* Pharmacist Nav */}
         {role === 'pharmacist' && (
           <>
             <Link href="/jobs">Jobs</Link>
-            {<Link href="/training">Training</Link>}
+            <Link href="/training">Training</Link>
+            <Link href="/my-training">My Training</Link>
             <Link href="/pharmacist-profile">Profile</Link>
           </>
         )}
 
+        {/* Store Owner Nav */}
         {role === 'store_owner' && (
           <>
             <Link href="/post-job">Post Job</Link>
             <Link href="/applicants">Applicants</Link>
+            <Link href="/training-requests">Training Requests</Link>
             <Link href="/store-profile">Profile</Link>
           </>
         )}
 
+        {/* Admin Nav */}
         {isAdmin && (
-          <Link href="/admin" style={{ fontWeight: 'bold' }}>
-            Admin Panel
-          </Link>
+          <>
+            <Link href="/admin" style={{ fontWeight: 'bold' }}>
+              Admin Panel
+            </Link>
+            <Link href="/training-requests">
+              Training Scheduling
+            </Link>
+          </>
         )}
 
         <button
