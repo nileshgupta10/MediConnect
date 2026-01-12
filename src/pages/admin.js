@@ -7,8 +7,8 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 export default function AdminPage() {
   const router = useRouter();
 
-  const [mainTab, setMainTab] = useState('pharmacists'); // pharmacists | stores
-  const [subTab, setSubTab] = useState('pending'); // pending | approved | rejected
+  const [entity, setEntity] = useState('pharmacists'); // pharmacists | stores
+  const [status, setStatus] = useState('pending'); // pending | approved | rejected
 
   const [pharmacists, setPharmacists] = useState([]);
   const [stores, setStores] = useState([]);
@@ -57,136 +57,181 @@ export default function AdminPage() {
     setStores(data || []);
   };
 
-  /* ---------- UPDATE ACTIONS ---------- */
+  /* ---------- ACTIONS ---------- */
 
-  const updatePharmacistStatus = async (userId, status) => {
+  const updatePharmacistStatus = async (userId, newStatus) => {
     await supabase
       .from('pharmacist_profiles')
       .update({
-        verification_status: status,
-        is_verified: status === 'approved',
+        verification_status: newStatus,
+        is_verified: newStatus === 'approved',
       })
       .eq('user_id', userId);
 
     loadPharmacists();
   };
 
-  const updateStoreStatus = async (userId, status) => {
+  const updateStoreStatus = async (userId, newStatus) => {
     await supabase
       .from('store_profiles')
       .update({
-        verification_status: status,
-        is_verified: status === 'approved',
+        verification_status: newStatus,
+        is_verified: newStatus === 'approved',
+        is_training_eligible: false, // reset on re-verify
       })
       .eq('user_id', userId);
 
     loadStores();
   };
 
-  /* ---------- FILTERED DATA ---------- */
+  const toggleTrainingEligibility = async (userId, current) => {
+    await supabase
+      .from('store_profiles')
+      .update({
+        is_training_eligible: !current,
+      })
+      .eq('user_id', userId);
 
-  const filteredPharmacists = pharmacists.filter(
-    (p) => (p.verification_status || 'pending') === subTab
-  );
+    loadStores();
+  };
 
-  const filteredStores = stores.filter(
-    (s) => (s.verification_status || 'pending') === subTab
-  );
+  /* ---------- FILTERED LIST ---------- */
+
+  const list =
+    entity === 'pharmacists'
+      ? pharmacists.filter(p => (p.verification_status || 'pending') === status)
+      : stores.filter(s => (s.verification_status || 'pending') === status);
 
   if (loading) {
     return <p style={{ padding: 20 }}>Loading admin panel…</p>;
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={styles.page}>
       <h1>Admin Panel</h1>
 
-      {/* MAIN TABS */}
-      <div style={styles.tabRow}>
+      {/* ENTITY SELECT */}
+      <div style={styles.switchRow}>
         <button
-          onClick={() => {
-            setMainTab('pharmacists');
-            setSubTab('pending');
-          }}
+          style={entity === 'pharmacists' ? styles.activeBtn : styles.btn}
+          onClick={() => setEntity('pharmacists')}
         >
-          Verify Pharmacists
+          Pharmacists
         </button>
         <button
-          onClick={() => {
-            setMainTab('stores');
-            setSubTab('pending');
-          }}
+          style={entity === 'stores' ? styles.activeBtn : styles.btn}
+          onClick={() => setEntity('stores')}
         >
-          Verify Stores
+          Stores
         </button>
       </div>
 
-      {/* SUB TABS */}
-      <div style={styles.subTabRow}>
-        <button onClick={() => setSubTab('pending')}>Pending</button>
-        <button onClick={() => setSubTab('approved')}>Approved</button>
-        <button onClick={() => setSubTab('rejected')}>Rejected</button>
+      {/* STATUS SELECT */}
+      <div style={styles.switchRow}>
+        <button
+          style={status === 'pending' ? styles.activeBtn : styles.btn}
+          onClick={() => setStatus('pending')}
+        >
+          Pending
+        </button>
+        <button
+          style={status === 'approved' ? styles.activeBtn : styles.btn}
+          onClick={() => setStatus('approved')}
+        >
+          Approved
+        </button>
+        <button
+          style={status === 'rejected' ? styles.activeBtn : styles.btn}
+          onClick={() => setStatus('rejected')}
+        >
+          Rejected
+        </button>
       </div>
 
-      {/* NOTE FOR STORES */}
-      {mainTab === 'stores' && subTab === 'pending' && (
+      {/* CONTEXT HEADER */}
+      <h2 style={{ marginTop: 20 }}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}{' '}
+        {entity === 'pharmacists' ? 'Pharmacists' : 'Stores'}
+      </h2>
+
+      {/* NOTE */}
+      {entity === 'stores' && status === 'pending' && (
         <div style={styles.note}>
-          Once a store is approved or rejected, it will automatically move to the
-          respective tab. Approved stores can later be marked as training-eligible.
+          After approval or rejection, stores will automatically move to the
+          respective tab. Approved stores can be marked as training-eligible.
         </div>
       )}
 
-      {/* PHARMACISTS */}
-      {mainTab === 'pharmacists' &&
-        filteredPharmacists.map((p) => (
-          <div key={p.user_id} style={styles.card}>
-            <h3>{p.name || 'Unnamed Pharmacist'}</h3>
-            <p>Status: <b>{p.verification_status || 'pending'}</b></p>
+      {/* LIST */}
+      {list.length === 0 && <p>No records found.</p>}
 
-            {p.license_url && (
-              <a href={p.license_url} target="_blank" rel="noreferrer">
-                View License
-              </a>
-            )}
+      {list.map((item) => (
+        <div key={item.user_id} style={styles.card}>
+          <h3>
+            {entity === 'pharmacists'
+              ? item.name || 'Unnamed Pharmacist'
+              : item.store_name || item.name || 'Unnamed Store'}
+          </h3>
 
-            {subTab === 'pending' && (
-              <div>
-                <button onClick={() => updatePharmacistStatus(p.user_id, 'approved')}>
-                  Approve
-                </button>{' '}
-                <button onClick={() => updatePharmacistStatus(p.user_id, 'rejected')}>
-                  Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          <p>
+            Status:{' '}
+            <span style={styles.badge}>
+              {item.verification_status || 'pending'}
+            </span>
+          </p>
 
-      {/* STORES */}
-      {mainTab === 'stores' &&
-        filteredStores.map((s) => (
-          <div key={s.user_id} style={styles.card}>
-            <h3>{s.store_name || s.name || 'Unnamed Store'}</h3>
-            <p>Status: <b>{s.verification_status || 'pending'}</b></p>
+          {item.license_url && (
+            <a href={item.license_url} target="_blank" rel="noreferrer">
+              View License
+            </a>
+          )}
 
-            {s.license_url && (
-              <a href={s.license_url} target="_blank" rel="noreferrer">
-                View License
-              </a>
-            )}
+          {/* ACTIONS */}
+          {status === 'pending' && (
+            <div style={{ marginTop: 8 }}>
+              <button
+                style={styles.approve}
+                onClick={() =>
+                  entity === 'pharmacists'
+                    ? updatePharmacistStatus(item.user_id, 'approved')
+                    : updateStoreStatus(item.user_id, 'approved')
+                }
+              >
+                Approve
+              </button>{' '}
+              <button
+                style={styles.reject}
+                onClick={() =>
+                  entity === 'pharmacists'
+                    ? updatePharmacistStatus(item.user_id, 'rejected')
+                    : updateStoreStatus(item.user_id, 'rejected')
+                }
+              >
+                Reject
+              </button>
+            </div>
+          )}
 
-            {subTab === 'pending' && (
-              <div>
-                <button onClick={() => updateStoreStatus(s.user_id, 'approved')}>
-                  Approve
-                </button>{' '}
-                <button onClick={() => updateStoreStatus(s.user_id, 'rejected')}>
-                  Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          {/* TRAINING TOGGLE */}
+          {entity === 'stores' && status === 'approved' && (
+            <div style={{ marginTop: 10 }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={item.is_training_eligible || false}
+                  onChange={() =>
+                    toggleTrainingEligibility(
+                      item.user_id,
+                      item.is_training_eligible
+                    )
+                  }
+                />{' '}
+                Training Eligible
+              </label>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -194,28 +239,66 @@ export default function AdminPage() {
 /* ---------- STYLES ---------- */
 
 const styles = {
-  tabRow: {
-    display: 'flex',
-    gap: 10,
-    marginBottom: 12,
+  page: {
+    padding: 20,
+    maxWidth: 800,
+    margin: '0 auto',
   },
-  subTabRow: {
+  switchRow: {
     display: 'flex',
     gap: 10,
-    marginBottom: 16,
+    marginTop: 10,
+  },
+  btn: {
+    padding: '8px 14px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    background: '#f8fafc',
+    cursor: 'pointer',
+  },
+  activeBtn: {
+    padding: '8px 14px',
+    borderRadius: 6,
+    border: '1px solid #2563eb',
+    background: '#2563eb',
+    color: 'white',
+    cursor: 'pointer',
   },
   card: {
-    border: '1px solid #ccc',
+    border: '1px solid #ddd',
     padding: 14,
     borderRadius: 8,
-    marginBottom: 14,
+    marginTop: 14,
+    background: 'white',
+  },
+  badge: {
+    background: '#e5e7eb',
+    padding: '2px 8px',
+    borderRadius: 12,
+    fontSize: 12,
+  },
+  approve: {
+    background: '#16a34a',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+  reject: {
+    background: '#dc2626',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
   },
   note: {
     background: '#fff7ed',
     border: '1px solid #fed7aa',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 14,
+    marginTop: 12,
     fontSize: 14,
   },
 };
