@@ -18,44 +18,60 @@ export default function TrainingRequests() {
 
     const isAdmin = user.email === ADMIN_EMAIL;
 
+    // 1️⃣ Get training requests
     let query = supabase
       .from('training_requests')
-      .select(`
-        id,
-        appointment_at,
-        status,
-        pharmacist_id,
-        store_id,
-        pharmacist_profiles (
-          name,
-          phone
-        ),
-        store_profiles (
-          store_name,
-          phone
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    // 🔒 STORE OWNER SEES ONLY THEIR REQUESTS
     if (!isAdmin) {
       query = query.eq('store_id', user.id);
     }
 
-    const { data, error } = await query;
-
+    const { data: reqs, error } = await query;
     if (error) {
       alert(error.message);
-    } else {
-      setRequests(data || []);
+      return;
     }
 
+    // 2️⃣ Collect IDs
+    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
+    const storeIds = [...new Set(reqs.map(r => r.store_id))];
+
+    // 3️⃣ Fetch profiles
+    const { data: pharmacists } = await supabase
+      .from('pharmacist_profiles')
+      .select('user_id, name, phone')
+      .in('user_id', pharmacistIds);
+
+    const { data: stores } = await supabase
+      .from('store_profiles')
+      .select('user_id, store_name, phone')
+      .in('user_id', storeIds);
+
+    // 4️⃣ Map for fast lookup
+    const pharmacistMap = Object.fromEntries(
+      (pharmacists || []).map(p => [p.user_id, p])
+    );
+
+    const storeMap = Object.fromEntries(
+      (stores || []).map(s => [s.user_id, s])
+    );
+
+    // 5️⃣ Merge data
+    const enriched = reqs.map(r => ({
+      ...r,
+      pharmacist: pharmacistMap[r.pharmacist_id],
+      store: storeMap[r.store_id],
+    }));
+
+    setRequests(enriched);
     setLoading(false);
   };
 
   const schedule = async (id) => {
     if (!dateTime[id]) {
-      alert('Please select date and time');
+      alert('Select date & time');
       return;
     }
 
@@ -76,61 +92,35 @@ export default function TrainingRequests() {
     <div style={{ padding: 20, maxWidth: 900, margin: '0 auto' }}>
       <h1>Training Requests</h1>
 
-      {requests.length === 0 && (
-        <p>No training requests yet.</p>
-      )}
+      {requests.length === 0 && <p>No requests yet.</p>}
 
       {requests.map(r => (
-        <div
-          key={r.id}
-          style={{
-            border: '1px solid #ccc',
-            padding: 16,
-            marginBottom: 16,
-            borderRadius: 8,
-            background: 'white',
-          }}
-        >
-          <h3>👨‍⚕️ {r.pharmacist_profiles?.name || 'Pharmacist'}</h3>
-          <p>
-            🏪 Store: <b>{r.store_profiles?.store_name}</b>
-          </p>
-
+        <div key={r.id} style={styles.card}>
+          <h3>👨‍⚕️ {r.pharmacist?.name || 'Pharmacist'}</h3>
+          <p>🏪 {r.store?.store_name}</p>
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'pending' && (
             <>
-              <label>Schedule Appointment</label>
               <input
                 type="datetime-local"
                 value={dateTime[r.id] || ''}
                 onChange={e =>
                   setDateTime({ ...dateTime, [r.id]: e.target.value })
                 }
-                style={{ display: 'block', marginBottom: 10 }}
               />
-
+              <br />
               <button onClick={() => schedule(r.id)}>
-                Schedule
+                Schedule Appointment
               </button>
             </>
           )}
 
           {r.status === 'scheduled' && (
             <>
-              <p>
-                📅 {new Date(r.appointment_at).toLocaleString()}
-              </p>
-
-              <p>
-                📞 Pharmacist Phone:{' '}
-                <b>{r.pharmacist_profiles?.phone}</b>
-              </p>
-
-              <p>
-                📞 Store Phone:{' '}
-                <b>{r.store_profiles?.phone}</b>
-              </p>
+              <p>📅 {new Date(r.appointment_at).toLocaleString()}</p>
+              <p>📞 Pharmacist: {r.pharmacist?.phone}</p>
+              <p>📞 Store: {r.store?.phone}</p>
             </>
           )}
         </div>
@@ -138,3 +128,13 @@ export default function TrainingRequests() {
     </div>
   );
 }
+
+const styles = {
+  card: {
+    border: '1px solid #ccc',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+    background: 'white',
+  },
+};

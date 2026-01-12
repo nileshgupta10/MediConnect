@@ -13,20 +13,30 @@ export default function Layout({ children }) {
   useEffect(() => {
     const loadUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      setUser(user || null);
 
-      setUser(user);
+      if (user) {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      setRole(data?.role || null);
+        setRole(data?.role || null);
+      } else {
+        setRole(null);
+      }
     };
 
     loadUser();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -40,16 +50,7 @@ export default function Layout({ children }) {
 
   return (
     <>
-      <div
-        style={{
-          padding: 12,
-          borderBottom: '1px solid #ddd',
-          display: 'flex',
-          gap: 16,
-          alignItems: 'center',
-        }}
-      >
-        {/* Pharmacist Nav */}
+      <div style={styles.nav}>
         {role === 'pharmacist' && (
           <>
             <Link href="/jobs">Jobs</Link>
@@ -59,7 +60,6 @@ export default function Layout({ children }) {
           </>
         )}
 
-        {/* Store Owner Nav */}
         {role === 'store_owner' && (
           <>
             <Link href="/post-job">Post Job</Link>
@@ -69,22 +69,14 @@ export default function Layout({ children }) {
           </>
         )}
 
-        {/* Admin Nav */}
         {isAdmin && (
           <>
-            <Link href="/admin" style={{ fontWeight: 'bold' }}>
-              Admin Panel
-            </Link>
-            <Link href="/training-requests">
-              Training Scheduling
-            </Link>
+            <Link href="/admin">Admin Panel</Link>
+            <Link href="/training-requests">Training Scheduling</Link>
           </>
         )}
 
-        <button
-          onClick={handleLogout}
-          style={{ marginLeft: 'auto', cursor: 'pointer' }}
-        >
+        <button onClick={handleLogout} style={{ marginLeft: 'auto' }}>
           Logout
         </button>
       </div>
@@ -93,3 +85,13 @@ export default function Layout({ children }) {
     </>
   );
 }
+
+const styles = {
+  nav: {
+    padding: 12,
+    borderBottom: '1px solid #ddd',
+    display: 'flex',
+    gap: 16,
+    alignItems: 'center',
+  },
+};
