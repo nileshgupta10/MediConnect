@@ -1,45 +1,102 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+
 export default function Training() {
+  const [stores, setStores] = useState([]);
+  const [user, setUser] = useState(null);
+  const [requested, setRequested] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user || null);
+
+      const { data: storesData } = await supabase
+        .from('store_profiles')
+        .select('user_id, store_name, store_timings')
+        .eq('is_verified', true)
+        .eq('is_training_eligible', true)
+        .order('store_name', { ascending: true });
+
+      setStores(storesData || []);
+
+      if (user) {
+        const { data: req } = await supabase
+          .from('training_requests')
+          .select('store_id')
+          .eq('pharmacist_id', user.id);
+
+        setRequested(req?.map(r => r.store_id) || []);
+      }
+
+      setLoading(false);
+    };
+
+    init();
+  }, []);
+
+  const requestTraining = async (storeId) => {
+    if (!user) {
+      alert('Please login to request training');
+      return;
+    }
+
+    const { error } = await supabase.from('training_requests').insert({
+      pharmacist_id: user.id,
+      store_id: storeId,
+    });
+
+    if (!error) {
+      setRequested([...requested, storeId]);
+    }
+  };
+
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.heading}>Training Module</h1>
+        <h1>Training Module</h1>
 
-        <p style={styles.intro}>
-          MediConnect training resources are designed to help pharmacists
-          and students become industry-ready.
-        </p>
+        <h3>🏥 Approved Training Pharmacies</h3>
+
+        {loading && <p>Loading…</p>}
+
+        {!loading && stores.length === 0 && (
+          <p>No training-eligible pharmacies available yet.</p>
+        )}
+
+        {stores.map((s) => {
+          const alreadyRequested = requested.includes(s.user_id);
+
+          return (
+            <div key={s.user_id} style={styles.storeCard}>
+              <h4>{s.store_name}</h4>
+              <p>Timings: {s.store_timings || '—'}</p>
+
+              <button
+                disabled={alreadyRequested}
+                onClick={() => requestTraining(s.user_id)}
+                style={{
+                  ...styles.btn,
+                  background: alreadyRequested ? '#9ca3af' : '#2563eb',
+                }}
+              >
+                {alreadyRequested ? 'Requested ✓' : 'Request Training'}
+              </button>
+            </div>
+          );
+        })}
 
         <hr />
 
-        <h3>🧠 Management Training</h3>
-        <ul>
-          <li>Customer handling basics</li>
-          <li>Inventory discipline</li>
-          <li>Prescription workflow understanding</li>
-        </ul>
-
         <h3>💻 Software Training</h3>
-        <ul>
-          <li>
-            <a
-              href="https://youtu.be/Od9fwj8mOOk"
-              target="_blank"
-              rel="noreferrer"
-              style={styles.link}
-            >
-              CARE Pharmacy Software – Basic Walkthrough (YouTube)
-            </a>
-          </li>
-        </ul>
-
-        <h3>🏥 Mandatory Industry Training</h3>
-        <p>
-          Selected pharmacies offer mandatory 3-month industry training.
-        </p>
-
-        <p style={styles.note}>
-          🔒 Mandatory training requests will be enabled after admin approval.
-        </p>
+        <a
+          href="https://youtu.be/Od9fwj8mOOk"
+          target="_blank"
+          rel="noreferrer"
+        >
+          CARE Pharmacy Software – Basic Walkthrough
+        </a>
       </div>
     </div>
   );
@@ -51,35 +108,30 @@ const styles = {
   page: {
     minHeight: '100vh',
     background: '#f8fafc',
+    padding: 20,
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'flex-start',
-    padding: 20,
   },
   card: {
     background: 'white',
-    padding: 30,
+    padding: 24,
     borderRadius: 12,
     maxWidth: 600,
     width: '100%',
     boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
   },
-  heading: {
-    fontSize: 26,
-    marginBottom: 10,
-  },
-  intro: {
-    fontSize: 15,
-    color: '#475569',
-    marginBottom: 20,
-  },
-  link: {
-    color: '#2563eb',
-    textDecoration: 'underline',
-  },
-  note: {
+  storeCard: {
+    border: '1px solid #ddd',
+    borderRadius: 8,
+    padding: 12,
     marginTop: 10,
-    fontSize: 13,
-    color: '#64748b',
+  },
+  btn: {
+    color: 'white',
+    border: 'none',
+    padding: '8px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+    marginTop: 6,
   },
 };
