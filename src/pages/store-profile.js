@@ -11,6 +11,7 @@ export default function StoreProfile() {
   const [storeName, setStoreName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [storeTimings, setStoreTimings] = useState('');
+  const [phone, setPhone] = useState('');
 
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -31,6 +32,7 @@ export default function StoreProfile() {
         setStoreName(data.store_name || '');
         setContactPerson(data.contact_person || '');
         setStoreTimings(data.store_timings || '');
+        setPhone(data.phone || '');
       }
 
       setLoading(false);
@@ -48,6 +50,7 @@ export default function StoreProfile() {
       store_name: storeName,
       contact_person: contactPerson,
       store_timings: storeTimings,
+      phone,
     });
 
     if (error) {
@@ -60,6 +63,7 @@ export default function StoreProfile() {
       store_name: storeName,
       contact_person: contactPerson,
       store_timings: storeTimings,
+      phone,
     }));
 
     setEditing(false);
@@ -112,12 +116,10 @@ export default function StoreProfile() {
       <div style={styles.card}>
         <h1>Store Profile</h1>
 
-        {/* VERIFICATION STATUS */}
         <p style={profile?.is_verified ? styles.verified : styles.pending}>
           {profile?.is_verified ? '✅ Verified Store' : '⏳ Verification Pending'}
         </p>
 
-        {/* TRAINING BADGE */}
         {profile?.is_verified && profile?.is_training_eligible && (
           <div style={styles.trainingBadge}>
             🏅 Approved Training Pharmacy
@@ -139,25 +141,16 @@ export default function StoreProfile() {
         ) : (
           <>
             <label style={styles.label}>Store Name</label>
-            <input
-              style={styles.input}
-              value={storeName}
-              onChange={e => setStoreName(e.target.value)}
-            />
+            <input style={styles.input} value={storeName} onChange={e => setStoreName(e.target.value)} />
 
             <label style={styles.label}>Contact Person</label>
-            <input
-              style={styles.input}
-              value={contactPerson}
-              onChange={e => setContactPerson(e.target.value)}
-            />
+            <input style={styles.input} value={contactPerson} onChange={e => setContactPerson(e.target.value)} />
 
             <label style={styles.label}>Store Timings</label>
-            <input
-              style={styles.input}
-              value={storeTimings}
-              onChange={e => setStoreTimings(e.target.value)}
-            />
+            <input style={styles.input} value={storeTimings} onChange={e => setStoreTimings(e.target.value)} />
+
+            <label style={styles.label}>Phone Number (not shared publicly)</label>
+            <input style={styles.input} value={phone} onChange={e => setPhone(e.target.value)} />
 
             <button style={styles.primaryBtn} onClick={saveProfile}>
               Save Store Profile
@@ -169,30 +162,15 @@ export default function StoreProfile() {
 
         <h3>Upload Store License</h3>
 
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={cameraInputRef}
-          style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])}
-        />
+        <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])} />
 
-        <input
-          type="file"
-          accept="image/*"
-          ref={galleryInputRef}
-          style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])}
-        />
+        <input type="file" accept="image/*" ref={galleryInputRef} style={{ display: 'none' }}
+          onChange={e => uploadLicense(e.target.files[0])} />
 
         <div style={styles.btnRow}>
-          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>
-            📷 Take Photo
-          </button>
-          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>
-            🖼️ Choose from Gallery
-          </button>
+          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>📷 Take Photo</button>
+          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>🖼️ Choose from Gallery</button>
         </div>
 
         {message && <p>{message}</p>}
@@ -200,8 +178,6 @@ export default function StoreProfile() {
     </div>
   );
 }
-
-/* ---------- STYLES ---------- */
 
 const styles = {
   page: {
@@ -220,14 +196,8 @@ const styles = {
     width: '100%',
     boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
   },
-  verified: {
-    color: 'green',
-    fontWeight: 'bold',
-  },
-  pending: {
-    color: '#b45309',
-    fontWeight: 'bold',
-  },
+  verified: { color: 'green', fontWeight: 'bold' },
+  pending: { color: '#b45309', fontWeight: 'bold' },
   trainingBadge: {
     background: '#ecfeff',
     border: '1px solid #67e8f9',
@@ -238,11 +208,7 @@ const styles = {
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  label: {
-    fontSize: 14,
-    marginTop: 10,
-    display: 'block',
-  },
+  label: { fontSize: 14, marginTop: 10, display: 'block' },
   input: {
     width: '100%',
     padding: 10,
@@ -250,11 +216,7 @@ const styles = {
     borderRadius: 6,
     border: '1px solid #ccc',
   },
-  btnRow: {
-    display: 'flex',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
+  btnRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
   primaryBtn: {
     background: '#2563eb',
     color: 'white',

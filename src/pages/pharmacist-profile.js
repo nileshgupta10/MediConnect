@@ -12,6 +12,7 @@ export default function PharmacistProfile() {
   const [name, setName] = useState('');
   const [yearsExperience, setYearsExperience] = useState('');
   const [softwareExperience, setSoftwareExperience] = useState('');
+  const [phone, setPhone] = useState('');
 
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
@@ -32,6 +33,7 @@ export default function PharmacistProfile() {
         setName(data.name || '');
         setYearsExperience(data.years_experience || '');
         setSoftwareExperience(data.software_experience || '');
+        setPhone(data.phone || '');
       }
 
       setLoading(false);
@@ -50,6 +52,7 @@ export default function PharmacistProfile() {
         name,
         years_experience: yearsExperience,
         software_experience: softwareExperience,
+        phone,
       });
 
     if (error) {
@@ -62,6 +65,7 @@ export default function PharmacistProfile() {
       name,
       years_experience: yearsExperience,
       software_experience: softwareExperience,
+      phone,
     }));
 
     setEditing(false);
@@ -137,6 +141,13 @@ export default function PharmacistProfile() {
               placeholder="e.g. Marg, GoFrugal, PharmERP"
               value={softwareExperience}
               onChange={e => setSoftwareExperience(e.target.value)}
+            />
+
+            <label style={styles.label}>Phone Number (not shared publicly)</label>
+            <input
+              style={styles.input}
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
             />
 
             <button style={styles.primaryBtn} onClick={saveProfile}>
