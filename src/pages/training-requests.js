@@ -11,13 +11,13 @@ export default function TrainingRequests() {
   }, []);
 
   const load = async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return;
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
     const { data: reqs, error } = await supabase
       .from('training_requests')
       .select('*')
-      .eq('store_owner_id', data.user.id)
+      .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -52,22 +52,26 @@ export default function TrainingRequests() {
     setLoading(false);
   };
 
-  if (loading) return <Layout><p>Loading…</p></Layout>;
-
   return (
     <Layout>
-      <h2>Training Requests</h2>
+      {loading && <p>Loading…</p>}
 
-      {requests.length === 0 && <p>No training requests yet.</p>}
+      {!loading && (
+        <>
+          <h2>Training Requests</h2>
 
-      {requests.map(r => (
-        <div key={r.id} style={box}>
-          <b>{r.pharmacist?.name}</b>
-          <p>Experience: {r.pharmacist?.years_experience} years</p>
-          <p>Software: {r.pharmacist?.software_experience}</p>
-          <p>Status: <b>{r.status}</b></p>
-        </div>
-      ))}
+          {requests.length === 0 && <p>No requests received.</p>}
+
+          {requests.map(r => (
+            <div key={r.id} style={box}>
+              <b>{r.pharmacist?.name || 'Pharmacist'}</b>
+              <p>Experience: {r.pharmacist?.years_experience} years</p>
+              <p>Software: {r.pharmacist?.software_experience}</p>
+              <p>Status: <b>{r.status}</b></p>
+            </div>
+          ))}
+        </>
+      )}
     </Layout>
   );
 }

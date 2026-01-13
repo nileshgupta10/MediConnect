@@ -13,10 +13,10 @@ export default function TrainingApply() {
   }, []);
 
   const load = async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return;
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
-    setUser(data.user);
+    setUser(auth.user);
 
     const { data: stores } = await supabase
       .from('store_profiles')
@@ -27,25 +27,29 @@ export default function TrainingApply() {
     const { data: existing } = await supabase
       .from('training_requests')
       .select('store_owner_id, status')
-      .eq('pharmacist_id', data.user.id);
+      .eq('pharmacist_id', auth.user.id);
 
     setStores(stores || []);
     setApplied(existing || []);
     setLoading(false);
   };
 
-  const hasApplied = (storeId) =>
-    applied.find((r) => r.store_owner_id === storeId);
-
   const apply = async (storeId) => {
-    await supabase.from('training_requests').insert({
-      pharmacist_id: user.id,
-      store_owner_id: storeId,
-      status: 'pending',
-    });
+    const { error } = await supabase
+      .from('training_requests')
+      .insert({
+        pharmacist_id: user.id,
+        store_owner_id: storeId,
+        status: 'pending',
+      });
+
+    if (error) {
+      alert('Error: ' + error.message);
+      return;
+    }
 
     alert('Training request sent');
-    load();
+    load(); // 🔴 IMPORTANT
   };
 
   if (loading) return <Layout><p>Loading…</p></Layout>;
@@ -54,8 +58,10 @@ export default function TrainingApply() {
     <Layout>
       <h2>Apply for Industry Training</h2>
 
+      {stores.length === 0 && <p>No training-enabled stores.</p>}
+
       {stores.map((s) => {
-        const req = hasApplied(s.user_id);
+        const req = applied.find(r => r.store_owner_id === s.user_id);
 
         return (
           <div key={s.user_id} style={box}>
