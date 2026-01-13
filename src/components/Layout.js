@@ -1,97 +1,91 @@
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/router';
 
 const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function Layout({ children }) {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user || null);
+    let mounted = true;
 
-      if (user) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .maybeSingle();
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!mounted || !data.user) return;
 
-        setRole(data?.role || null);
-      } else {
-        setRole(null);
+      setUser(data.user);
+
+      if (data.user.email === ADMIN_EMAIL) {
+        setRole('admin');
+        return;
       }
+
+      const { data: r } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .single();
+
+      setRole(r?.role);
     };
 
-    loadUser();
+    init();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!session) {
+          router.push('/simple-login');
+        }
+      }
+    );
 
     return () => {
-      listener.subscription.unsubscribe();
+      mounted = false;
+      listener.subscription.unsubscribe(); // 🔴 CRITICAL FIX
     };
   }, []);
 
-  const handleLogout = async () => {
+  const logout = async () => {
     await supabase.auth.signOut();
     router.push('/simple-login');
   };
 
-  if (!user) return <>{children}</>;
-
-  const isAdmin = user.email === ADMIN_EMAIL;
+  if (!user) return null;
 
   return (
-    <>
-      <div style={styles.nav}>
+    <div>
+      <nav style={{ marginBottom: 20 }}>
         {role === 'pharmacist' && (
           <>
-            <Link href="/jobs">Jobs</Link>
-            <Link href="/training">Training</Link>
-            <Link href="/my-training">My Training</Link>
-            <Link href="/pharmacist-profile">Profile</Link>
+            <a href="/jobs">Jobs</a> |{' '}
+            <a href="/training-apply">Training</a> |{' '}
+            <a href="/pharmacist-profile">Profile</a>
           </>
         )}
 
         {role === 'store_owner' && (
           <>
-            <Link href="/post-job">Post Job</Link>
-            <Link href="/applicants">Applicants</Link>
-            <Link href="/training-requests">Training Requests</Link>
-            <Link href="/store-profile">Profile</Link>
+            <a href="/post-job">Post Job</a> |{' '}
+            <a href="/applicants">Applicants</a> |{' '}
+            <a href="/training-requests">Training Requests</a> |{' '}
+            <a href="/store-profile">Profile</a>
           </>
         )}
 
-        {isAdmin && (
+        {role === 'admin' && (
           <>
-            <Link href="/admin">Admin Panel</Link>
-            <Link href="/training-requests">Training Scheduling</Link>
+            <a href="/admin">Admin Panel</a>
           </>
         )}
 
-        <button onClick={handleLogout} style={{ marginLeft: 'auto' }}>
-          Logout
-        </button>
-      </div>
+        {' | '}
+        <button onClick={logout}>Logout</button>
+      </nav>
 
-      <main>{children}</main>
-    </>
+      {children}
+    </div>
   );
 }
-
-const styles = {
-  nav: {
-    padding: 12,
-    borderBottom: '1px solid #ddd',
-    display: 'flex',
-    gap: 16,
-    alignItems: 'center',
-  },
-};
