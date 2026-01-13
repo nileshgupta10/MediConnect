@@ -9,7 +9,14 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
 
+  // 🚨 DO NOT RUN AUTH LOGIC ON LOGIN PAGES
+  const isPublicPage =
+    router.pathname === '/simple-login' ||
+    router.pathname === '/auth-callback';
+
   useEffect(() => {
+    if (isPublicPage) return;
+
     let mounted = true;
 
     const init = async () => {
@@ -44,14 +51,19 @@ export default function Layout({ children }) {
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe(); // 🔴 CRITICAL FIX
+      listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router.pathname]);
 
   const logout = async () => {
     await supabase.auth.signOut();
     router.push('/simple-login');
   };
+
+  // 🔴 Public pages render without Layout logic
+  if (isPublicPage) {
+    return <>{children}</>;
+  }
 
   if (!user) return null;
 
