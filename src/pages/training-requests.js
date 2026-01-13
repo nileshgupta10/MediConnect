@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 export default function TrainingRequests() {
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dateTime, setDateTime] = useState({});
 
   useEffect(() => {
     load();
@@ -13,70 +13,75 @@ export default function TrainingRequests() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data: reqs } = await supabase
+    const { data } = await supabase
       .from('training_requests')
       .select('*')
       .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    if (!reqs || reqs.length === 0) {
-      setRequests([]);
-      setLoading(false);
+    setRequests(data || []);
+  };
+
+  const schedule = async (id, slotId) => {
+    if (!dateTime[id]) {
+      alert('Select date and time');
       return;
     }
 
-    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
-
-    const { data: pharmacists } = await supabase
-      .from('pharmacist_profiles')
-      .select('user_id, name, years_experience, software_experience')
-      .in('user_id', pharmacistIds);
-
-    const map = Object.fromEntries(
-      (pharmacists || []).map(p => [p.user_id, p])
-    );
-
-    setRequests(
-      reqs.map(r => ({
-        ...r,
-        pharmacist: map[r.pharmacist_id],
-      }))
-    );
-
-    setLoading(false);
-  };
-
-  const updateStatus = async (id, status) => {
     await supabase
       .from('training_requests')
-      .update({ status })
+      .update({
+        status: 'scheduled',
+        appointment_at: dateTime[id],
+      })
       .eq('id', id);
+
+    await supabase
+      .from('training_slots')
+      .update({ status: 'scheduled' })
+      .eq('id', slotId);
 
     load();
   };
 
-  if (loading) return <p>Loading…</p>;
+  const closeSlot = async (slotId) => {
+    await supabase
+      .from('training_slots')
+      .update({ status: 'closed' })
+      .eq('id', slotId);
+
+    alert('Slot closed');
+    load();
+  };
 
   return (
     <>
       <h2>Training Requests</h2>
 
-      {requests.length === 0 && <p>No requests received.</p>}
-
       {requests.map(r => (
         <div key={r.id} style={box}>
-          <b>{r.pharmacist?.name}</b>
-          <p>Experience: {r.pharmacist?.years_experience} years</p>
-          <p>Software: {r.pharmacist?.software_experience}</p>
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'pending' && (
             <>
-              <button onClick={() => updateStatus(r.id, 'approved')}>
-                Approve
-              </button>{' '}
-              <button onClick={() => updateStatus(r.id, 'rejected')}>
-                Reject
+              <input
+                type="datetime-local"
+                onChange={e =>
+                  setDateTime({ ...dateTime, [r.id]: e.target.value })
+                }
+              />
+              <br />
+              <button onClick={() => schedule(r.id, r.slot_id)}>
+                Schedule
+              </button>
+            </>
+          )}
+
+          {r.status === 'scheduled' && (
+            <>
+              <p>Scheduled at: {new Date(r.appointment_at).toLocaleString()}</p>
+              <button onClick={() => closeSlot(r.slot_id)}>
+                Close Slot
               </button>
             </>
           )}

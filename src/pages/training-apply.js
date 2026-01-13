@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 export default function TrainingApply() {
-  const [stores, setStores] = useState([]);
-  const [applied, setApplied] = useState([]);
+  const [slots, setSlots] = useState([]);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
@@ -17,64 +15,47 @@ export default function TrainingApply() {
 
     setUser(auth.user);
 
-    const { data: stores } = await supabase
-      .from('store_profiles')
-      .select('user_id, store_name')
-      .eq('is_verified', true)
-      .eq('is_training_eligible', true);
+    const { data } = await supabase
+      .from('training_slots')
+      .select('*')
+      .eq('status', 'available')
+      .order('created_at');
 
-    const { data: existing } = await supabase
-      .from('training_requests')
-      .select('store_owner_id, status')
-      .eq('pharmacist_id', auth.user.id);
-
-    setStores(stores || []);
-    setApplied(existing || []);
-    setLoading(false);
+    setSlots(data || []);
   };
 
-  const apply = async (storeId) => {
-    const { error } = await supabase.from('training_requests').insert({
+  const apply = async (slotId, storeOwnerId) => {
+    await supabase.from('training_requests').insert({
       pharmacist_id: user.id,
-      store_owner_id: storeId,
+      store_owner_id: storeOwnerId,
       status: 'pending',
+      slot_id: slotId,
     });
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    await supabase
+      .from('training_slots')
+      .update({ status: 'requested' })
+      .eq('id', slotId);
 
-    alert('Training request sent');
+    alert('Applied for slot');
     load();
   };
 
-  if (loading) return <p>Loading…</p>;
-
   return (
     <>
-      <h2>Apply for Industry Training</h2>
+      <h2>Available Training Slots</h2>
 
-      {stores.length === 0 && <p>No training-enabled stores.</p>}
+      {slots.length === 0 && <p>No slots available.</p>}
 
-      {stores.map((s) => {
-        const req = applied.find(r => r.store_owner_id === s.user_id);
-
-        return (
-          <div key={s.user_id} style={box}>
-            <b>{s.store_name}</b>
-            <br />
-
-            {!req && (
-              <button onClick={() => apply(s.user_id)}>
-                Apply for Training
-              </button>
-            )}
-
-            {req && <p>Status: <b>{req.status}</b></p>}
-          </div>
-        );
-      })}
+      {slots.map(s => (
+        <div key={s.id} style={box}>
+          <b>{s.month}</b> — Slot {s.slot_number}
+          <br />
+          <button onClick={() => apply(s.id, s.store_owner_id)}>
+            Apply
+          </button>
+        </div>
+      ))}
     </>
   );
 }
