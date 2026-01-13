@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import Layout from '../components/Layout';
 
 export default function TrainingRequests() {
   const [requests, setRequests] = useState([]);
@@ -14,16 +13,11 @@ export default function TrainingRequests() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data: reqs, error } = await supabase
+    const { data: reqs } = await supabase
       .from('training_requests')
       .select('*')
       .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
 
     if (!reqs || reqs.length === 0) {
       setRequests([]);
@@ -52,27 +46,43 @@ export default function TrainingRequests() {
     setLoading(false);
   };
 
+  const updateStatus = async (id, status) => {
+    await supabase
+      .from('training_requests')
+      .update({ status })
+      .eq('id', id);
+
+    load();
+  };
+
+  if (loading) return <p>Loading…</p>;
+
   return (
-    <Layout>
-      {loading && <p>Loading…</p>}
+    <>
+      <h2>Training Requests</h2>
 
-      {!loading && (
-        <>
-          <h2>Training Requests</h2>
+      {requests.length === 0 && <p>No requests received.</p>}
 
-          {requests.length === 0 && <p>No requests received.</p>}
+      {requests.map(r => (
+        <div key={r.id} style={box}>
+          <b>{r.pharmacist?.name}</b>
+          <p>Experience: {r.pharmacist?.years_experience} years</p>
+          <p>Software: {r.pharmacist?.software_experience}</p>
+          <p>Status: <b>{r.status}</b></p>
 
-          {requests.map(r => (
-            <div key={r.id} style={box}>
-              <b>{r.pharmacist?.name || 'Pharmacist'}</b>
-              <p>Experience: {r.pharmacist?.years_experience} years</p>
-              <p>Software: {r.pharmacist?.software_experience}</p>
-              <p>Status: <b>{r.status}</b></p>
-            </div>
-          ))}
-        </>
-      )}
-    </Layout>
+          {r.status === 'pending' && (
+            <>
+              <button onClick={() => updateStatus(r.id, 'approved')}>
+                Approve
+              </button>{' '}
+              <button onClick={() => updateStatus(r.id, 'rejected')}>
+                Reject
+              </button>
+            </>
+          )}
+        </div>
+      ))}
+    </>
   );
 }
 

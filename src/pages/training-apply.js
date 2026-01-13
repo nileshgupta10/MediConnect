@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import Layout from '../components/Layout';
 
 export default function TrainingApply() {
   const [stores, setStores] = useState([]);
@@ -35,27 +34,25 @@ export default function TrainingApply() {
   };
 
   const apply = async (storeId) => {
-    const { error } = await supabase
-      .from('training_requests')
-      .insert({
-        pharmacist_id: user.id,
-        store_owner_id: storeId,
-        status: 'pending',
-      });
+    const { error } = await supabase.from('training_requests').insert({
+      pharmacist_id: user.id,
+      store_owner_id: storeId,
+      status: 'pending',
+    });
 
     if (error) {
-      alert('Error: ' + error.message);
+      alert(error.message);
       return;
     }
 
     alert('Training request sent');
-    load(); // 🔴 IMPORTANT
+    load();
   };
 
-  if (loading) return <Layout><p>Loading…</p></Layout>;
+  if (loading) return <p>Loading…</p>;
 
   return (
-    <Layout>
+    <>
       <h2>Apply for Industry Training</h2>
 
       {stores.length === 0 && <p>No training-enabled stores.</p>}
@@ -78,7 +75,7 @@ export default function TrainingApply() {
           </div>
         );
       })}
-    </Layout>
+    </>
   );
 }
 
