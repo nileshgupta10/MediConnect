@@ -9,10 +9,8 @@ export default function Layout({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
 
-  // 🚨 DO NOT RUN AUTH LOGIC ON LOGIN PAGES
-  const isPublicPage =
-    router.pathname === '/simple-login' ||
-    router.pathname === '/auth-callback';
+  const publicPages = ['/', '/simple-login', '/auth-callback'];
+  const isPublicPage = publicPages.includes(router.pathname);
 
   useEffect(() => {
     if (isPublicPage) return;
@@ -44,7 +42,7 @@ export default function Layout({ children }) {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (!session) {
-          router.push('/simple-login');
+          router.replace('/'); // ✅ redirect to HOME
         }
       }
     );
@@ -57,10 +55,9 @@ export default function Layout({ children }) {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    router.push('/simple-login');
+    router.replace('/'); // ✅ HOME, not simple-login
   };
 
-  // 🔴 Public pages render without Layout logic
   if (isPublicPage) {
     return <>{children}</>;
   }
@@ -69,35 +66,57 @@ export default function Layout({ children }) {
 
   return (
     <div>
-      <nav style={{ marginBottom: 20 }}>
+      <nav style={styles.nav}>
         {role === 'pharmacist' && (
           <>
-            <a href="/jobs">Jobs</a> |{' '}
-            <a href="/training-apply">Training</a> |{' '}
+            <a href="/jobs">Jobs</a>
+            <a href="/training-apply">Training</a>
             <a href="/pharmacist-profile">Profile</a>
           </>
         )}
 
         {role === 'store_owner' && (
           <>
-            <a href="/post-job">Post Job</a> |{' '}
-            <a href="/applicants">Applicants</a> |{' '}
-            <a href="/training-requests">Training Requests</a> |{' '}
+            <a href="/post-job">Post Job</a>
+            <a href="/applicants">Applicants</a>
+            <a href="/training-requests">Training</a>
             <a href="/store-profile">Profile</a>
           </>
         )}
 
         {role === 'admin' && (
           <>
-            <a href="/admin">Admin Panel</a>
+            <a href="/admin">Admin</a>
           </>
         )}
 
-        {' | '}
-        <button onClick={logout}>Logout</button>
+        <button onClick={logout} style={styles.logout}>
+          Logout
+        </button>
       </nav>
 
-      {children}
+      <div style={{ padding: 20 }}>{children}</div>
     </div>
   );
 }
+
+const styles = {
+  nav: {
+    display: 'flex',
+    gap: 18,
+    alignItems: 'center',
+    padding: '14px 20px',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#ffffff',
+    fontWeight: 500,
+  },
+  logout: {
+    marginLeft: 'auto',
+    background: '#ef4444',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+};

@@ -4,18 +4,20 @@ import { useRouter } from 'next/router';
 export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
 
-  // Pages that should NOT use Layout
   const noLayoutPages = ['/', '/simple-login', '/auth-callback'];
-
   const isNoLayout = noLayoutPages.includes(router.pathname);
 
-  if (isNoLayout) {
-    return <Component {...pageProps} />;
-  }
+  const content = <Component {...pageProps} />;
 
   return (
-    <Layout>
-      <Component {...pageProps} />
-    </Layout>
+    <div
+      style={{
+        fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont',
+        color: '#0f172a',
+        background: '#ffffff',
+      }}
+    >
+      {isNoLayout ? content : <Layout>{content}</Layout>}
+    </div>
   );
 }
