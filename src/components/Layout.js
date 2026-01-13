@@ -72,6 +72,7 @@ export default function Layout({ children }) {
             <a href="/jobs">Jobs</a>
             <a href="/training-apply">Training</a>
             <a href="/pharmacist-profile">Profile</a>
+            <a href="/my-training">My Training</a>
           </>
         )}
 
