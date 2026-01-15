@@ -13,37 +13,49 @@ export default function TrainingRequests() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('training_requests')
       .select(`
         id,
         status,
         appointment_at,
-        pharmacist_id,
-        pharmacist_response,
+        slot_id,
         training_slots ( month, slot_number )
       `)
       .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    setRequests(data || []);
-  };
-
-  const scheduleMeeting = async (req) => {
-    if (!dateTime[req.id]) {
-      alert('Select date & time');
+    if (error) {
+      alert(error.message);
       return;
     }
 
-    await supabase
+    setRequests(data || []);
+  };
+
+  const scheduleMeeting = async (reqId) => {
+    const selected = dateTime[reqId];
+
+    if (!selected) {
+      alert('Please select date and time');
+      return;
+    }
+
+    const { error } = await supabase
       .from('training_requests')
       .update({
         status: 'scheduled',
-        appointment_at: dateTime[req.id],
+        appointment_at: selected,
       })
-      .eq('id', req.id);
+      .eq('id', reqId);
+
+    if (error) {
+      alert('Scheduling failed: ' + error.message);
+      return;
+    }
 
     alert('Meeting scheduled');
+    setDateTime({});
     load();
   };
 
@@ -69,28 +81,24 @@ export default function TrainingRequests() {
             <>
               <input
                 type="datetime-local"
+                value={dateTime[r.id] || ''}
                 onChange={e =>
-                  setDateTime({ ...dateTime, [r.id]: e.target.value })
+                  setDateTime({
+                    ...dateTime,
+                    [r.id]: e.target.value,
+                  })
                 }
               />
               <br />
-              <button onClick={() => scheduleMeeting(r)}>
+              <button onClick={() => scheduleMeeting(r.id)}>
                 Schedule Meeting
               </button>
             </>
           )}
 
           {r.status === 'scheduled' && (
-            <p>📅 Meeting proposed</p>
-          )}
-
-          {r.status === 'confirmed' && (
-            <p style={{ color: 'green' }}>✅ Confirmed</p>
-          )}
-
-          {r.status === 'reschedule_requested' && (
-            <p style={{ color: 'orange' }}>
-              🔁 Pharmacist requested new time
+            <p style={{ color: 'green' }}>
+              📅 Meeting scheduled
             </p>
           )}
         </div>
