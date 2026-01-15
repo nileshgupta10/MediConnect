@@ -11,62 +11,28 @@ export default function TrainingRequests() {
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('training_requests')
       .select(`
-        id,
-        status,
-        appointment_at,
-        slot_id,
-        training_slots (
-          id,
-          month,
-          slot_number,
-          status
-        )
+        *,
+        training_slots ( month, slot_number )
       `)
-      .eq('store_owner_id', auth.user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
+      .eq('store_owner_id', auth.user.id);
 
     setRequests(data || []);
   };
 
-  const schedule = async (reqId, slotId) => {
-    if (!dateTime[reqId]) {
-      alert('Select date & time');
-      return;
-    }
-
+  const schedule = async (r) => {
     await supabase
       .from('training_requests')
       .update({
         status: 'scheduled',
-        appointment_at: dateTime[reqId],
+        appointment_at: dateTime[r.id],
       })
-      .eq('id', reqId);
+      .eq('id', r.id);
 
-    await supabase
-      .from('training_slots')
-      .update({ status: 'scheduled' })
-      .eq('id', slotId);
-
-    load();
-  };
-
-  const closeSlot = async (slotId) => {
-    await supabase
-      .from('training_slots')
-      .update({ status: 'closed' })
-      .eq('id', slotId);
-
-    alert('Slot closed');
+    alert('Meeting scheduled');
     load();
   };
 
@@ -74,44 +40,18 @@ export default function TrainingRequests() {
     <>
       <h2>Training Requests</h2>
 
-      {requests.length === 0 && <p>No requests.</p>}
-
       {requests.map(r => (
         <div key={r.id} style={box}>
-          <p>
-            Slot:{' '}
-            <b>
-              {r.training_slots?.month} — Slot #
-              {r.training_slots?.slot_number}
-            </b>
-          </p>
-
+          Slot: {r.training_slots?.month} — #{r.training_slots?.slot_number}
           <p>Status: <b>{r.status}</b></p>
 
-          {r.status === 'pending' && (
+          {r.status === 'interested' && (
             <>
               <input
                 type="datetime-local"
-                onChange={e =>
-                  setDateTime({ ...dateTime, [r.id]: e.target.value })
-                }
+                onChange={e => setDateTime({ ...dateTime, [r.id]: e.target.value })}
               />
-              <br />
-              <button onClick={() => schedule(r.id, r.slot_id)}>
-                Schedule
-              </button>
-            </>
-          )}
-
-          {r.status === 'scheduled' && (
-            <>
-              <p>
-                Scheduled at:{' '}
-                {new Date(r.appointment_at).toLocaleString()}
-              </p>
-              <button onClick={() => closeSlot(r.slot_id)}>
-                Close Slot
-              </button>
+              <button onClick={() => schedule(r)}>Schedule</button>
             </>
           )}
         </div>
@@ -120,8 +60,4 @@ export default function TrainingRequests() {
   );
 }
 
-const box = {
-  border: '1px solid #ccc',
-  padding: 14,
-  marginBottom: 14,
-};
+const box = { border: '1px solid #ccc', padding: 12, marginBottom: 12 };

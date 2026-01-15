@@ -10,51 +10,37 @@ export default function MyTraining() {
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
 
     const { data } = await supabase
       .from('training_requests')
       .select(`
-        id,
-        status,
-        appointment_at,
-        slot_id,
-        training_slots (
-          id,
-          month,
-          slot_number
-        )
+        *,
+        training_slots ( month, slot_number ),
+        pharmacist_profiles ( phone ),
+        store_profiles ( phone )
       `)
-      .eq('pharmacist_id', auth.user.id)
-      .order('created_at', { ascending: false });
+      .eq('pharmacist_id', auth.user.id);
 
     setRequests(data || []);
   };
 
-  const respond = async (req, response) => {
+  const acceptMeeting = async (id) => {
     await supabase
       .from('training_requests')
-      .update({
-        pharmacist_response: response,
-        status: response === 'approved' ? 'confirmed' : 'postponed',
-      })
-      .eq('id', req.id);
+      .update({ status: 'confirmed' })
+      .eq('id', id);
 
-    if (response === 'approved') {
-      await supabase
-        .from('training_slots')
-        .update({ status: 'confirmed' })
-        .eq('id', req.slot_id);
-    }
+    alert('Meeting accepted');
+    load();
+  };
 
-    if (response === 'postponed') {
-      await supabase
-        .from('training_slots')
-        .update({ status: 'available' })
-        .eq('id', req.slot_id);
-    }
+  const requestNewTime = async (id) => {
+    await supabase
+      .from('training_requests')
+      .update({ status: 'reschedule_requested' })
+      .eq('id', id);
 
-    alert('Response saved');
+    alert('Requested new time');
     load();
   };
 
@@ -62,33 +48,21 @@ export default function MyTraining() {
     <>
       <h2>My Training</h2>
 
-      {requests.length === 0 && <p>No requests.</p>}
-
       {requests.map(r => (
         <div key={r.id} style={box}>
-          <p>
-            Slot:{' '}
-            <b>
-              {r.training_slots?.month} — Slot #
-              {r.training_slots?.slot_number}
-            </b>
-          </p>
-
+          Slot: {r.training_slots?.month} — #{r.training_slots?.slot_number}
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'scheduled' && (
             <>
-              <p>
-                Meeting at:{' '}
-                {new Date(r.appointment_at).toLocaleString()}
-              </p>
+              <p>{new Date(r.appointment_at).toLocaleString()}</p>
+              <button onClick={() => acceptMeeting(r.id)}>Accept</button>
+              <button onClick={() => requestNewTime(r.id)}>Request New Time</button>
 
-              <button onClick={() => respond(r, 'approved')}>
-                Approve
-              </button>{' '}
-              <button onClick={() => respond(r, 'postponed')}>
-                Postpone
-              </button>
+              <p>
+                📞 Store: {r.store_profiles?.phone} <br />
+                📞 You: {r.pharmacist_profiles?.phone}
+              </p>
             </>
           )}
         </div>
@@ -97,8 +71,4 @@ export default function MyTraining() {
   );
 }
 
-const box = {
-  border: '1px solid #ccc',
-  padding: 14,
-  marginBottom: 14,
-};
+const box = { border: '1px solid #ccc', padding: 12, marginBottom: 12 };
