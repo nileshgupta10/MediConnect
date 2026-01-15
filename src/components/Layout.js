@@ -77,13 +77,15 @@ export default function Layout({ children }) {
         )}
 
         {role === 'store_owner' && (
-          <>
-            <a href="/post-job">Post Job</a>
-            <a href="/applicants">Applicants</a>
-            <a href="/training-requests">Training</a>
-            <a href="/store-profile">Profile</a>
-          </>
-        )}
+  <>
+    <a href="/post-job">Post Job</a>
+    <a href="/applicants">Applicants</a>
+    <a href="/training-slots">Training Slots</a>
+    <a href="/training-requests">Training Requests</a>
+    <a href="/store-profile">Profile</a>
+  </>
+)}
+
 
         {role === 'admin' && (
           <>
