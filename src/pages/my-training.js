@@ -16,10 +16,11 @@ export default function MyTraining() {
       .select(`
         *,
         training_slots ( month, slot_number ),
-        pharmacist_profiles ( phone ),
-        store_profiles ( phone )
+        store_profiles ( phone ),
+        pharmacist_profiles ( phone )
       `)
-      .eq('pharmacist_id', auth.user.id);
+      .eq('pharmacist_id', auth.user.id)
+      .order('created_at', { ascending: false });
 
     setRequests(data || []);
   };
@@ -44,26 +45,61 @@ export default function MyTraining() {
     load();
   };
 
+  const formatTime = (dt) =>
+    new Date(dt).toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      hour12: true,
+    });
+
   return (
     <>
       <h2>My Training</h2>
 
+      {requests.length === 0 && <p>No training activity yet.</p>}
+
       {requests.map(r => (
         <div key={r.id} style={box}>
-          Slot: {r.training_slots?.month} — #{r.training_slots?.slot_number}
+          <p>
+            Slot:{' '}
+            <b>
+              {r.training_slots?.month} — Slot #
+              {r.training_slots?.slot_number}
+            </b>
+          </p>
+
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'scheduled' && (
             <>
-              <p>{new Date(r.appointment_at).toLocaleString()}</p>
-              <button onClick={() => acceptMeeting(r.id)}>Accept</button>
-              <button onClick={() => requestNewTime(r.id)}>Request New Time</button>
-
               <p>
-                📞 Store: {r.store_profiles?.phone} <br />
+                📅 {formatTime(r.appointment_at)}
+              </p>
+
+              <button onClick={() => acceptMeeting(r.id)}>
+                Accept Meeting
+              </button>{' '}
+              <button onClick={() => requestNewTime(r.id)}>
+                Request New Time
+              </button>
+
+              <p style={{ marginTop: 8 }}>
+                📞 Store: {r.store_profiles?.phone}<br />
                 📞 You: {r.pharmacist_profiles?.phone}
               </p>
             </>
+          )}
+
+          {r.status === 'confirmed' && (
+            <p style={{ color: 'green' }}>
+              ✅ Meeting confirmed
+            </p>
+          )}
+
+          {r.status === 'reschedule_requested' && (
+            <p style={{ color: 'orange' }}>
+              🔁 You requested a new time
+            </p>
           )}
         </div>
       ))}
@@ -71,4 +107,8 @@ export default function MyTraining() {
   );
 }
 
-const box = { border: '1px solid #ccc', padding: 12, marginBottom: 12 };
+const box = {
+  border: '1px solid #ccc',
+  padding: 14,
+  marginBottom: 14,
+};
