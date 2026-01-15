@@ -11,26 +11,37 @@ export default function TrainingRequests() {
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
     const { data } = await supabase
       .from('training_requests')
       .select(`
-        *,
+        id,
+        status,
+        appointment_at,
+        pharmacist_id,
+        pharmacist_response,
         training_slots ( month, slot_number )
       `)
-      .eq('store_owner_id', auth.user.id);
+      .eq('store_owner_id', auth.user.id)
+      .order('created_at', { ascending: false });
 
     setRequests(data || []);
   };
 
-  const schedule = async (r) => {
+  const scheduleMeeting = async (req) => {
+    if (!dateTime[req.id]) {
+      alert('Select date & time');
+      return;
+    }
+
     await supabase
       .from('training_requests')
       .update({
         status: 'scheduled',
-        appointment_at: dateTime[r.id],
+        appointment_at: dateTime[req.id],
       })
-      .eq('id', r.id);
+      .eq('id', req.id);
 
     alert('Meeting scheduled');
     load();
@@ -40,19 +51,47 @@ export default function TrainingRequests() {
     <>
       <h2>Training Requests</h2>
 
+      {requests.length === 0 && <p>No training requests.</p>}
+
       {requests.map(r => (
         <div key={r.id} style={box}>
-          Slot: {r.training_slots?.month} — #{r.training_slots?.slot_number}
+          <p>
+            Slot:{' '}
+            <b>
+              {r.training_slots?.month} — Slot #
+              {r.training_slots?.slot_number}
+            </b>
+          </p>
+
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'interested' && (
             <>
               <input
                 type="datetime-local"
-                onChange={e => setDateTime({ ...dateTime, [r.id]: e.target.value })}
+                onChange={e =>
+                  setDateTime({ ...dateTime, [r.id]: e.target.value })
+                }
               />
-              <button onClick={() => schedule(r)}>Schedule</button>
+              <br />
+              <button onClick={() => scheduleMeeting(r)}>
+                Schedule Meeting
+              </button>
             </>
+          )}
+
+          {r.status === 'scheduled' && (
+            <p>📅 Meeting proposed</p>
+          )}
+
+          {r.status === 'confirmed' && (
+            <p style={{ color: 'green' }}>✅ Confirmed</p>
+          )}
+
+          {r.status === 'reschedule_requested' && (
+            <p style={{ color: 'orange' }}>
+              🔁 Pharmacist requested new time
+            </p>
           )}
         </div>
       ))}
@@ -60,4 +99,8 @@ export default function TrainingRequests() {
   );
 }
 
-const box = { border: '1px solid #ccc', padding: 12, marginBottom: 12 };
+const box = {
+  border: '1px solid #ccc',
+  padding: 14,
+  marginBottom: 14,
+};

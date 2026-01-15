@@ -10,11 +10,15 @@ export default function MyTraining() {
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
     const { data } = await supabase
       .from('training_requests')
       .select(`
-        *,
+        id,
+        status,
+        appointment_at,
+        slot_id,
         training_slots ( month, slot_number ),
         store_profiles ( phone ),
         pharmacist_profiles ( phone )
@@ -25,23 +29,29 @@ export default function MyTraining() {
     setRequests(data || []);
   };
 
-  const acceptMeeting = async (id) => {
+  const acceptMeeting = async (req) => {
     await supabase
       .from('training_requests')
-      .update({ status: 'confirmed' })
-      .eq('id', id);
+      .update({
+        status: 'confirmed',
+        pharmacist_response: 'approved',
+      })
+      .eq('id', req.id);
 
     alert('Meeting accepted');
     load();
   };
 
-  const requestNewTime = async (id) => {
+  const requestNewTime = async (req) => {
     await supabase
       .from('training_requests')
-      .update({ status: 'reschedule_requested' })
-      .eq('id', id);
+      .update({
+        status: 'reschedule_requested',
+        pharmacist_response: 'reschedule_requested',
+      })
+      .eq('id', req.id);
 
-    alert('Requested new time');
+    alert('Requested new date/time');
     load();
   };
 
@@ -70,20 +80,23 @@ export default function MyTraining() {
 
           <p>Status: <b>{r.status}</b></p>
 
+          {/* 🔴 THIS WAS MISSING PROPERLY */}
           {r.status === 'scheduled' && (
             <>
               <p>
-                📅 {formatTime(r.appointment_at)}
+                📅 Proposed meeting:{' '}
+                <b>{formatTime(r.appointment_at)}</b>
               </p>
 
-              <button onClick={() => acceptMeeting(r.id)}>
+              <button onClick={() => acceptMeeting(r)}>
                 Accept Meeting
               </button>{' '}
-              <button onClick={() => requestNewTime(r.id)}>
+              <button onClick={() => requestNewTime(r)}>
                 Request New Time
               </button>
 
-              <p style={{ marginTop: 8 }}>
+              {/* 🔓 PHONE UNLOCK — ONLY NOW */}
+              <p style={{ marginTop: 10 }}>
                 📞 Store: {r.store_profiles?.phone}<br />
                 📞 You: {r.pharmacist_profiles?.phone}
               </p>
@@ -98,7 +111,7 @@ export default function MyTraining() {
 
           {r.status === 'reschedule_requested' && (
             <p style={{ color: 'orange' }}>
-              🔁 You requested a new time
+              🔁 Waiting for store to reschedule
             </p>
           )}
         </div>
