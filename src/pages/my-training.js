@@ -12,23 +12,47 @@ export default function MyTraining() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data: reqs } = await supabase
+    const { data } = await supabase
       .from('training_requests')
-      .select('*')
+      .select(`
+        id,
+        status,
+        appointment_at,
+        slot_id,
+        training_slots (
+          id,
+          month,
+          slot_number
+        )
+      `)
       .eq('pharmacist_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    setRequests(reqs || []);
+    setRequests(data || []);
   };
 
-  const respond = async (id, response) => {
+  const respond = async (req, response) => {
     await supabase
       .from('training_requests')
       .update({
         pharmacist_response: response,
         status: response === 'approved' ? 'confirmed' : 'postponed',
       })
-      .eq('id', id);
+      .eq('id', req.id);
+
+    if (response === 'approved') {
+      await supabase
+        .from('training_slots')
+        .update({ status: 'confirmed' })
+        .eq('id', req.slot_id);
+    }
+
+    if (response === 'postponed') {
+      await supabase
+        .from('training_slots')
+        .update({ status: 'available' })
+        .eq('id', req.slot_id);
+    }
 
     alert('Response saved');
     load();
@@ -36,12 +60,20 @@ export default function MyTraining() {
 
   return (
     <>
-      <h2>My Training Requests</h2>
+      <h2>My Training</h2>
 
       {requests.length === 0 && <p>No requests.</p>}
 
       {requests.map(r => (
         <div key={r.id} style={box}>
+          <p>
+            Slot:{' '}
+            <b>
+              {r.training_slots?.month} — Slot #
+              {r.training_slots?.slot_number}
+            </b>
+          </p>
+
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'scheduled' && (
@@ -51,10 +83,10 @@ export default function MyTraining() {
                 {new Date(r.appointment_at).toLocaleString()}
               </p>
 
-              <button onClick={() => respond(r.id, 'approved')}>
+              <button onClick={() => respond(r, 'approved')}>
                 Approve
               </button>{' '}
-              <button onClick={() => respond(r.id, 'postponed')}>
+              <button onClick={() => respond(r, 'postponed')}>
                 Postpone
               </button>
             </>

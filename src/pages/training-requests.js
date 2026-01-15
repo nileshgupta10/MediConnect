@@ -13,36 +13,29 @@ export default function TrainingRequests() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    // 1️⃣ Load requests
-    const { data: reqs } = await supabase
+    const { data, error } = await supabase
       .from('training_requests')
-      .select('*')
+      .select(`
+        id,
+        status,
+        appointment_at,
+        slot_id,
+        training_slots (
+          id,
+          month,
+          slot_number,
+          status
+        )
+      `)
       .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    if (!reqs || reqs.length === 0) {
-      setRequests([]);
+    if (error) {
+      alert(error.message);
       return;
     }
 
-    // 2️⃣ Load slots
-    const slotIds = [...new Set(reqs.map(r => r.slot_id).filter(Boolean))];
-
-    const { data: slots } = await supabase
-      .from('training_slots')
-      .select('id, month, slot_number')
-      .in('id', slotIds);
-
-    const slotMap = Object.fromEntries(
-      (slots || []).map(s => [s.id, s])
-    );
-
-    setRequests(
-      reqs.map(r => ({
-        ...r,
-        slot: slotMap[r.slot_id],
-      }))
-    );
+    setRequests(data || []);
   };
 
   const schedule = async (reqId, slotId) => {
@@ -86,8 +79,13 @@ export default function TrainingRequests() {
       {requests.map(r => (
         <div key={r.id} style={box}>
           <p>
-            Slot: <b>{r.slot?.month}</b> — Slot #{r.slot?.slot_number}
+            Slot:{' '}
+            <b>
+              {r.training_slots?.month} — Slot #
+              {r.training_slots?.slot_number}
+            </b>
           </p>
+
           <p>Status: <b>{r.status}</b></p>
 
           {r.status === 'pending' && (
