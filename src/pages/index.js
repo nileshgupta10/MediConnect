@@ -6,23 +6,45 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <div style={styles.brand}>MediConnect</div>
+          <div style={styles.heroLeft}>
+            <span style={styles.badge}>Healthcare • Verified • India</span>
 
-          <h1 style={styles.heroTitle}>
-            Trusted hiring & training for pharmacies
-          </h1>
+            <h1 style={styles.heroTitle}>
+              Trusted hiring & training
+              <br />
+              for modern pharmacies
+            </h1>
 
-          <p style={styles.heroSubtitle}>
-            A verification-first platform that connects pharmacies with
-            reliable pharmacists — and builds industry-ready talent through
-            structured training.
-          </p>
+            <p style={styles.heroSubtitle}>
+              MediConnect is a verification-first platform that helps pharmacies
+              hire reliable pharmacists and build industry-ready talent through
+              structured, real-world training.
+            </p>
 
-          <div style={styles.heroCta}>
-            <Link href="/simple-login">
-              <button style={styles.primaryBtn}>Get Started</button>
-            </Link>
-            <span style={styles.ctaHint}>Free • Secure • No agents</span>
+            <div style={styles.ctaRow}>
+              <Link href="/simple-login">
+                <button style={styles.primaryBtn}>
+                  Get Started
+                </button>
+              </Link>
+
+              <span style={styles.ctaHint}>
+                No agents • No spam • Free to start
+              </span>
+            </div>
+          </div>
+
+          <div style={styles.heroRight}>
+            <div style={styles.heroCard}>
+              <p style={styles.cardTitle}>Why MediConnect?</p>
+
+              <ul style={styles.heroList}>
+                <li>✔ Manual license verification</li>
+                <li>✔ Structured training slots</li>
+                <li>✔ Clear scheduling & confirmations</li>
+                <li>✔ Direct contact at the right stage</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -30,84 +52,100 @@ export default function HomePage() {
       {/* TRUST STRIP */}
       <section style={styles.trustStrip}>
         <div style={styles.trustGrid}>
-          <TrustItem title="Manual Verification" text="Licenses are reviewed by an admin — not auto-approved." />
-          <TrustItem title="Privacy First" text="Contact details unlock only at the right stage." />
-          <TrustItem title="India-Ready" text="Built for real pharmacy workflows and timings." />
+          <TrustItem
+            title="Manual Verification"
+            text="Every pharmacist and store is reviewed before approval."
+          />
+          <TrustItem
+            title="Privacy by Design"
+            text="Contact details unlock only after mutual confirmation."
+          />
+          <TrustItem
+            title="Built for India"
+            text="Designed around real pharmacy workflows and timings."
+          />
         </div>
       </section>
 
       {/* HOW IT WORKS */}
       <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>How MediConnect works</h2>
+        <h2 style={styles.sectionTitle}>How it works</h2>
 
         <div style={styles.steps}>
           <Step
-            step="1"
-            title="Sign in securely"
-            text="Simple Google sign-in. No passwords to remember."
+            no="1"
+            title="Create a verified profile"
+            text="Sign in securely and upload your license for manual verification."
           />
           <Step
-            step="2"
-            title="Verify & apply"
-            text="Upload license. Apply for jobs or training only after verification."
+            no="2"
+            title="Apply or offer training"
+            text="Pharmacists apply to real training slots. Stores choose when to schedule."
           />
           <Step
-            step="3"
-            title="Schedule confidently"
-            text="Slots, confirmations, and direct contact — all at the right time."
+            no="3"
+            title="Meet with confidence"
+            text="Clear confirmations, scheduled meetings, and direct communication."
           />
         </div>
       </section>
 
       {/* FOR PHARMACIES */}
       <section style={styles.split}>
-        <div style={styles.splitText}>
+        <div>
           <h3 style={styles.splitTitle}>For Pharmacy Owners</h3>
           <ul style={styles.list}>
             <li>Hire verified pharmacists</li>
             <li>Offer structured industry training</li>
-            <li>Schedule meetings without chaos</li>
             <li>Reduce dependency on agents</li>
+            <li>Improve compliance & service quality</li>
           </ul>
         </div>
-        <div style={styles.splitCard}>
-          <p style={styles.cardTitle}>Why it matters</p>
-          <p style={styles.cardText}>
-            Better hiring and training improves compliance, service quality,
-            and long-term trust with patients.
+
+        <div style={styles.infoCard}>
+          <p style={styles.infoTitle}>Better teams build better trust</p>
+          <p style={styles.infoText}>
+            Structured hiring and training improves patient confidence,
+            operational efficiency, and long-term growth.
           </p>
         </div>
       </section>
 
       {/* FOR PHARMACISTS */}
       <section style={{ ...styles.split, background: '#f8fafc' }}>
-        <div style={styles.splitCard}>
-          <p style={styles.cardTitle}>Industry-ready growth</p>
-          <p style={styles.cardText}>
-            Training slots, clear scheduling, and direct coordination help you
-            build real-world skills — not just resumes.
+        <div style={styles.infoCard}>
+          <p style={styles.infoTitle}>Industry-ready growth</p>
+          <p style={styles.infoText}>
+            Training with real pharmacies builds practical skills —
+            not just certificates.
           </p>
         </div>
-        <div style={styles.splitText}>
+
+        <div>
           <h3 style={styles.splitTitle}>For Pharmacists</h3>
           <ul style={styles.list}>
-            <li>Verified profiles increase trust</li>
-            <li>Apply to real training slots</li>
-            <li>Clear meeting confirmations</li>
-            <li>Direct communication at the right stage</li>
+            <li>Verified profiles increase credibility</li>
+            <li>Apply only to genuine opportunities</li>
+            <li>Clear schedules & confirmations</li>
+            <li>Direct communication, no middlemen</li>
           </ul>
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={styles.cta}>
-        <h2 style={styles.ctaTitle}>Built for trust. Designed for clarity.</h2>
-        <p style={styles.ctaText}>
-          Start with a verified profile and experience a calmer, more reliable
-          way to hire and train.
+      {/* FINAL CTA */}
+      <section style={styles.finalCta}>
+        <h2 style={styles.finalTitle}>
+          Built for trust. Designed for clarity.
+        </h2>
+        <p style={styles.finalText}>
+          Whether you are hiring or learning, MediConnect keeps the process
+          simple, verified, and transparent.
         </p>
+
         <Link href="/simple-login">
-          <button style={styles.secondaryBtn}>Create your profile</button>
+          <button style={styles.secondaryBtn}>
+            Create your profile
+          </button>
         </Link>
       </section>
 
@@ -122,6 +160,8 @@ export default function HomePage() {
   );
 }
 
+/* ---------- COMPONENTS ---------- */
+
 function TrustItem({ title, text }) {
   return (
     <div style={styles.trustItem}>
@@ -131,11 +171,11 @@ function TrustItem({ title, text }) {
   );
 }
 
-function Step({ step, title, text }) {
+function Step({ no, title, text }) {
   return (
     <div style={styles.stepCard}>
-      <div style={styles.stepNo}>{step}</div>
-      <h3 style={styles.stepTitle}>{title}</h3>
+      <div style={styles.stepNo}>{no}</div>
+      <h4 style={styles.stepTitle}>{title}</h4>
       <p style={styles.stepText}>{text}</p>
     </div>
   );
@@ -150,44 +190,54 @@ const styles = {
   },
 
   hero: {
-    background: 'linear-gradient(180deg, #eff6ff, #ffffff)',
-    padding: '64px 20px',
+    background:
+      'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
+    padding: '72px 20px',
   },
   heroInner: {
-    maxWidth: 920,
+    maxWidth: 1100,
     margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: '1.2fr 0.8fr',
+    gap: 40,
   },
-  brand: {
-    fontSize: 22,
-    fontWeight: 700,
-    color: '#2563eb',
-    marginBottom: 16,
+  heroLeft: {},
+  badge: {
+    display: 'inline-block',
+    background: '#dbeafe',
+    color: '#1e3a8a',
+    padding: '6px 14px',
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 600,
+    marginBottom: 18,
   },
   heroTitle: {
-    fontSize: 36,
-    fontWeight: 700,
-    lineHeight: 1.2,
-    marginBottom: 14,
+    fontSize: 40,
+    fontWeight: 800,
+    lineHeight: 1.15,
+    marginBottom: 16,
   },
   heroSubtitle: {
     fontSize: 17,
     color: '#334155',
-    maxWidth: 680,
-    lineHeight: 1.6,
-    marginBottom: 26,
+    lineHeight: 1.7,
+    maxWidth: 520,
+    marginBottom: 28,
   },
-  heroCta: {
+  ctaRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
   },
   primaryBtn: {
     background: '#2563eb',
-    color: '#fff',
+    color: '#ffffff',
     border: 'none',
-    padding: '14px 26px',
-    borderRadius: 10,
+    padding: '14px 30px',
+    borderRadius: 12,
     fontSize: 16,
+    fontWeight: 600,
     cursor: 'pointer',
   },
   ctaHint: {
@@ -195,22 +245,38 @@ const styles = {
     color: '#475569',
   },
 
+  heroRight: {},
+  heroCard: {
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 16,
+    padding: 24,
+    boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+  },
+  cardTitle: {
+    fontWeight: 700,
+    marginBottom: 12,
+  },
+  heroList: {
+    paddingLeft: 18,
+    lineHeight: 1.9,
+    color: '#334155',
+  },
+
   trustStrip: {
     borderTop: '1px solid #e5e7eb',
     borderBottom: '1px solid #e5e7eb',
     background: '#ffffff',
-    padding: '18px 20px',
+    padding: '22px 20px',
   },
   trustGrid: {
-    maxWidth: 920,
+    maxWidth: 1100,
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: 16,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 20,
   },
-  trustItem: {
-    padding: 12,
-  },
+  trustItem: {},
   trustTitle: {
     fontWeight: 600,
     marginBottom: 4,
@@ -221,39 +287,39 @@ const styles = {
   },
 
   section: {
-    padding: '56px 20px',
-    background: '#ffffff',
+    padding: '64px 20px',
   },
   sectionTitle: {
     textAlign: 'center',
-    fontSize: 26,
-    fontWeight: 600,
-    marginBottom: 28,
+    fontSize: 28,
+    fontWeight: 700,
+    marginBottom: 36,
   },
   steps: {
-    maxWidth: 920,
+    maxWidth: 1100,
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-    gap: 18,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: 22,
   },
   stepCard: {
     background: '#ffffff',
     border: '1px solid #e5e7eb',
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: 16,
+    padding: 26,
+    boxShadow: '0 6px 16px rgba(0,0,0,0.05)',
   },
   stepNo: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     background: '#2563eb',
-    color: '#fff',
+    color: '#ffffff',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 14,
-    marginBottom: 10,
+    fontWeight: 700,
+    marginBottom: 12,
   },
   stepTitle: {
     fontSize: 18,
@@ -267,63 +333,64 @@ const styles = {
   },
 
   split: {
-    maxWidth: 920,
+    maxWidth: 1100,
     margin: '0 auto',
-    padding: '56px 20px',
+    padding: '64px 20px',
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: 24,
+    gap: 36,
   },
-  splitText: {},
   splitTitle: {
-    fontSize: 24,
-    fontWeight: 600,
+    fontSize: 26,
+    fontWeight: 700,
     marginBottom: 14,
   },
   list: {
     paddingLeft: 18,
-    lineHeight: 1.9,
+    lineHeight: 2,
     color: '#334155',
   },
-  splitCard: {
+  infoCard: {
     background: '#ffffff',
     border: '1px solid #e5e7eb',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 18,
+    padding: 28,
+    boxShadow: '0 8px 20px rgba(0,0,0,0.05)',
   },
-  cardTitle: {
-    fontWeight: 600,
+  infoTitle: {
+    fontWeight: 700,
     marginBottom: 8,
   },
-  cardText: {
+  infoText: {
     fontSize: 15,
     color: '#475569',
     lineHeight: 1.7,
   },
 
-  cta: {
+  finalCta: {
     background: '#0f172a',
     color: '#ffffff',
-    padding: '56px 20px',
     textAlign: 'center',
+    padding: '72px 20px',
   },
-  ctaTitle: {
-    fontSize: 28,
-    fontWeight: 600,
-    marginBottom: 10,
+  finalTitle: {
+    fontSize: 30,
+    fontWeight: 700,
+    marginBottom: 12,
   },
-  ctaText: {
+  finalText: {
     fontSize: 15,
     opacity: 0.9,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   secondaryBtn: {
     background: '#ffffff',
     color: '#0f172a',
     border: 'none',
-    padding: '14px 26px',
-    borderRadius: 10,
+    padding: '14px 30px',
+    borderRadius: 12,
     fontSize: 16,
+    fontWeight: 600,
     cursor: 'pointer',
   },
 
@@ -331,10 +398,10 @@ const styles = {
     background: '#020617',
     color: '#ffffff',
     textAlign: 'center',
-    padding: 22,
+    padding: 24,
   },
   footerText: {
     fontSize: 13,
-    opacity: 0.8,
+    opacity: 0.75,
   },
 };
