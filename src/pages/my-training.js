@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 
 export default function MyTraining() {
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
@@ -13,103 +12,64 @@ export default function MyTraining() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    // 1️⃣ Get training requests
-    const { data: reqs, error } = await supabase
+    const { data } = await supabase
       .from('training_requests')
       .select(`
         id,
         status,
         appointment_at,
         pharmacist_response,
-        pharmacist_id,
-        store_owner_id,
         slot_id,
         training_slots ( month, slot_number )
       `)
       .eq('pharmacist_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    if (!reqs || reqs.length === 0) {
-      setRequests([]);
-      setLoading(false);
-      return;
-    }
-
-    // 2️⃣ Collect user IDs
-    const storeIds = [...new Set(reqs.map(r => r.store_owner_id))];
-    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
-
-    // 3️⃣ Fetch phone numbers separately
-    const { data: stores } = await supabase
-      .from('store_profiles')
-      .select('user_id, phone')
-      .in('user_id', storeIds);
-
-    const { data: pharmacists } = await supabase
-      .from('pharmacist_profiles')
-      .select('user_id, phone')
-      .in('user_id', pharmacistIds);
-
-    const storeMap = Object.fromEntries(
-      (stores || []).map(s => [s.user_id, s.phone])
-    );
-
-    const pharmacistMap = Object.fromEntries(
-      (pharmacists || []).map(p => [p.user_id, p.phone])
-    );
-
-    // 4️⃣ Merge everything
-    const merged = reqs.map(r => ({
-      ...r,
-      store_phone: storeMap[r.store_owner_id],
-      pharmacist_phone: pharmacistMap[r.pharmacist_id],
-    }));
-
-    setRequests(merged);
-    setLoading(false);
+    setRequests(data || []);
   };
 
-  const acceptMeeting = async (reqId) => {
+  const acceptMeeting = async (id) => {
     await supabase
       .from('training_requests')
       .update({
         status: 'confirmed',
         pharmacist_response: 'approved',
       })
-      .eq('id', reqId);
+      .eq('id', id);
 
-    alert('Meeting accepted');
+    alert('Meeting confirmed');
     load();
   };
 
-  const requestNewTime = async (reqId) => {
+  const requestNewTime = async (id) => {
     await supabase
       .from('training_requests')
       .update({
         status: 'reschedule_requested',
         pharmacist_response: 'reschedule_requested',
       })
-      .eq('id', reqId);
+      .eq('id', id);
 
     alert('Requested new date/time');
     load();
   };
 
-  const formatTime = (dt) => {
-    if (!dt) return '—';
-    return new Date(dt).toLocaleString('en-IN', {
+  const formatTime = (dt) =>
+    new Date(dt).toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short',
       hour12: true,
     });
-  };
 
-  if (loading) return <p>Loading…</p>;
+  const badge = (status) => {
+    const map = {
+      interested: { bg: '#fef3c7', text: 'Requested' },
+      scheduled: { bg: '#dbeafe', text: 'Meeting Proposed' },
+      confirmed: { bg: '#dcfce7', text: 'Confirmed' },
+      reschedule_requested: { bg: '#ffedd5', text: 'Waiting for Store' },
+    };
+    return map[status] || {};
+  };
 
   return (
     <>
@@ -117,59 +77,70 @@ export default function MyTraining() {
 
       {requests.length === 0 && <p>No training activity yet.</p>}
 
-      {requests.map(r => (
-        <div key={r.id} style={box}>
-          <p>
-            Slot:{' '}
-            <b>
-              {r.training_slots?.month} — Slot #
-              {r.training_slots?.slot_number}
-            </b>
-          </p>
+      {requests.map(r => {
+        const b = badge(r.status);
 
-          <p>Status: <b>{r.status}</b></p>
-
-          {r.status === 'scheduled' && (
-            <>
-              <p>
-                📅 Proposed meeting:{' '}
-                <b>{formatTime(r.appointment_at)}</b>
-              </p>
-
-              <button onClick={() => acceptMeeting(r.id)}>
-                Accept Meeting
-              </button>{' '}
-              <button onClick={() => requestNewTime(r.id)}>
-                Request New Time
-              </button>
-
-              {/* 🔓 Phones visible ONLY now */}
-              <p style={{ marginTop: 10 }}>
-                📞 Store: {r.store_phone || '—'}<br />
-                📞 You: {r.pharmacist_phone || '—'}
-              </p>
-            </>
-          )}
-
-          {r.status === 'confirmed' && (
-            <p style={{ color: 'green' }}>
-              ✅ Meeting confirmed
+        return (
+          <div key={r.id} style={box}>
+            <p>
+              <b>
+                Slot {r.training_slots?.month} — #{r.training_slots?.slot_number}
+              </b>
             </p>
-          )}
 
-          {r.status === 'reschedule_requested' && (
-            <p style={{ color: 'orange' }}>
-              🔁 Waiting for store to reschedule
-            </p>
-          )}
-        </div>
-      ))}
+            <span style={{ ...statusBadge, background: b.bg }}>
+              {b.text}
+            </span>
+
+            {/* Date/time ALWAYS visible once scheduled */}
+            {r.appointment_at && (
+              <p style={{ marginTop: 8 }}>
+                📅 {formatTime(r.appointment_at)}
+              </p>
+            )}
+
+            {r.status === 'scheduled' && (
+              <>
+                <button onClick={() => acceptMeeting(r.id)}>
+                  Accept Meeting
+                </button>{' '}
+                <button onClick={() => requestNewTime(r.id)}>
+                  Request New Time
+                </button>
+              </>
+            )}
+
+            {r.status === 'confirmed' && (
+              <p style={{ color: '#15803d', marginTop: 6 }}>
+                ✔ Meeting confirmed
+              </p>
+            )}
+
+            {r.status === 'reschedule_requested' && (
+              <p style={{ color: '#c2410c', marginTop: 6 }}>
+                Waiting for store to respond
+              </p>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
 
 const box = {
-  border: '1px solid #ccc',
-  padding: 14,
-  marginBottom: 14,
+  border: '1px solid #e5e7eb',
+  padding: 16,
+  marginBottom: 16,
+  borderRadius: 8,
+  background: '#ffffff',
+};
+
+const statusBadge = {
+  display: 'inline-block',
+  padding: '4px 10px',
+  borderRadius: 12,
+  fontSize: 12,
+  fontWeight: 600,
+  marginTop: 6,
 };

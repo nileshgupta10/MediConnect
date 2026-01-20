@@ -13,50 +13,54 @@ export default function TrainingRequests() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('training_requests')
       .select(`
         id,
         status,
         appointment_at,
-        slot_id,
+        pharmacist_response,
         training_slots ( month, slot_number )
       `)
       .eq('store_owner_id', auth.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
     setRequests(data || []);
   };
 
-  const scheduleMeeting = async (reqId) => {
-    const selected = dateTime[reqId];
-
-    if (!selected) {
-      alert('Please select date and time');
+  const scheduleMeeting = async (id) => {
+    if (!dateTime[id]) {
+      alert('Please select date & time');
       return;
     }
 
-    const { error } = await supabase
+    await supabase
       .from('training_requests')
       .update({
         status: 'scheduled',
-        appointment_at: selected,
+        appointment_at: dateTime[id],
       })
-      .eq('id', reqId);
-
-    if (error) {
-      alert('Scheduling failed: ' + error.message);
-      return;
-    }
+      .eq('id', id);
 
     alert('Meeting scheduled');
-    setDateTime({});
     load();
+  };
+
+  const formatTime = (dt) =>
+    new Date(dt).toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      hour12: true,
+    });
+
+  const badge = (status) => {
+    const map = {
+      interested: { bg: '#fef3c7', text: 'Interested' },
+      scheduled: { bg: '#dbeafe', text: 'Scheduled' },
+      confirmed: { bg: '#dcfce7', text: 'Confirmed' },
+      reschedule_requested: { bg: '#ffedd5', text: 'Reschedule Requested' },
+    };
+    return map[status] || {};
   };
 
   return (
@@ -65,50 +69,80 @@ export default function TrainingRequests() {
 
       {requests.length === 0 && <p>No training requests.</p>}
 
-      {requests.map(r => (
-        <div key={r.id} style={box}>
-          <p>
-            Slot:{' '}
-            <b>
-              {r.training_slots?.month} — Slot #
-              {r.training_slots?.slot_number}
-            </b>
-          </p>
+      {requests.map(r => {
+        const b = badge(r.status);
 
-          <p>Status: <b>{r.status}</b></p>
-
-          {r.status === 'interested' && (
-            <>
-              <input
-                type="datetime-local"
-                value={dateTime[r.id] || ''}
-                onChange={e =>
-                  setDateTime({
-                    ...dateTime,
-                    [r.id]: e.target.value,
-                  })
-                }
-              />
-              <br />
-              <button onClick={() => scheduleMeeting(r.id)}>
-                Schedule Meeting
-              </button>
-            </>
-          )}
-
-          {r.status === 'scheduled' && (
-            <p style={{ color: 'green' }}>
-              📅 Meeting scheduled
+        return (
+          <div key={r.id} style={box}>
+            <p>
+              <b>
+                Slot {r.training_slots?.month} — #{r.training_slots?.slot_number}
+              </b>
             </p>
-          )}
-        </div>
-      ))}
+
+            <span style={{ ...statusBadge, background: b.bg }}>
+              {b.text}
+            </span>
+
+            {/* Date/time NEVER disappears */}
+            {r.appointment_at && (
+              <p style={{ marginTop: 8 }}>
+                📅 {formatTime(r.appointment_at)}
+              </p>
+            )}
+
+            {r.status === 'interested' && (
+              <>
+                <input
+                  type="datetime-local"
+                  onChange={e =>
+                    setDateTime({ ...dateTime, [r.id]: e.target.value })
+                  }
+                />
+                <br />
+                <button onClick={() => scheduleMeeting(r.id)}>
+                  Schedule Meeting
+                </button>
+              </>
+            )}
+
+            {r.status === 'scheduled' && (
+              <p style={{ color: '#2563eb', marginTop: 6 }}>
+                Waiting for pharmacist response
+              </p>
+            )}
+
+            {r.status === 'confirmed' && (
+              <p style={{ color: '#15803d', marginTop: 6 }}>
+                ✔ Pharmacist confirmed. Expect visit.
+              </p>
+            )}
+
+            {r.status === 'reschedule_requested' && (
+              <p style={{ color: '#c2410c', marginTop: 6 }}>
+                Pharmacist requested new date/time
+              </p>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }
 
 const box = {
-  border: '1px solid #ccc',
-  padding: 14,
-  marginBottom: 14,
+  border: '1px solid #e5e7eb',
+  padding: 16,
+  marginBottom: 16,
+  borderRadius: 8,
+  background: '#ffffff',
+};
+
+const statusBadge = {
+  display: 'inline-block',
+  padding: '4px 10px',
+  borderRadius: 12,
+  fontSize: 12,
+  fontWeight: 600,
+  marginTop: 6,
 };
