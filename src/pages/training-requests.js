@@ -1,117 +1,152 @@
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useRouter } from 'next/router';
 
-export default function Layout({ children }) {
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const router = useRouter();
+export default function TrainingRequests() {
+  const [requests, setRequests] = useState([]);
+  const [dateTime, setDateTime] = useState({});
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
-    });
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      if (!session) router.push('/');
-    });
+    load();
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
+  const load = async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
-    supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => setRole(data?.role));
-  }, [user]);
+    // 1️⃣ Fetch requests
+    const { data: reqs, error } = await supabase
+      .from('training_requests')
+      .select(`
+        id,
+        status,
+        appointment_at,
+        pharmacist_id,
+        store_owner_id,
+        training_slots ( month, slot_number )
+      `)
+      .eq('store_owner_id', auth.user.id)
+      .order('created_at', { ascending: false });
 
-  if (!user) return <>{children}</>;
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    if (!reqs || reqs.length === 0) {
+      setRequests([]);
+      return;
+    }
+
+    // 2️⃣ Fetch pharmacist profiles
+    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
+
+    const { data: pharmacists } = await supabase
+      .from('pharmacist_profiles')
+      .select('user_id, name, phone')
+      .in('user_id', pharmacistIds);
+
+    const pharmacistMap = Object.fromEntries(
+      (pharmacists || []).map(p => [p.user_id, p])
+    );
+
+    // 3️⃣ Merge
+    setRequests(
+      reqs.map(r => ({
+        ...r,
+        pharmacist: pharmacistMap[r.pharmacist_id],
+      }))
+    );
+  };
+
+  const scheduleMeeting = async (id) => {
+    if (!dateTime[id]) {
+      alert('Please select date & time');
+      return;
+    }
+
+    await supabase
+      .from('training_requests')
+      .update({
+        status: 'scheduled',
+        appointment_at: dateTime[id],
+      })
+      .eq('id', id);
+
+    alert('Meeting scheduled');
+    load();
+  };
+
+  const formatTime = (dt) =>
+    new Date(dt).toLocaleString('en-IN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      hour12: true,
+    });
 
   return (
-    <div style={styles.page}>
-      <header style={styles.nav}>
-        <div style={styles.navInner}>
-          <Link href="/">
-            <b style={styles.brand}>MediConnect</b>
-          </Link>
+    <>
+      <h2>Training Requests</h2>
 
-          <nav style={styles.menu}>
-            {role === 'pharmacist' && (
-              <>
-                <Link href="/jobs">Jobs</Link>
-                <Link href="/training-apply">Training</Link>
-                <Link href="/my-training">My Training</Link>
-                <Link href="/pharmacist-profile">Profile</Link>
-              </>
-            )}
+      {requests.length === 0 && (
+        <p style={{ color: '#475569' }}>No training requests yet.</p>
+      )}
 
-            {role === 'store_owner' && (
-              <>
-                <Link href="/post-job">Post Job</Link>
-                <Link href="/applicants">Applicants</Link>
-                <Link href="/training-slots">Training Slots</Link>
-                <Link href="/training-requests">Training Requests</Link>
-                <Link href="/store-profile">Profile</Link>
-              </>
-            )}
+      {requests.map(r => (
+        <div key={r.id} style={card}>
+          <b>{r.pharmacist?.name || 'Pharmacist'}</b>
+          <p style={muted}>📞 {r.pharmacist?.phone || '—'}</p>
 
-            <button
-              style={styles.logout}
-              onClick={() => supabase.auth.signOut()}
-            >
-              Logout
-            </button>
-          </nav>
+          <p>
+            Slot {r.training_slots?.month} — #
+            {r.training_slots?.slot_number}
+          </p>
+
+          {r.appointment_at && (
+            <p>📅 {formatTime(r.appointment_at)}</p>
+          )}
+
+          <span style={badge(r.status)}>{r.status}</span>
+
+          {r.status === 'interested' && (
+            <>
+              <input
+                type="datetime-local"
+                onChange={e =>
+                  setDateTime({ ...dateTime, [r.id]: e.target.value })
+                }
+              />
+              <br />
+              <button onClick={() => scheduleMeeting(r.id)}>
+                Schedule Meeting
+              </button>
+            </>
+          )}
         </div>
-      </header>
-
-      <main style={styles.content}>{children}</main>
-    </div>
+      ))}
+    </>
   );
 }
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f8fafc',
-  },
-  nav: {
-    background: '#ffffff',
-    borderBottom: '1px solid #e5e7eb',
-  },
-  navInner: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    padding: '14px 20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  brand: {
-    fontSize: 18,
-    color: '#2563eb',
-  },
-  menu: {
-    display: 'flex',
-    gap: 16,
-    alignItems: 'center',
-  },
-  logout: {
-    background: '#fee2e2',
-    color: '#991b1b',
-    border: 'none',
-    padding: '6px 12px',
-    borderRadius: 6,
-    cursor: 'pointer',
-  },
-  content: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    padding: '28px 20px',
-  },
+const card = {
+  background: '#ffffff',
+  border: '1px solid #e5e7eb',
+  borderRadius: 10,
+  padding: 16,
+  marginBottom: 16,
 };
+
+const muted = { color: '#475569', fontSize: 14 };
+
+const badge = (s) => ({
+  display: 'inline-block',
+  marginTop: 6,
+  padding: '4px 10px',
+  borderRadius: 12,
+  fontSize: 12,
+  background:
+    s === 'confirmed'
+      ? '#dcfce7'
+      : s === 'scheduled'
+      ? '#dbeafe'
+      : '#fef3c7',
+});

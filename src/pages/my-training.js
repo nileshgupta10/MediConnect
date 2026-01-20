@@ -10,8 +10,10 @@ export default function MyTraining() {
 
   const load = async () => {
     const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
 
-    const { data } = await supabase
+    // 1️⃣ Requests
+    const { data: reqs, error } = await supabase
       .from('training_requests')
       .select(`
         id,
@@ -20,27 +22,41 @@ export default function MyTraining() {
         store_owner_id,
         training_slots ( month, slot_number )
       `)
-      .eq('pharmacist_id', auth.user.id);
+      .eq('pharmacist_id', auth.user.id)
+      .order('created_at', { ascending: false });
 
-    if (!data) return;
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
-    const storeIds = [...new Set(data.map(d => d.store_owner_id))];
+    if (!reqs || reqs.length === 0) {
+      setItems([]);
+      return;
+    }
+
+    // 2️⃣ Stores
+    const storeIds = [...new Set(reqs.map(r => r.store_owner_id))];
 
     const { data: stores } = await supabase
       .from('store_profiles')
       .select('user_id, store_name')
       .in('user_id', storeIds);
 
-    const map = Object.fromEntries(
+    const storeMap = Object.fromEntries(
       (stores || []).map(s => [s.user_id, s.store_name])
     );
 
+    // 3️⃣ Merge
     setItems(
-      data.map(d => ({ ...d, store: map[d.store_owner_id] }))
+      reqs.map(r => ({
+        ...r,
+        store_name: storeMap[r.store_owner_id],
+      }))
     );
   };
 
-  const format = (dt) =>
+  const formatTime = (dt) =>
     new Date(dt).toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short',
@@ -52,21 +68,20 @@ export default function MyTraining() {
       <h2>My Training</h2>
 
       {items.length === 0 && (
-        <p style={{ color: '#475569' }}>
-          No training activity yet.
-        </p>
+        <p style={{ color: '#475569' }}>No training activity yet.</p>
       )}
 
       {items.map(i => (
         <div key={i.id} style={card}>
-          <b>{i.store}</b>
+          <b>{i.store_name || 'Store'}</b>
+
           <p>
             Slot {i.training_slots?.month} — #
             {i.training_slots?.slot_number}
           </p>
 
           {i.appointment_at && (
-            <p>📅 {format(i.appointment_at)}</p>
+            <p>📅 {formatTime(i.appointment_at)}</p>
           )}
 
           <span style={badge(i.status)}>{i.status}</span>
