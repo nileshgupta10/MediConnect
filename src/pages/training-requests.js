@@ -1,131 +1,117 @@
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/router';
 
-export default function TrainingRequests() {
-  const [requests, setRequests] = useState([]);
-  const [dateTime, setDateTime] = useState({});
+export default function Layout({ children }) {
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const router = useRouter();
 
   useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
-
-    // 1️⃣ Requests
-    const { data: reqs } = await supabase
-      .from('training_requests')
-      .select(`
-        id,
-        status,
-        appointment_at,
-        pharmacist_id,
-        training_slots ( month, slot_number )
-      `)
-      .eq('store_owner_id', auth.user.id)
-      .order('created_at', { ascending: false });
-
-    if (!reqs || reqs.length === 0) {
-      setRequests([]);
-      return;
-    }
-
-    // 2️⃣ Pharmacist profiles
-    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
-
-    const { data: pharmacists } = await supabase
-      .from('pharmacist_profiles')
-      .select('user_id, name, phone')
-      .in('user_id', pharmacistIds);
-
-    const pharmacistMap = Object.fromEntries(
-      (pharmacists || []).map(p => [p.user_id, p])
-    );
-
-    // 3️⃣ Merge
-    const merged = reqs.map(r => ({
-      ...r,
-      pharmacist: pharmacistMap[r.pharmacist_id],
-    }));
-
-    setRequests(merged);
-  };
-
-  const scheduleMeeting = async (id) => {
-    if (!dateTime[id]) {
-      alert('Select date & time');
-      return;
-    }
-
-    await supabase
-      .from('training_requests')
-      .update({
-        status: 'scheduled',
-        appointment_at: dateTime[id],
-      })
-      .eq('id', id);
-
-    alert('Meeting scheduled');
-    load();
-  };
-
-  const formatTime = (dt) =>
-    new Date(dt).toLocaleString('en-IN', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      hour12: true,
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null);
     });
 
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (!session) router.push('/');
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => setRole(data?.role));
+  }, [user]);
+
+  if (!user) return <>{children}</>;
+
   return (
-    <>
-      <h2>Training Requests</h2>
+    <div style={styles.page}>
+      <header style={styles.nav}>
+        <div style={styles.navInner}>
+          <Link href="/">
+            <b style={styles.brand}>MediConnect</b>
+          </Link>
 
-      {requests.length === 0 && <p>No training requests.</p>}
+          <nav style={styles.menu}>
+            {role === 'pharmacist' && (
+              <>
+                <Link href="/jobs">Jobs</Link>
+                <Link href="/training-apply">Training</Link>
+                <Link href="/my-training">My Training</Link>
+                <Link href="/pharmacist-profile">Profile</Link>
+              </>
+            )}
 
-      {requests.map(r => (
-        <div key={r.id} style={box}>
-          <p>
-            👨‍⚕️ <b>{r.pharmacist?.name || 'Pharmacist'}</b>
-          </p>
+            {role === 'store_owner' && (
+              <>
+                <Link href="/post-job">Post Job</Link>
+                <Link href="/applicants">Applicants</Link>
+                <Link href="/training-slots">Training Slots</Link>
+                <Link href="/training-requests">Training Requests</Link>
+                <Link href="/store-profile">Profile</Link>
+              </>
+            )}
 
-          <p>
-            📞 {r.pharmacist?.phone || '—'}
-          </p>
-
-          <p>
-            📦 Slot {r.training_slots?.month} — #{r.training_slots?.slot_number}
-          </p>
-
-          {r.appointment_at && (
-            <p>📅 {formatTime(r.appointment_at)}</p>
-          )}
-
-          <p>Status: <b>{r.status}</b></p>
-
-          {r.status === 'interested' && (
-            <>
-              <input
-                type="datetime-local"
-                onChange={e =>
-                  setDateTime({ ...dateTime, [r.id]: e.target.value })
-                }
-              />
-              <br />
-              <button onClick={() => scheduleMeeting(r.id)}>
-                Schedule Meeting
-              </button>
-            </>
-          )}
+            <button
+              style={styles.logout}
+              onClick={() => supabase.auth.signOut()}
+            >
+              Logout
+            </button>
+          </nav>
         </div>
-      ))}
-    </>
+      </header>
+
+      <main style={styles.content}>{children}</main>
+    </div>
   );
 }
 
-const box = {
-  border: '1px solid #e5e7eb',
-  padding: 16,
-  marginBottom: 16,
-  borderRadius: 8,
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+  },
+  nav: {
+    background: '#ffffff',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  navInner: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '14px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  brand: {
+    fontSize: 18,
+    color: '#2563eb',
+  },
+  menu: {
+    display: 'flex',
+    gap: 16,
+    alignItems: 'center',
+  },
+  logout: {
+    background: '#fee2e2',
+    color: '#991b1b',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
+  content: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '28px 20px',
+  },
 };

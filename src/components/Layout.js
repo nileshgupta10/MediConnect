@@ -1,125 +1,117 @@
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/router';
 
-const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
-
 export default function Layout({ children }) {
-  const router = useRouter();
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
-
-  const publicPages = ['/', '/simple-login', '/auth-callback'];
-  const isPublicPage = publicPages.includes(router.pathname);
+  const router = useRouter();
 
   useEffect(() => {
-    if (isPublicPage) return;
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user || null);
+    });
 
-    let mounted = true;
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      if (!session) router.push('/');
+    });
+  }, []);
 
-    const init = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!mounted || !data.user) return;
+  useEffect(() => {
+    if (!user) return;
 
-      setUser(data.user);
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => setRole(data?.role));
+  }, [user]);
 
-      if (data.user.email === ADMIN_EMAIL) {
-        setRole('admin');
-        return;
-      }
-
-      const { data: r } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id)
-        .single();
-
-      setRole(r?.role);
-    };
-
-    init();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session) {
-          router.replace('/'); // ✅ redirect to HOME
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
-  }, [router.pathname]);
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    router.replace('/'); // ✅ HOME, not simple-login
-  };
-
-  if (isPublicPage) {
-    return <>{children}</>;
-  }
-
-  if (!user) return null;
+  if (!user) return <>{children}</>;
 
   return (
-    <div>
-      <nav style={styles.nav}>
-        {role === 'pharmacist' && (
-          <>
-            <a href="/jobs">Jobs</a>
-            <a href="/training-apply">Training</a>
-            <a href="/pharmacist-profile">Profile</a>
-            <a href="/my-training">My Training</a>
-          </>
-        )}
+    <div style={styles.page}>
+      <header style={styles.nav}>
+        <div style={styles.navInner}>
+          <Link href="/">
+            <b style={styles.brand}>MediConnect</b>
+          </Link>
 
-        {role === 'store_owner' && (
-  <>
-    <a href="/post-job">Post Job</a>
-    <a href="/applicants">Applicants</a>
-    <a href="/training-slots">Training Slots</a>
-    <a href="/training-requests">Training Requests</a>
-    <a href="/store-profile">Profile</a>
-  </>
-)}
+          <nav style={styles.menu}>
+            {role === 'pharmacist' && (
+              <>
+                <Link href="/jobs">Jobs</Link>
+                <Link href="/training-apply">Training</Link>
+                <Link href="/my-training">My Training</Link>
+                <Link href="/pharmacist-profile">Profile</Link>
+              </>
+            )}
 
+            {role === 'store_owner' && (
+              <>
+                <Link href="/post-job">Post Job</Link>
+                <Link href="/applicants">Applicants</Link>
+                <Link href="/training-slots">Training Slots</Link>
+                <Link href="/training-requests">Training Requests</Link>
+                <Link href="/store-profile">Profile</Link>
+              </>
+            )}
 
-        {role === 'admin' && (
-          <>
-            <a href="/admin">Admin</a>
-          </>
-        )}
+            <button
+              style={styles.logout}
+              onClick={() => supabase.auth.signOut()}
+            >
+              Logout
+            </button>
+          </nav>
+        </div>
+      </header>
 
-        <button onClick={logout} style={styles.logout}>
-          Logout
-        </button>
-      </nav>
-
-      <div style={{ padding: 20 }}>{children}</div>
+      <main style={styles.content}>{children}</main>
     </div>
   );
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#f8fafc',
+  },
   nav: {
-    display: 'flex',
-    gap: 18,
-    alignItems: 'center',
-    padding: '14px 20px',
-    borderBottom: '1px solid #e5e7eb',
     background: '#ffffff',
-    fontWeight: 500,
+    borderBottom: '1px solid #e5e7eb',
+  },
+  navInner: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '14px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  brand: {
+    fontSize: 18,
+    color: '#2563eb',
+  },
+  menu: {
+    display: 'flex',
+    gap: 16,
+    alignItems: 'center',
   },
   logout: {
-    marginLeft: 'auto',
-    background: '#ef4444',
-    color: 'white',
+    background: '#fee2e2',
+    color: '#991b1b',
     border: 'none',
     padding: '6px 12px',
     borderRadius: 6,
     cursor: 'pointer',
+  },
+  content: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '28px 20px',
   },
 };
