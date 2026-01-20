@@ -13,24 +13,18 @@ export default function MyTraining() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data, error } = await supabase
+    // 1️⃣ Get training requests
+    const { data: reqs, error } = await supabase
       .from('training_requests')
       .select(`
         id,
         status,
         appointment_at,
         pharmacist_response,
+        pharmacist_id,
+        store_owner_id,
         slot_id,
-        training_slots (
-          month,
-          slot_number
-        ),
-        store_profiles (
-          phone
-        ),
-        pharmacist_profiles (
-          phone
-        )
+        training_slots ( month, slot_number )
       `)
       .eq('pharmacist_id', auth.user.id)
       .order('created_at', { ascending: false });
@@ -40,7 +34,43 @@ export default function MyTraining() {
       return;
     }
 
-    setRequests(data || []);
+    if (!reqs || reqs.length === 0) {
+      setRequests([]);
+      setLoading(false);
+      return;
+    }
+
+    // 2️⃣ Collect user IDs
+    const storeIds = [...new Set(reqs.map(r => r.store_owner_id))];
+    const pharmacistIds = [...new Set(reqs.map(r => r.pharmacist_id))];
+
+    // 3️⃣ Fetch phone numbers separately
+    const { data: stores } = await supabase
+      .from('store_profiles')
+      .select('user_id, phone')
+      .in('user_id', storeIds);
+
+    const { data: pharmacists } = await supabase
+      .from('pharmacist_profiles')
+      .select('user_id, phone')
+      .in('user_id', pharmacistIds);
+
+    const storeMap = Object.fromEntries(
+      (stores || []).map(s => [s.user_id, s.phone])
+    );
+
+    const pharmacistMap = Object.fromEntries(
+      (pharmacists || []).map(p => [p.user_id, p.phone])
+    );
+
+    // 4️⃣ Merge everything
+    const merged = reqs.map(r => ({
+      ...r,
+      store_phone: storeMap[r.store_owner_id],
+      pharmacist_phone: pharmacistMap[r.pharmacist_id],
+    }));
+
+    setRequests(merged);
     setLoading(false);
   };
 
@@ -99,7 +129,6 @@ export default function MyTraining() {
 
           <p>Status: <b>{r.status}</b></p>
 
-          {/* 🔑 THIS IS THE CRITICAL PART */}
           {r.status === 'scheduled' && (
             <>
               <p>
@@ -114,10 +143,10 @@ export default function MyTraining() {
                 Request New Time
               </button>
 
-              {/* 🔓 Phone numbers unlocked ONLY now */}
+              {/* 🔓 Phones visible ONLY now */}
               <p style={{ marginTop: 10 }}>
-                📞 Store: {r.store_profiles?.phone || '—'}<br />
-                📞 You: {r.pharmacist_profiles?.phone || '—'}
+                📞 Store: {r.store_phone || '—'}<br />
+                📞 You: {r.pharmacist_phone || '—'}
               </p>
             </>
           )}
