@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+const ACCENT = '#0ea5a4';
+
 export default function HomePage() {
   return (
     <div style={styles.page}>
@@ -7,17 +9,23 @@ export default function HomePage() {
       <section style={styles.hero}>
         <div style={styles.heroInner}>
           <div>
-            <span style={styles.accentTag}>Verified Healthcare Platform</span>
+            {/* LOGO */}
+            <div style={styles.logo}>
+              Medi<span style={styles.logoC}>C</span>onnect
+            </div>
 
             <h1 style={styles.title}>
               Trusted hiring & training
               <br />
-              for <span style={styles.accentWord}>pharmacies</span>
+              for pharmacies
             </h1>
 
             <p style={styles.subtitle}>
-              MediConnect connects pharmacies with verified pharmacists
-              through a simple, structured and reliable process.
+              A verification-first platform that builds
+              <span style={styles.highlight}> connection</span>,
+              <span style={styles.highlight}> credibility</span>,
+              and <span style={styles.highlight}>care</span>
+              across pharmacy hiring and training.
             </p>
 
             <Link href="/simple-login">
@@ -27,66 +35,62 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* VISUAL BLOCK (IMAGE REPLACEMENT) */}
+          {/* VISUAL MOTIF */}
           <div style={styles.visual}>
-            <div style={styles.visualBar} />
-            <div style={styles.visualContent}>
-              <p style={styles.visualBig}>01</p>
-              <p style={styles.visualText}>
-                Verification-first.
-                <br />
-                No middlemen.
-                <br />
-                Built for India.
-              </p>
-            </div>
+            <div style={styles.visualC}>C</div>
+            <p style={styles.visualText}>
+              Connecting pharmacies
+              <br />
+              with trusted pharmacists
+            </p>
           </div>
         </div>
       </section>
 
       {/* TRUST STRIP */}
       <section style={styles.trust}>
-        <div>Manual license verification</div>
-        <div>Privacy-first communication</div>
-        <div>Real pharmacy workflows</div>
+        <Trust text="Manual license verification" />
+        <Trust text="Privacy-first communication" />
+        <Trust text="Built for Indian pharmacies" />
       </section>
 
       {/* HOW IT WORKS */}
       <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>How it works</h2>
+        <h2 style={styles.sectionTitle}>
+          How Medi<span style={styles.logoC}>C</span>onnect works
+        </h2>
 
         <div style={styles.steps}>
-          <Step no="1" text="Create a verified profile" />
-          <Step no="2" text="Apply or offer training" />
-          <Step no="3" text="Schedule and meet" />
+          <Step text="Create a verified profile" />
+          <Step text="Apply or offer training" />
+          <Step text="Schedule and meet" />
         </div>
       </section>
 
       {/* WHO IT IS FOR */}
       <section style={styles.split}>
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>For Pharmacies</h3>
-          <ul style={styles.list}>
-            <li>Hire verified pharmacists</li>
-            <li>Offer structured training slots</li>
-            <li>Reduce dependency on agents</li>
-          </ul>
-        </div>
-
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>For Pharmacists</h3>
-          <ul style={styles.list}>
-            <li>Build real-world experience</li>
-            <li>Apply to genuine opportunities</li>
-            <li>Clear scheduling & confirmation</li>
-          </ul>
-        </div>
+        <Info
+          title="For Pharmacies"
+          points={[
+            'Hire verified pharmacists',
+            'Offer structured training',
+            'Reduce dependency on agents',
+          ]}
+        />
+        <Info
+          title="For Pharmacists"
+          points={[
+            'Build real-world experience',
+            'Apply to genuine opportunities',
+            'Clear scheduling & confirmation',
+          ]}
+        />
       </section>
 
       {/* CTA */}
       <section style={styles.cta}>
         <h2 style={styles.ctaTitle}>
-          Simple. Verified. Reliable.
+          Simple. Verified. Connected.
         </h2>
 
         <Link href="/simple-login">
@@ -98,7 +102,9 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer style={styles.footer}>
-        <b>MediConnect</b>
+        <div style={styles.logoFooter}>
+          Medi<span style={styles.logoC}>C</span>onnect
+        </div>
         <p style={styles.footerText}>
           Relations, over the counter.
         </p>
@@ -107,29 +113,44 @@ export default function HomePage() {
   );
 }
 
-function Step({ no, text }) {
+/* ---------- SMALL COMPONENTS ---------- */
+
+function Trust({ text }) {
+  return <div style={styles.trustItem}>{text}</div>;
+}
+
+function Step({ text }) {
   return (
     <div style={styles.step}>
-      <div style={styles.stepNo}>{no}</div>
+      <div style={styles.stepDot} />
       <p>{text}</p>
+    </div>
+  );
+}
+
+function Info({ title, points }) {
+  return (
+    <div style={styles.card}>
+      <h3 style={styles.cardTitle}>
+        {title.replace('C', '')}
+        <span style={styles.logoC}>C</span>
+        {title.includes('C') ? '' : ''}
+      </h3>
+      <ul style={styles.list}>
+        {points.map(p => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 /* ---------- STYLES ---------- */
 
-const ACCENT = '#0ea5a4';
-
 const styles = {
-  page: {
-    background: '#ffffff',
-    color: '#0f172a',
-  },
+  page: { background: '#ffffff', color: '#0f172a' },
 
-  hero: {
-    padding: '80px 20px',
-    background: '#f8fafc',
-  },
+  hero: { padding: '80px 20px', background: '#f8fafc' },
   heroInner: {
     maxWidth: 1100,
     margin: '0 auto',
@@ -138,29 +159,39 @@ const styles = {
     gap: 48,
     alignItems: 'center',
   },
-  accentTag: {
-    color: ACCENT,
-    fontWeight: 600,
-    fontSize: 13,
-    marginBottom: 12,
-    display: 'inline-block',
+
+  logo: {
+    fontSize: 20,
+    fontWeight: 700,
+    marginBottom: 20,
   },
+  logoFooter: {
+    fontSize: 16,
+    fontWeight: 700,
+  },
+  logoC: {
+    color: ACCENT,
+    fontWeight: 900,
+  },
+
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: 800,
-    lineHeight: 1.2,
+    lineHeight: 1.25,
     marginBottom: 14,
-  },
-  accentWord: {
-    color: ACCENT,
   },
   subtitle: {
     fontSize: 15,
     color: '#334155',
     lineHeight: 1.6,
-    maxWidth: 420,
     marginBottom: 28,
+    maxWidth: 460,
   },
+  highlight: {
+    color: ACCENT,
+    fontWeight: 600,
+  },
+
   primaryBtn: {
     background: ACCENT,
     color: '#ffffff',
@@ -175,32 +206,20 @@ const styles = {
   visual: {
     background: '#ffffff',
     borderRadius: 20,
-    padding: 28,
-    position: 'relative',
+    padding: 32,
+    textAlign: 'center',
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
   },
-  visualBar: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 6,
-    background: ACCENT,
-    borderRadius: '20px 0 0 20px',
-  },
-  visualContent: {
-    paddingLeft: 24,
-  },
-  visualBig: {
-    fontSize: 48,
-    fontWeight: 800,
+  visualC: {
+    fontSize: 72,
+    fontWeight: 900,
     color: ACCENT,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   visualText: {
     fontSize: 14,
-    lineHeight: 1.8,
     color: '#334155',
+    lineHeight: 1.6,
   },
 
   trust: {
@@ -215,16 +234,14 @@ const styles = {
     color: ACCENT,
     fontWeight: 600,
   },
+  trustItem: {
+    borderBottom: `2px solid ${ACCENT}`,
+    paddingBottom: 8,
+  },
 
-  section: {
-    padding: '64px 20px',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 32,
-  },
+  section: { padding: '64px 20px', textAlign: 'center' },
+  sectionTitle: { fontSize: 22, fontWeight: 700, marginBottom: 32 },
+
   steps: {
     maxWidth: 900,
     margin: '0 auto',
@@ -233,21 +250,16 @@ const styles = {
     gap: 24,
   },
   step: {
-    border: `2px dashed ${ACCENT}`,
-    borderRadius: 16,
+    border: `1px dashed ${ACCENT}`,
+    borderRadius: 14,
     padding: 24,
     fontSize: 14,
   },
-  stepNo: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
+  stepDot: {
+    width: 10,
+    height: 10,
     background: ACCENT,
-    color: '#ffffff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 700,
+    borderRadius: '50%',
     margin: '0 auto 12px',
   },
 
@@ -269,7 +281,6 @@ const styles = {
     fontSize: 18,
     fontWeight: 700,
     marginBottom: 12,
-    color: ACCENT,
   },
   list: {
     paddingLeft: 18,
@@ -283,11 +294,7 @@ const styles = {
     textAlign: 'center',
     padding: '64px 20px',
   },
-  ctaTitle: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 18,
-  },
+  ctaTitle: { fontSize: 22, fontWeight: 700, marginBottom: 18 },
   secondaryBtn: {
     background: '#ffffff',
     color: ACCENT,
