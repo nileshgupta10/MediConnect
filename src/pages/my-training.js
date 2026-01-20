@@ -12,7 +12,7 @@ export default function MyTraining() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    // 1️⃣ Requests
+    // 1️⃣ Training requests
     const { data: reqs, error } = await supabase
       .from('training_requests')
       .select(`
@@ -35,7 +35,7 @@ export default function MyTraining() {
       return;
     }
 
-    // 2️⃣ Stores
+    // 2️⃣ Store profiles
     const storeIds = [...new Set(reqs.map(r => r.store_owner_id))];
 
     const { data: stores } = await supabase
@@ -63,6 +63,11 @@ export default function MyTraining() {
       hour12: true,
     });
 
+  const mapLink = (storeName) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      storeName || ''
+    )}`;
+
   return (
     <>
       <h2>My Training</h2>
@@ -73,10 +78,24 @@ export default function MyTraining() {
 
       {items.map(i => (
         <div key={i.id} style={card}>
-          <b>{i.store_name || 'Store'}</b>
+          <p style={title}>
+            🏪 {i.store_name || 'Store'}
+          </p>
 
           <p>
-            Slot {i.training_slots?.month} — #
+            📍{' '}
+            <a
+              href={mapLink(i.store_name)}
+              target="_blank"
+              rel="noreferrer"
+              style={link}
+            >
+              View on Google Maps
+            </a>
+          </p>
+
+          <p>
+            📦 Slot {i.training_slots?.month} — #
             {i.training_slots?.slot_number}
           </p>
 
@@ -93,22 +112,34 @@ export default function MyTraining() {
 
 const card = {
   background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: 10,
-  padding: 16,
-  marginBottom: 16,
+  border: '1px solid #cbd5e1',
+  borderRadius: 12,
+  padding: 18,
+  marginBottom: 18,
+  boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
+};
+
+const title = {
+  fontWeight: 600,
+  fontSize: 16,
+};
+
+const link = {
+  color: '#2563eb',
+  fontSize: 14,
 };
 
 const badge = (s) => ({
   display: 'inline-block',
-  marginTop: 6,
-  padding: '4px 10px',
-  borderRadius: 12,
+  marginTop: 8,
+  padding: '4px 12px',
+  borderRadius: 14,
   fontSize: 12,
+  fontWeight: 600,
   background:
     s === 'confirmed'
-      ? '#dcfce7'
+      ? '#bbf7d0'
       : s === 'scheduled'
-      ? '#dbeafe'
-      : '#fef3c7',
+      ? '#bfdbfe'
+      : '#fde68a',
 });
