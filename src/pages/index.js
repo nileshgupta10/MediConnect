@@ -2,81 +2,141 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div>
+    <div style={styles.page}>
       {/* HERO */}
       <section style={styles.hero}>
-        <div style={styles.heroContent}>
-          <div style={styles.logo}>MediConnect</div>
+        <div style={styles.heroInner}>
+          <div style={styles.brand}>MediConnect</div>
 
-          <h1 style={styles.title}>
-            Hiring made reliable for pharmacies
+          <h1 style={styles.heroTitle}>
+            Trusted hiring & training for pharmacies
           </h1>
 
-          <p style={styles.subtitle}>
-            A verified employment platform connecting pharmacies
-            with trusted pharmacists — locally and securely.
+          <p style={styles.heroSubtitle}>
+            A verification-first platform that connects pharmacies with
+            reliable pharmacists — and builds industry-ready talent through
+            structured training.
           </p>
 
-          <Link href="/simple-login">
-            <button style={styles.primaryBtn}>
-              Get Started
-            </button>
-          </Link>
+          <div style={styles.heroCta}>
+            <Link href="/simple-login">
+              <button style={styles.primaryBtn}>Get Started</button>
+            </Link>
+            <span style={styles.ctaHint}>Free • Secure • No agents</span>
+          </div>
+        </div>
+      </section>
 
-          <p style={styles.tagline}>
-            Relations, over the counter
-          </p>
+      {/* TRUST STRIP */}
+      <section style={styles.trustStrip}>
+        <div style={styles.trustGrid}>
+          <TrustItem title="Manual Verification" text="Licenses are reviewed by an admin — not auto-approved." />
+          <TrustItem title="Privacy First" text="Contact details unlock only at the right stage." />
+          <TrustItem title="India-Ready" text="Built for real pharmacy workflows and timings." />
         </div>
       </section>
 
       {/* HOW IT WORKS */}
       <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>How it works</h2>
+        <h2 style={styles.sectionTitle}>How MediConnect works</h2>
 
         <div style={styles.steps}>
           <Step
+            step="1"
             title="Sign in securely"
-            text="Quick Google login with no passwords to remember."
+            text="Simple Google sign-in. No passwords to remember."
           />
           <Step
-            title="Upload & verify"
-            text="Licenses are manually verified to maintain trust."
+            step="2"
+            title="Verify & apply"
+            text="Upload license. Apply for jobs or training only after verification."
           />
           <Step
-            title="Hire with confidence"
-            text="Apply or hire only after verification."
+            step="3"
+            title="Schedule confidently"
+            text="Slots, confirmations, and direct contact — all at the right time."
           />
         </div>
       </section>
 
-      {/* TRUST */}
-      <section style={styles.trust}>
-        <h2 style={styles.sectionTitle}>Built for pharmacies</h2>
+      {/* FOR PHARMACIES */}
+      <section style={styles.split}>
+        <div style={styles.splitText}>
+          <h3 style={styles.splitTitle}>For Pharmacy Owners</h3>
+          <ul style={styles.list}>
+            <li>Hire verified pharmacists</li>
+            <li>Offer structured industry training</li>
+            <li>Schedule meetings without chaos</li>
+            <li>Reduce dependency on agents</li>
+          </ul>
+        </div>
+        <div style={styles.splitCard}>
+          <p style={styles.cardTitle}>Why it matters</p>
+          <p style={styles.cardText}>
+            Better hiring and training improves compliance, service quality,
+            and long-term trust with patients.
+          </p>
+        </div>
+      </section>
 
-        <ul style={styles.trustList}>
-          <li>Manual license verification</li>
-          <li>No agents or middlemen</li>
-          <li>Designed for Indian pharmacy workflows</li>
-          <li>Mobile-first and simple to use</li>
-        </ul>
+      {/* FOR PHARMACISTS */}
+      <section style={{ ...styles.split, background: '#f8fafc' }}>
+        <div style={styles.splitCard}>
+          <p style={styles.cardTitle}>Industry-ready growth</p>
+          <p style={styles.cardText}>
+            Training slots, clear scheduling, and direct coordination help you
+            build real-world skills — not just resumes.
+          </p>
+        </div>
+        <div style={styles.splitText}>
+          <h3 style={styles.splitTitle}>For Pharmacists</h3>
+          <ul style={styles.list}>
+            <li>Verified profiles increase trust</li>
+            <li>Apply to real training slots</li>
+            <li>Clear meeting confirmations</li>
+            <li>Direct communication at the right stage</li>
+          </ul>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={styles.cta}>
+        <h2 style={styles.ctaTitle}>Built for trust. Designed for clarity.</h2>
+        <p style={styles.ctaText}>
+          Start with a verified profile and experience a calmer, more reliable
+          way to hire and train.
+        </p>
+        <Link href="/simple-login">
+          <button style={styles.secondaryBtn}>Create your profile</button>
+        </Link>
       </section>
 
       {/* FOOTER */}
       <footer style={styles.footer}>
         <p style={{ fontWeight: 600 }}>MediConnect</p>
-        <p style={{ fontSize: 14, opacity: 0.8 }}>
-          Pharmacy employment, simplified.
+        <p style={styles.footerText}>
+          Relations, over the counter.
         </p>
       </footer>
     </div>
   );
 }
 
-function Step({ title, text }) {
+function TrustItem({ title, text }) {
+  return (
+    <div style={styles.trustItem}>
+      <p style={styles.trustTitle}>{title}</p>
+      <p style={styles.trustText}>{text}</p>
+    </div>
+  );
+}
+
+function Step({ step, title, text }) {
   return (
     <div style={styles.stepCard}>
-      <h3 style={{ marginBottom: 6 }}>{title}</h3>
-      <p style={{ fontSize: 14, color: '#475569' }}>{text}</p>
+      <div style={styles.stepNo}>{step}</div>
+      <h3 style={styles.stepTitle}>{title}</h3>
+      <p style={styles.stepText}>{text}</p>
     </div>
   );
 }
@@ -84,88 +144,197 @@ function Step({ title, text }) {
 /* ---------- STYLES ---------- */
 
 const styles = {
+  page: {
+    background: '#ffffff',
+    color: '#0f172a',
+  },
+
   hero: {
-    minHeight: '85vh',
-    background: 'linear-gradient(135deg, #e0f2fe, #ecfdf5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    textAlign: 'center',
+    background: 'linear-gradient(180deg, #eff6ff, #ffffff)',
+    padding: '64px 20px',
   },
-  heroContent: {
-    maxWidth: 560,
+  heroInner: {
+    maxWidth: 920,
+    margin: '0 auto',
   },
-  logo: {
-    fontSize: 26,
+  brand: {
+    fontSize: 22,
     fontWeight: 700,
     color: '#2563eb',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: 700,
     marginBottom: 16,
   },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 1.6,
-    marginBottom: 28,
+  heroTitle: {
+    fontSize: 36,
+    fontWeight: 700,
+    lineHeight: 1.2,
+    marginBottom: 14,
+  },
+  heroSubtitle: {
+    fontSize: 17,
     color: '#334155',
+    maxWidth: 680,
+    lineHeight: 1.6,
+    marginBottom: 26,
+  },
+  heroCta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
   },
   primaryBtn: {
     background: '#2563eb',
-    color: 'white',
+    color: '#fff',
     border: 'none',
     padding: '14px 26px',
+    borderRadius: 10,
     fontSize: 16,
-    borderRadius: 8,
     cursor: 'pointer',
   },
-  tagline: {
-    marginTop: 14,
+  ctaHint: {
     fontSize: 13,
-    color: '#64748b',
-    fontStyle: 'italic',
+    color: '#475569',
   },
+
+  trustStrip: {
+    borderTop: '1px solid #e5e7eb',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#ffffff',
+    padding: '18px 20px',
+  },
+  trustGrid: {
+    maxWidth: 920,
+    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: 16,
+  },
+  trustItem: {
+    padding: 12,
+  },
+  trustTitle: {
+    fontWeight: 600,
+    marginBottom: 4,
+  },
+  trustText: {
+    fontSize: 14,
+    color: '#475569',
+  },
+
   section: {
-    padding: '48px 20px',
-    background: '#f8fafc',
-    textAlign: 'center',
+    padding: '56px 20px',
+    background: '#ffffff',
   },
   sectionTitle: {
-    fontSize: 24,
+    textAlign: 'center',
+    fontSize: 26,
     fontWeight: 600,
     marginBottom: 28,
   },
   steps: {
-    display: 'grid',
-    gridTemplateColumns: '1fr',
-    gap: 18,
-    maxWidth: 720,
+    maxWidth: 920,
     margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 18,
   },
   stepCard: {
-    background: 'white',
-    borderRadius: 12,
-    padding: 22,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 14,
+    padding: 20,
   },
-  trust: {
-    padding: '48px 20px',
-    textAlign: 'center',
+  stepNo: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    background: '#2563eb',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 14,
+    marginBottom: 10,
   },
-  trustList: {
-    listStyle: 'none',
-    padding: 0,
-    fontSize: 16,
+  stepTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    marginBottom: 6,
+  },
+  stepText: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 1.6,
+  },
+
+  split: {
+    maxWidth: 920,
+    margin: '0 auto',
+    padding: '56px 20px',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 24,
+  },
+  splitText: {},
+  splitTitle: {
+    fontSize: 24,
+    fontWeight: 600,
+    marginBottom: 14,
+  },
+  list: {
+    paddingLeft: 18,
     lineHeight: 1.9,
     color: '#334155',
   },
-  footer: {
+  splitCard: {
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: 16,
     padding: 24,
+  },
+  cardTitle: {
+    fontWeight: 600,
+    marginBottom: 8,
+  },
+  cardText: {
+    fontSize: 15,
+    color: '#475569',
+    lineHeight: 1.7,
+  },
+
+  cta: {
     background: '#0f172a',
-    color: 'white',
+    color: '#ffffff',
+    padding: '56px 20px',
     textAlign: 'center',
+  },
+  ctaTitle: {
+    fontSize: 28,
+    fontWeight: 600,
+    marginBottom: 10,
+  },
+  ctaText: {
+    fontSize: 15,
+    opacity: 0.9,
+    marginBottom: 20,
+  },
+  secondaryBtn: {
+    background: '#ffffff',
+    color: '#0f172a',
+    border: 'none',
+    padding: '14px 26px',
+    borderRadius: 10,
+    fontSize: 16,
+    cursor: 'pointer',
+  },
+
+  footer: {
+    background: '#020617',
+    color: '#ffffff',
+    textAlign: 'center',
+    padding: 22,
+  },
+  footerText: {
+    fontSize: 13,
+    opacity: 0.8,
   },
 };
