@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-const ACCENT = '#0ea5a4';
+const ACCENT = '#1d4ed8';
 
 export default function HomePage() {
   return (
@@ -8,89 +8,84 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <div>
-            {/* LOGO */}
-            <div style={styles.logo}>
-              Medi<span style={styles.logoC}>C</span>onnect
-            </div>
+          <h1 style={styles.title}>
+            Hiring and training for pharmacies,
+            <br />
+            built on <span style={styles.accent}>Connection</span>
+          </h1>
 
-            <h1 style={styles.title}>
-              Trusted hiring & training
-              <br />
-              for pharmacies
-            </h1>
+          <p style={styles.subtitle}>
+            MediConnect is a verified platform that enables
+            <span style={styles.accent}> Credibility</span>,
+            clear processes, and genuine
+            <span style={styles.accent}> Care</span>
+            in pharmacy hiring and training.
+          </p>
 
-            <p style={styles.subtitle}>
-              A verification-first platform that builds
-              <span style={styles.highlight}> connection</span>,
-              <span style={styles.highlight}> credibility</span>,
-              and <span style={styles.highlight}>care</span>
-              across pharmacy hiring and training.
-            </p>
-
-            <Link href="/simple-login">
-              <button style={styles.primaryBtn}>
-                Get Started
-              </button>
-            </Link>
-          </div>
-
-          {/* VISUAL MOTIF */}
-          <div style={styles.visual}>
-            <div style={styles.visualC}>C</div>
-            <p style={styles.visualText}>
-              Connecting pharmacies
-              <br />
-              with trusted pharmacists
-            </p>
-          </div>
+          <Link href="/simple-login">
+            <button style={styles.primaryBtn}>
+              Get Started
+            </button>
+          </Link>
         </div>
       </section>
 
-      {/* TRUST STRIP */}
-      <section style={styles.trust}>
-        <Trust text="Manual license verification" />
-        <Trust text="Privacy-first communication" />
-        <Trust text="Built for Indian pharmacies" />
+      {/* PHILOSOPHY STRIP */}
+      <section style={styles.philosophy}>
+        <p>
+          No agents. No noise. Just the right
+          <span style={styles.accent}> Connections</span>
+          , built with trust.
+        </p>
       </section>
 
       {/* HOW IT WORKS */}
       <section style={styles.section}>
-        <h2 style={styles.sectionTitle}>
-          How Medi<span style={styles.logoC}>C</span>onnect works
-        </h2>
+        <h2 style={styles.sectionTitle}>How it works</h2>
 
         <div style={styles.steps}>
-          <Step text="Create a verified profile" />
-          <Step text="Apply or offer training" />
-          <Step text="Schedule and meet" />
+          <Step
+            title="Verified profiles"
+            text="Every pharmacist and pharmacy is manually verified for credibility."
+          />
+          <Step
+            title="Clear training flow"
+            text="Structured slots, requests, confirmations and scheduling."
+          />
+          <Step
+            title="Confirmed meetings"
+            text="Direct communication only after mutual confirmation."
+          />
         </div>
       </section>
 
       {/* WHO IT IS FOR */}
       <section style={styles.split}>
-        <Info
-          title="For Pharmacies"
-          points={[
-            'Hire verified pharmacists',
-            'Offer structured training',
-            'Reduce dependency on agents',
-          ]}
-        />
-        <Info
-          title="For Pharmacists"
-          points={[
-            'Build real-world experience',
-            'Apply to genuine opportunities',
-            'Clear scheduling & confirmation',
-          ]}
-        />
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>For Pharmacies</h3>
+          <ul style={styles.list}>
+            <li>Hire verified pharmacists</li>
+            <li>Offer structured training</li>
+            <li>Build long-term trust</li>
+          </ul>
+        </div>
+
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>For Pharmacists</h3>
+          <ul style={styles.list}>
+            <li>Gain real-world experience</li>
+            <li>Apply to genuine opportunities</li>
+            <li>Know when and where to report</li>
+          </ul>
+        </div>
       </section>
 
       {/* CTA */}
       <section style={styles.cta}>
         <h2 style={styles.ctaTitle}>
-          Simple. Verified. Connected.
+          Built with <span style={styles.accent}>Care</span>.
+          <br />
+          Designed for <span style={styles.accent}>Credibility</span>.
         </h2>
 
         <Link href="/simple-login">
@@ -102,9 +97,7 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer style={styles.footer}>
-        <div style={styles.logoFooter}>
-          Medi<span style={styles.logoC}>C</span>onnect
-        </div>
+        <b>MediConnect</b>
         <p style={styles.footerText}>
           Relations, over the counter.
         </p>
@@ -113,34 +106,11 @@ export default function HomePage() {
   );
 }
 
-/* ---------- SMALL COMPONENTS ---------- */
-
-function Trust({ text }) {
-  return <div style={styles.trustItem}>{text}</div>;
-}
-
-function Step({ text }) {
+function Step({ title, text }) {
   return (
     <div style={styles.step}>
-      <div style={styles.stepDot} />
-      <p>{text}</p>
-    </div>
-  );
-}
-
-function Info({ title, points }) {
-  return (
-    <div style={styles.card}>
-      <h3 style={styles.cardTitle}>
-        {title.replace('C', '')}
-        <span style={styles.logoC}>C</span>
-        {title.includes('C') ? '' : ''}
-      </h3>
-      <ul style={styles.list}>
-        {points.map(p => (
-          <li key={p}>{p}</li>
-        ))}
-      </ul>
+      <h4 style={styles.stepTitle}>{title}</h4>
+      <p style={styles.stepText}>{text}</p>
     </div>
   );
 }
@@ -148,119 +118,86 @@ function Info({ title, points }) {
 /* ---------- STYLES ---------- */
 
 const styles = {
-  page: { background: '#ffffff', color: '#0f172a' },
+  page: {
+    background: '#ffffff',
+    color: '#0f172a',
+  },
 
-  hero: { padding: '80px 20px', background: '#f8fafc' },
+  hero: {
+    padding: '90px 20px 70px',
+    background: '#f8fafc',
+  },
   heroInner: {
-    maxWidth: 1100,
+    maxWidth: 900,
     margin: '0 auto',
-    display: 'grid',
-    gridTemplateColumns: '1.1fr 0.9fr',
-    gap: 48,
-    alignItems: 'center',
   },
-
-  logo: {
-    fontSize: 20,
-    fontWeight: 700,
-    marginBottom: 20,
-  },
-  logoFooter: {
-    fontSize: 16,
-    fontWeight: 700,
-  },
-  logoC: {
-    color: ACCENT,
-    fontWeight: 900,
-  },
-
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: 800,
     lineHeight: 1.25,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#334155',
-    lineHeight: 1.6,
+    lineHeight: 1.7,
+    maxWidth: 600,
     marginBottom: 28,
-    maxWidth: 460,
   },
-  highlight: {
+  accent: {
     color: ACCENT,
-    fontWeight: 600,
+    fontWeight: 700,
   },
-
   primaryBtn: {
     background: ACCENT,
     color: '#ffffff',
     border: 'none',
-    padding: '12px 30px',
+    padding: '12px 34px',
     fontSize: 15,
     fontWeight: 600,
-    borderRadius: 10,
+    borderRadius: 8,
     cursor: 'pointer',
   },
 
-  visual: {
-    background: '#ffffff',
-    borderRadius: 20,
-    padding: 32,
+  philosophy: {
+    padding: '24px 20px',
     textAlign: 'center',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-  },
-  visualC: {
-    fontSize: 72,
-    fontWeight: 900,
-    color: ACCENT,
-    marginBottom: 10,
-  },
-  visualText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#334155',
-    lineHeight: 1.6,
+    borderTop: '1px solid #e5e7eb',
+    borderBottom: '1px solid #e5e7eb',
   },
 
-  trust: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    padding: '20px',
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 16,
+  section: {
+    padding: '64px 20px',
+  },
+  sectionTitle: {
     textAlign: 'center',
-    fontSize: 14,
-    color: ACCENT,
-    fontWeight: 600,
+    fontSize: 24,
+    fontWeight: 700,
+    marginBottom: 36,
   },
-  trustItem: {
-    borderBottom: `2px solid ${ACCENT}`,
-    paddingBottom: 8,
-  },
-
-  section: { padding: '64px 20px', textAlign: 'center' },
-  sectionTitle: { fontSize: 22, fontWeight: 700, marginBottom: 32 },
-
   steps: {
     maxWidth: 900,
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: 24,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 28,
   },
   step: {
-    border: `1px dashed ${ACCENT}`,
-    borderRadius: 14,
     padding: 24,
-    fontSize: 14,
+    borderLeft: `4px solid ${ACCENT}`,
+    background: '#f8fafc',
   },
-  stepDot: {
-    width: 10,
-    height: 10,
-    background: ACCENT,
-    borderRadius: '50%',
-    margin: '0 auto 12px',
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    marginBottom: 6,
+  },
+  stepText: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 1.6,
   },
 
   split: {
@@ -272,9 +209,7 @@ const styles = {
     gap: 32,
   },
   card: {
-    background: '#ffffff',
     border: '1px solid #e5e7eb',
-    borderRadius: 18,
     padding: 28,
   },
   cardTitle: {
@@ -289,20 +224,24 @@ const styles = {
   },
 
   cta: {
-    background: ACCENT,
+    background: '#0f172a',
     color: '#ffffff',
     textAlign: 'center',
-    padding: '64px 20px',
+    padding: '70px 20px',
   },
-  ctaTitle: { fontSize: 22, fontWeight: 700, marginBottom: 18 },
+  ctaTitle: {
+    fontSize: 22,
+    fontWeight: 700,
+    marginBottom: 20,
+  },
   secondaryBtn: {
     background: '#ffffff',
-    color: ACCENT,
+    color: '#0f172a',
     border: 'none',
-    padding: '12px 34px',
+    padding: '12px 36px',
     fontSize: 15,
     fontWeight: 600,
-    borderRadius: 10,
+    borderRadius: 8,
     cursor: 'pointer',
   },
 
