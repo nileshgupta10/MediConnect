@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 
 export default function MyTraining() {
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     load();
@@ -12,55 +13,73 @@ export default function MyTraining() {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('training_requests')
       .select(`
         id,
         status,
         appointment_at,
+        pharmacist_response,
         slot_id,
-        training_slots ( month, slot_number ),
-        store_profiles ( phone ),
-        pharmacist_profiles ( phone )
+        training_slots (
+          month,
+          slot_number
+        ),
+        store_profiles (
+          phone
+        ),
+        pharmacist_profiles (
+          phone
+        )
       `)
       .eq('pharmacist_id', auth.user.id)
       .order('created_at', { ascending: false });
 
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     setRequests(data || []);
+    setLoading(false);
   };
 
-  const acceptMeeting = async (req) => {
+  const acceptMeeting = async (reqId) => {
     await supabase
       .from('training_requests')
       .update({
         status: 'confirmed',
         pharmacist_response: 'approved',
       })
-      .eq('id', req.id);
+      .eq('id', reqId);
 
     alert('Meeting accepted');
     load();
   };
 
-  const requestNewTime = async (req) => {
+  const requestNewTime = async (reqId) => {
     await supabase
       .from('training_requests')
       .update({
         status: 'reschedule_requested',
         pharmacist_response: 'reschedule_requested',
       })
-      .eq('id', req.id);
+      .eq('id', reqId);
 
     alert('Requested new date/time');
     load();
   };
 
-  const formatTime = (dt) =>
-    new Date(dt).toLocaleString('en-IN', {
+  const formatTime = (dt) => {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('en-IN', {
       dateStyle: 'medium',
       timeStyle: 'short',
       hour12: true,
     });
+  };
+
+  if (loading) return <p>Loading…</p>;
 
   return (
     <>
@@ -80,7 +99,7 @@ export default function MyTraining() {
 
           <p>Status: <b>{r.status}</b></p>
 
-          {/* 🔴 THIS WAS MISSING PROPERLY */}
+          {/* 🔑 THIS IS THE CRITICAL PART */}
           {r.status === 'scheduled' && (
             <>
               <p>
@@ -88,17 +107,17 @@ export default function MyTraining() {
                 <b>{formatTime(r.appointment_at)}</b>
               </p>
 
-              <button onClick={() => acceptMeeting(r)}>
+              <button onClick={() => acceptMeeting(r.id)}>
                 Accept Meeting
               </button>{' '}
-              <button onClick={() => requestNewTime(r)}>
+              <button onClick={() => requestNewTime(r.id)}>
                 Request New Time
               </button>
 
-              {/* 🔓 PHONE UNLOCK — ONLY NOW */}
+              {/* 🔓 Phone numbers unlocked ONLY now */}
               <p style={{ marginTop: 10 }}>
-                📞 Store: {r.store_profiles?.phone}<br />
-                📞 You: {r.pharmacist_profiles?.phone}
+                📞 Store: {r.store_profiles?.phone || '—'}<br />
+                📞 You: {r.pharmacist_profiles?.phone || '—'}
               </p>
             </>
           )}
