@@ -1,17 +1,120 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ================================
+   MediClan Global Design System
+   ================================ */
 
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', system-ui, sans-serif;
-  color: #0f172a;
-  background: #f8fafc;
-}
-
+/* ---------- CSS Reset ---------- */
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+/* ---------- Root Variables ---------- */
+:root {
+  /* Core Brand */
+  --mc-blue: #0f172a;       /* Deep trust blue */
+  --mc-teal: #0ea5a4;       /* Primary action */
+  --mc-amber: #f59e0b;     /* Warm accent (use sparingly) */
+
+  /* Neutrals */
+  --mc-bg: #f8fafc;        /* Warm off-white */
+  --mc-text: #1f2937;      /* Charcoal text */
+  --mc-muted: #64748b;     /* Muted labels */
+
+  /* Borders */
+  --mc-border: #e2e8f0;
+}
+
+/* ---------- Base Body ---------- */
+html,
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont;
+  background-color: var(--mc-bg);
+  color: var(--mc-text);
+  line-height: 1.6;
+}
+
+/* ---------- Headings ---------- */
+h1, h2, h3, h4 {
+  color: var(--mc-blue);
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+}
+
+h1 { font-size: 1.8rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+
+/* ---------- Paragraphs ---------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--mc-text);
+}
+
+/* ---------- Links ---------- */
+a {
+  color: var(--mc-teal);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Buttons ---------- */
 button {
   font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Primary Button */
+button.primary {
+  background-color: var(--mc-teal);
+  color: #ffffff;
+}
+
+button.primary:hover {
+  background-color: #08918f;
+}
+
+/* Secondary Button */
+button.secondary {
+  background: transparent;
+  color: var(--mc-blue);
+  border: 1px solid var(--mc-border);
+}
+
+/* ---------- Forms ---------- */
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--mc-muted);
+  margin-bottom: 0.3rem;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--mc-border);
+  font-family: inherit;
+  margin-bottom: 1rem;
+}
+
+/* ---------- Containers ---------- */
+.mc-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.2rem;
+}
+
+/* ---------- Subtle Accent ---------- */
+.mc-accent {
+  color: var(--mc-amber);
 }

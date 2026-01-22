@@ -1,3 +1,4 @@
+import '../styles/globals.css';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -16,15 +17,7 @@ export default function MyApp({ Component, pageProps }) {
         <title>MediClan</title>
       </Head>
 
-      <div
-        style={{
-          fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont',
-          color: '#0f172a',
-          background: '#ffffff',
-        }}
-      >
-        {isNoLayout ? content : <Layout>{content}</Layout>}
-      </div>
+      {isNoLayout ? content : <Layout>{content}</Layout>}
     </>
   );
 }
