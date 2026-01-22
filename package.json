@@ -1,5 +1,5 @@
 {
-  "name": "mediconnect",
+  "name": "mediClan",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -17,5 +17,4 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4"
-  }
-}
+  }}

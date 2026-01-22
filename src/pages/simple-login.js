@@ -14,7 +14,7 @@ export default function SimpleLogin() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ padding: 30, border: '1px solid #ccc', borderRadius: 8 }}>
-        <h2>MediConnect Login</h2>
+        <h2>MediClan Login</h2>
         <p>Login using Google to continue</p>
 
         <button

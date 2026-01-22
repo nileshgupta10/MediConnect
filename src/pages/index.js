@@ -15,7 +15,7 @@ export default function HomePage() {
           </h1>
 
           <p style={styles.subtitle}>
-            MediConnect is a verified platform that enables
+            MediClan is a verified platform that enables
             <span style={styles.accent}> Credibility</span>,
             clear processes, and genuine
             <span style={styles.accent}> Care</span>
@@ -97,7 +97,7 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer style={styles.footer}>
-        <b>MediConnect</b>
+        <b>MediClan</b>
         <p style={styles.footerText}>
           Relations, over the counter.
         </p>

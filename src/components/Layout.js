@@ -37,7 +37,7 @@ export default function Layout({ children }) {
       <header style={styles.nav}>
         <div style={styles.navInner}>
           <Link href="/">
-            <b style={styles.brand}>MediConnect</b>
+            <b style={styles.brand}>MediClan</b>
           </Link>
 
           <nav style={styles.menu}>
