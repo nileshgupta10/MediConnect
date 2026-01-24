@@ -7,8 +7,6 @@ export default function HomePage() {
     <div style={styles.page}>
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-
-          {/* BRAND */}
           <div style={styles.brandBlock}>
             <img
               src="/brand/mediclan-logo.png"
@@ -42,7 +40,7 @@ export default function HomePage() {
       </section>
 
       <footer style={styles.footer}>
-        <b>MediClan</b>
+        <b style={styles.footerBrand}>MediClan</b>
         <p style={styles.footerText}>Relations, over the counter.</p>
       </footer>
     </div>
@@ -63,7 +61,7 @@ const styles = {
   },
   logo: { width: 64, height: 64, objectFit: 'contain' },
   brandName: { fontSize: 28, fontWeight: 700 },
-  tagline: { fontSize: 13, color: '#475569' },
+  tagline: { fontSize: 14, color: '#334155' },
 
   title: {
     fontSize: 32,
@@ -89,13 +87,18 @@ const styles = {
 
   footer: {
     textAlign: 'center',
-    padding: 24,
-    background: '#020617',
-    color: '#ffffff',
+    padding: '32px 20px',
+    background: '#0f172a',   // lighter than before
+    color: '#e5e7eb',
+  },
+  footerBrand: {
+    fontSize: 15,
+    fontWeight: 600,
+    letterSpacing: 0.3,
   },
   footerText: {
-  fontSize: 14,
-  opacity: 0.95,
-  marginTop: 6,
-},
+    fontSize: 14,
+    color: '#cbd5f5',        // clear, readable, calm
+    marginTop: 6,
+  },
 };
