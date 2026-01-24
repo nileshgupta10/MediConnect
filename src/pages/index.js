@@ -93,5 +93,9 @@ const styles = {
     background: '#020617',
     color: '#ffffff',
   },
-  footerText: { fontSize: 13, opacity: 0.8 },
+  footerText: {
+  fontSize: 14,
+  opacity: 0.95,
+  marginTop: 6,
+},
 };
