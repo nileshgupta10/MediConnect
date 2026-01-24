@@ -8,11 +8,25 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <h1 style={styles.title}>
+
+          {/* BRAND ANCHOR */}
+          <div style={styles.brandBlock}>
+            <img
+              src="/brand/mediclan-logo.png"
+              alt="MediClan"
+              style={styles.logo}
+            />
+            <div>
+              <h1 style={styles.brandName}>MediClan</h1>
+              <p style={styles.tagline}>Relations, over the counter.</p>
+            </div>
+          </div>
+
+          <h2 style={styles.title}>
             Hiring and training for pharmacies,
             <br />
             built on <span style={styles.accent}>Connection</span>
-          </h1>
+          </h2>
 
           <p style={styles.subtitle}>
             MediClan is a verified platform that enables
@@ -34,8 +48,8 @@ export default function HomePage() {
       <section style={styles.philosophy}>
         <p>
           No agents. No noise. Just the right
-          <span style={styles.accent}> Connections</span>
-          , built with trust.
+          <span style={styles.accent}> Connections</span>,
+          built with trust.
         </p>
       </section>
 
@@ -124,15 +138,37 @@ const styles = {
   },
 
   hero: {
-    padding: '90px 20px 70px',
+    padding: '80px 20px 70px',
     background: '#f8fafc',
   },
   heroInner: {
     maxWidth: 900,
     margin: '0 auto',
   },
+
+  brandBlock: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 32,
+  },
+  logo: {
+    width: 64,
+    height: 64,
+    objectFit: 'contain',
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: 700,
+    marginBottom: 2,
+  },
+  tagline: {
+    fontSize: 13,
+    color: '#475569',
+  },
+
   title: {
-    fontSize: 34,
+    fontSize: 32,
     fontWeight: 800,
     lineHeight: 1.25,
     marginBottom: 16,
