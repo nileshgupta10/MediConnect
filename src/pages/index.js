@@ -7,6 +7,8 @@ export default function HomePage() {
     <div style={styles.page}>
       <section style={styles.hero}>
         <div style={styles.heroInner}>
+
+          {/* BRAND */}
           <div style={styles.brandBlock}>
             <img
               src="/brand/mediclan-logo.png"
@@ -47,48 +49,80 @@ export default function HomePage() {
   );
 }
 
+/* ---------------- STYLES ---------------- */
+
 const styles = {
-  page: { background: '#ffffff', color: '#0f172a' },
+  page: {
+    background: '#ffffff',
+    color: '#0f172a',
+  },
 
-  hero: { padding: '80px 20px', background: '#f8fafc' },
-  heroInner: { maxWidth: 900, margin: '0 auto' },
+  hero: {
+    padding: '90px 20px 80px',
+    background: '#f8fafc',
+  },
+  heroInner: {
+    maxWidth: 900,
+    margin: '0 auto',
+  },
 
+  /* BRAND BLOCK */
   brandBlock: {
     display: 'flex',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 32,
+    gap: 20,
+    marginBottom: 36,
   },
-  logo: { width: 64, height: 64, objectFit: 'contain' },
-  brandName: { fontSize: 28, fontWeight: 700 },
-  tagline: { fontSize: 14, color: '#334155' },
+  logo: {
+    width: 96,          // 🔼 increased size
+    height: 96,
+    objectFit: 'contain',
+  },
+  brandName: {
+    fontSize: 30,
+    fontWeight: 700,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 14,
+    color: '#334155',
+  },
 
+  /* CONTENT */
   title: {
     fontSize: 32,
     fontWeight: 800,
-    marginBottom: 16,
+    lineHeight: 1.25,
+    marginBottom: 18,
   },
   subtitle: {
     fontSize: 16,
     color: '#334155',
-    maxWidth: 600,
-    marginBottom: 28,
+    lineHeight: 1.7,
+    maxWidth: 620,
+    marginBottom: 32,
   },
-  accent: { color: ACCENT, fontWeight: 700 },
+  accent: {
+    color: ACCENT,
+    fontWeight: 700,
+  },
 
   primaryBtn: {
     background: ACCENT,
-    color: '#fff',
+    color: '#ffffff',
     border: 'none',
     padding: '12px 34px',
+    fontSize: 15,
+    fontWeight: 600,
     borderRadius: 8,
     cursor: 'pointer',
   },
 
+  /* FOOTER */
   footer: {
     textAlign: 'center',
     padding: '32px 20px',
-    background: '#0f172a',   // lighter than before
+    background: '#0f172a',
     color: '#e5e7eb',
   },
   footerBrand: {
@@ -98,7 +132,7 @@ const styles = {
   },
   footerText: {
     fontSize: 14,
-    color: '#cbd5f5',        // clear, readable, calm
+    color: '#cbd5f5',
     marginTop: 6,
   },
 };
