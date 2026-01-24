@@ -8,18 +8,25 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <h1 style={styles.mainTitle}>
-            Hiring and training for pharmacies,
+
+          {/* BRAND (TEXT ONLY FOR NOW) */}
+          <div style={styles.brandBlock}>
+            <h1 style={styles.brandName}>MediClan</h1>
+            <p style={styles.tagline}>Relations, over the counter.</p>
+          </div>
+
+          <h2 style={styles.mainTitle}>
+            Hiring and training for Pharmacies,
             <br />
             built on <span style={styles.accent}>Connection</span>
-          </h1>
+          </h2>
 
           <p style={styles.subtitle}>
             MediClan is a verified platform that enables
             <span style={styles.accent}> Credibility</span>,
             clear processes, and genuine
             <span style={styles.accent}> Care</span>
-            in pharmacy hiring and training.
+            for Pharmacists and Pharmacies.
           </p>
 
           <Link href="/simple-login">
@@ -33,21 +40,21 @@ export default function HomePage() {
         <div style={styles.imageInner}>
           <div style={styles.imageWrap}>
             <img
-              src="https://images.unsplash.com/photo-1580281657527-47d3f89f6c47"
-              alt="Professional pharmacy environment"
+              src="/pharmacy/professional-pharmacy.jpg"
+              alt="Professional Pharmacy environment"
               style={styles.image}
             />
           </div>
 
           <div style={styles.imageText}>
-            <h2 style={styles.imageTitle}>
-              Built for real pharmacy environments
-            </h2>
+            <h3 style={styles.imageTitle}>
+              Built for real Pharmacy environments
+            </h3>
             <p style={styles.imageDesc}>
-              MediClan is designed around how pharmacies actually work —
-              daily counters, real patients, real training, and real trust.
-              No agents. No shortcuts. Just structured, transparent processes
-              that respect both pharmacists and store owners.
+              MediClan is designed around how Pharmacies actually work —
+              real counters, real patients, real training, and real trust.
+              Structured processes help Pharmacists and Pharmacy owners
+              connect with clarity and confidence.
             </p>
           </div>
         </div>
@@ -70,7 +77,6 @@ const styles = {
     color: '#0f172a',
   },
 
-  /* HERO */
   hero: {
     padding: '100px 20px 80px',
     background: '#f8fafc',
@@ -79,8 +85,23 @@ const styles = {
     maxWidth: 900,
     margin: '0 auto',
   },
+
+  brandBlock: {
+    marginBottom: 32,
+  },
+  brandName: {
+    fontSize: 34,
+    fontWeight: 800,
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 14,
+    color: '#475569',
+  },
+
   mainTitle: {
-    fontSize: 36,
+    fontSize: 34,
     fontWeight: 800,
     lineHeight: 1.25,
     marginBottom: 18,
@@ -89,8 +110,8 @@ const styles = {
     fontSize: 17,
     color: '#334155',
     lineHeight: 1.7,
-    maxWidth: 620,
-    marginBottom: 32,
+    maxWidth: 650,
+    marginBottom: 34,
   },
   accent: {
     color: ACCENT,
@@ -107,7 +128,6 @@ const styles = {
     cursor: 'pointer',
   },
 
-  /* IMAGE SECTION */
   imageSection: {
     padding: '80px 20px',
     background: '#ffffff',
@@ -135,7 +155,7 @@ const styles = {
     maxWidth: 420,
   },
   imageTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 700,
     marginBottom: 14,
   },
@@ -145,7 +165,6 @@ const styles = {
     color: '#475569',
   },
 
-  /* FOOTER */
   footer: {
     textAlign: 'center',
     padding: '36px 20px',
