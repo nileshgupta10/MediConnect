@@ -5,27 +5,14 @@ const ACCENT = '#1d4ed8';
 export default function HomePage() {
   return (
     <div style={styles.page}>
+      {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-
-          {/* BRAND */}
-          <div style={styles.brandBlock}>
-            <img
-              src="/brand/mediclan-logo.png"
-              alt="MediClan"
-              style={styles.logo}
-            />
-            <div>
-              <h1 style={styles.brandName}>MediClan</h1>
-              <p style={styles.tagline}>Relations, over the counter.</p>
-            </div>
-          </div>
-
-          <h2 style={styles.title}>
+          <h1 style={styles.mainTitle}>
             Hiring and training for pharmacies,
             <br />
             built on <span style={styles.accent}>Connection</span>
-          </h2>
+          </h1>
 
           <p style={styles.subtitle}>
             MediClan is a verified platform that enables
@@ -41,6 +28,32 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* PROFESSIONAL IMAGE SECTION */}
+      <section style={styles.imageSection}>
+        <div style={styles.imageInner}>
+          <div style={styles.imageWrap}>
+            <img
+              src="https://images.unsplash.com/photo-1580281657527-47d3f89f6c47"
+              alt="Professional pharmacy environment"
+              style={styles.image}
+            />
+          </div>
+
+          <div style={styles.imageText}>
+            <h2 style={styles.imageTitle}>
+              Built for real pharmacy environments
+            </h2>
+            <p style={styles.imageDesc}>
+              MediClan is designed around how pharmacies actually work —
+              daily counters, real patients, real training, and real trust.
+              No agents. No shortcuts. Just structured, transparent processes
+              that respect both pharmacists and store owners.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
       <footer style={styles.footer}>
         <b style={styles.footerBrand}>MediClan</b>
         <p style={styles.footerText}>Relations, over the counter.</p>
@@ -57,46 +70,23 @@ const styles = {
     color: '#0f172a',
   },
 
+  /* HERO */
   hero: {
-    padding: '90px 20px 80px',
+    padding: '100px 20px 80px',
     background: '#f8fafc',
   },
   heroInner: {
     maxWidth: 900,
     margin: '0 auto',
   },
-
-  /* BRAND BLOCK */
-  brandBlock: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 20,
-    marginBottom: 36,
-  },
-  logo: {
-    width: 96,          // 🔼 increased size
-    height: 96,
-    objectFit: 'contain',
-  },
-  brandName: {
-    fontSize: 30,
-    fontWeight: 700,
-    marginBottom: 4,
-  },
-  tagline: {
-    fontSize: 14,
-    color: '#334155',
-  },
-
-  /* CONTENT */
-  title: {
-    fontSize: 32,
+  mainTitle: {
+    fontSize: 36,
     fontWeight: 800,
     lineHeight: 1.25,
     marginBottom: 18,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
     color: '#334155',
     lineHeight: 1.7,
     maxWidth: 620,
@@ -106,22 +96,59 @@ const styles = {
     color: ACCENT,
     fontWeight: 700,
   },
-
   primaryBtn: {
     background: ACCENT,
     color: '#ffffff',
     border: 'none',
-    padding: '12px 34px',
+    padding: '13px 36px',
     fontSize: 15,
     fontWeight: 600,
     borderRadius: 8,
     cursor: 'pointer',
   },
 
+  /* IMAGE SECTION */
+  imageSection: {
+    padding: '80px 20px',
+    background: '#ffffff',
+  },
+  imageInner: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: '1.1fr 0.9fr',
+    gap: 48,
+    alignItems: 'center',
+  },
+  imageWrap: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  imageText: {
+    maxWidth: 420,
+  },
+  imageTitle: {
+    fontSize: 26,
+    fontWeight: 700,
+    marginBottom: 14,
+  },
+  imageDesc: {
+    fontSize: 15,
+    lineHeight: 1.8,
+    color: '#475569',
+  },
+
   /* FOOTER */
   footer: {
     textAlign: 'center',
-    padding: '32px 20px',
+    padding: '36px 20px',
     background: '#0f172a',
     color: '#e5e7eb',
   },
