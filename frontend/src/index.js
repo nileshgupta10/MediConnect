@@ -7,7 +7,7 @@ export default function HomePage() {
     <div style={styles.page}>
       {/* HERO */}
       <section style={styles.hero}>
-        <div style={{ ...styles.heroInner, ...styles.fadeIn }}>
+        <div style={styles.heroInner}>
           <div style={styles.brandBlock}>
             <h1 style={styles.brandName}>MediClan</h1>
             <p style={styles.tagline}>Relations, over the counter.</p>
@@ -16,15 +16,14 @@ export default function HomePage() {
           <h2 style={styles.mainTitle}>
             Hiring and training for Pharmacies,
             <br />
-            built on <span style={styles.accent}>Connection</span>
+            built on <span style={styles.accent}>Collaboration</span>
           </h2>
 
           <p style={styles.subtitle}>
-            MediClan is a verified platform that enables
-            <span style={styles.accent}> Credibility</span>,
-            clear processes, and genuine
-            <span style={styles.accent}> Care</span>
-            for Pharmacists and Pharmacies.
+            MediClan is a trust-first platform where Pharmacists and
+            Pharmacies collaborate with clarity — not confusion.
+            Structured training, clear expectations, and respectful
+            professional relationships.
           </p>
 
           <Link href="/simple-login">
@@ -35,7 +34,7 @@ export default function HomePage() {
 
       {/* IMAGE SECTION */}
       <section style={styles.imageSection}>
-        <div style={{ ...styles.imageInner, ...styles.fadeInDelayed }}>
+        <div style={styles.imageInner}>
           <div style={styles.imageWrap}>
             <img
               src="/pharmacy/professional-pharmacy.jpg"
@@ -46,14 +45,41 @@ export default function HomePage() {
 
           <div style={styles.imageText}>
             <h3 style={styles.imageTitle}>
-              Built for real Pharmacy environments
+              Built around real Pharmacy environments
             </h3>
             <p style={styles.imageDesc}>
-              MediClan is designed around how Pharmacies actually work —
-              real counters, real patients, real training, and real trust.
-              Structured processes help Pharmacists and Pharmacy owners
-              connect with clarity and confidence.
+              MediClan reflects how Pharmacies actually function —
+              counters, patients, training, and responsibility.
+              It respects time, intent, and professional dignity
+              on both sides.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* COLLABORATION SECTION */}
+      <section style={styles.collabSection}>
+        <h3 style={styles.collabTitle}>Why collaboration works</h3>
+
+        <div style={styles.collabGrid}>
+          <div style={styles.collabCard}>
+            <h4>For Pharmacies</h4>
+            <ul>
+              <li>Access motivated Pharmacists who want to learn</li>
+              <li>Reduce hiring risk through structured training</li>
+              <li>Build long-term professional relationships</li>
+              <li>Train once, benefit for years</li>
+            </ul>
+          </div>
+
+          <div style={styles.collabCard}>
+            <h4>For Pharmacists</h4>
+            <ul>
+              <li>Gain real-world Pharmacy experience</li>
+              <li>Learn workflows, not just theory</li>
+              <li>Understand expectations before commitment</li>
+              <li>Grow confidence through guided exposure</li>
+            </ul>
           </div>
         </div>
       </section>
@@ -75,7 +101,6 @@ const styles = {
     color: '#0f172a',
   },
 
-  /* HERO */
   hero: {
     padding: '100px 20px 80px',
     background: '#f8fafc',
@@ -89,7 +114,7 @@ const styles = {
     marginBottom: 32,
   },
   brandName: {
-    fontSize: 'clamp(26px, 5vw, 34px)', // ✅ mobile safe
+    fontSize: 34,
     fontWeight: 800,
     marginBottom: 4,
   },
@@ -99,13 +124,13 @@ const styles = {
   },
 
   mainTitle: {
-    fontSize: 'clamp(26px, 6vw, 34px)', // ✅ mobile safe
+    fontSize: 34,
     fontWeight: 800,
     lineHeight: 1.25,
     marginBottom: 18,
   },
   subtitle: {
-    fontSize: 'clamp(15px, 4vw, 17px)', // ✅ mobile safe
+    fontSize: 17,
     color: '#334155',
     lineHeight: 1.7,
     maxWidth: 650,
@@ -115,7 +140,6 @@ const styles = {
     color: ACCENT,
     fontWeight: 700,
   },
-
   primaryBtn: {
     background: ACCENT,
     color: '#ffffff',
@@ -136,27 +160,23 @@ const styles = {
     maxWidth: 1100,
     margin: '0 auto',
     display: 'grid',
+    gridTemplateColumns: '1.1fr 0.9fr',
     gap: 48,
     alignItems: 'center',
-
-    /* ✅ CRITICAL FIX */
-    gridTemplateColumns: '1fr',
   },
-
   imageWrap: {
     borderRadius: 14,
     overflow: 'hidden',
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
-    minHeight: 260, // ✅ prevents shrink on mobile
   },
   image: {
     width: '100%',
-    height: '100%',
+    height: '420px',          // 🔹 fixed height for impact
     objectFit: 'cover',
     display: 'block',
   },
   imageText: {
-    maxWidth: 520,
+    maxWidth: 420,
   },
   imageTitle: {
     fontSize: 24,
@@ -167,6 +187,31 @@ const styles = {
     fontSize: 15,
     lineHeight: 1.8,
     color: '#475569',
+  },
+
+  /* COLLAB SECTION */
+  collabSection: {
+    padding: '80px 20px',
+    background: '#f8fafc',
+  },
+  collabTitle: {
+    textAlign: 'center',
+    fontSize: 26,
+    fontWeight: 700,
+    marginBottom: 40,
+  },
+  collabGrid: {
+    maxWidth: 900,
+    margin: '0 auto',
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 32,
+  },
+  collabCard: {
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    padding: 28,
+    borderRadius: 10,
   },
 
   /* FOOTER */
@@ -185,23 +230,19 @@ const styles = {
     color: '#cbd5f5',
     marginTop: 6,
   },
-
-  /* ANIMATIONS */
-  fadeIn: {
-    animation: 'fadeUp 0.6s ease-out forwards',
-  },
-  fadeInDelayed: {
-    animation: 'fadeUp 0.8s ease-out forwards',
-  },
 };
 
-/* Inject keyframes */
+/* MOBILE FIX */
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.innerHTML = `
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(14px); }
-      to { opacity: 1; transform: translateY(0); }
+    @media (max-width: 768px) {
+      .imageInner {
+        grid-template-columns: 1fr !important;
+      }
+      img {
+        height: 260px !important;
+      }
     }
   `;
   document.head.appendChild(style);
