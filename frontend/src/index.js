@@ -11,6 +11,9 @@ export default function HomePage() {
           <div style={styles.brandBlock}>
             <h1 style={styles.brandName}>MediClan</h1>
             <p style={styles.tagline}>Relations, over the counter.</p>
+            <p style={{ color: 'red', fontWeight: 700 }}>
+  DEBUG MARKER — COLLAB VERSION
+</p>
           </div>
 
           <h2 style={styles.mainTitle}>
