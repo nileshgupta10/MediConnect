@@ -8,7 +8,6 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={{ ...styles.heroInner, ...styles.fadeIn }}>
-          {/* BRAND */}
           <div style={styles.brandBlock}>
             <h1 style={styles.brandName}>MediClan</h1>
             <p style={styles.tagline}>Relations, over the counter.</p>
@@ -90,9 +89,8 @@ const styles = {
     marginBottom: 32,
   },
   brandName: {
-    fontSize: 34,
+    fontSize: 'clamp(26px, 5vw, 34px)', // ✅ mobile safe
     fontWeight: 800,
-    letterSpacing: 0.3,
     marginBottom: 4,
   },
   tagline: {
@@ -101,13 +99,13 @@ const styles = {
   },
 
   mainTitle: {
-    fontSize: 34,
+    fontSize: 'clamp(26px, 6vw, 34px)', // ✅ mobile safe
     fontWeight: 800,
     lineHeight: 1.25,
     marginBottom: 18,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 'clamp(15px, 4vw, 17px)', // ✅ mobile safe
     color: '#334155',
     lineHeight: 1.7,
     maxWidth: 650,
@@ -127,7 +125,6 @@ const styles = {
     fontWeight: 600,
     borderRadius: 8,
     cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
   },
 
   /* IMAGE SECTION */
@@ -139,14 +136,18 @@ const styles = {
     maxWidth: 1100,
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: '1.1fr 0.9fr',
     gap: 48,
     alignItems: 'center',
+
+    /* ✅ CRITICAL FIX */
+    gridTemplateColumns: '1fr',
   },
+
   imageWrap: {
     borderRadius: 14,
     overflow: 'hidden',
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+    minHeight: 260, // ✅ prevents shrink on mobile
   },
   image: {
     width: '100%',
@@ -155,7 +156,7 @@ const styles = {
     display: 'block',
   },
   imageText: {
-    maxWidth: 420,
+    maxWidth: 520,
   },
   imageTitle: {
     fontSize: 24,
@@ -178,7 +179,6 @@ const styles = {
   footerBrand: {
     fontSize: 15,
     fontWeight: 600,
-    letterSpacing: 0.3,
   },
   footerText: {
     fontSize: 14,
@@ -200,14 +200,8 @@ if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.innerHTML = `
     @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(14px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   `;
   document.head.appendChild(style);
