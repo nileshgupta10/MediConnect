@@ -8,6 +8,9 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
+        <h1 style={{ color: 'red' }}>
+  THIS IS THE NEW MEDICLAN HOMEPAGE — TEST 123
+</h1>
 
           {/* BRAND (TEXT ONLY FOR NOW) */}
           <div style={styles.brandBlock}>
