@@ -1,23 +1,20 @@
 import '../styles/globals.css';
 import Layout from '../components/Layout';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 export default function MyApp({ Component, pageProps }) {
   const router = useRouter();
 
-  const noLayoutPages = ['/', '/simple-login', '/auth-callback'];
+  const noLayoutPages = ['/', '/simple-login'];
   const isNoLayout = noLayoutPages.includes(router.pathname);
-
-  const content = <Component {...pageProps} />;
 
   return (
     <>
       <Head>
         <title>MediClan</title>
       </Head>
-
-      {isNoLayout ? content : <Layout>{content}</Layout>}
+      {isNoLayout ? <Component {...pageProps} /> : <Layout><Component {...pageProps} /></Layout>}
     </>
   );
 }

@@ -10,24 +10,24 @@ export default function RoleSelect() {
 
   useEffect(() => {
     const init = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // ✅ SINGLE SOURCE OF TRUTH
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session || !session.user) {
-        // Session not ready yet — wait briefly
-        setTimeout(init, 300);
+      // 🔒 If no session, go to login
+      if (!session) {
+        router.replace('/simple-login');
         return;
       }
 
       const user = session.user;
 
-      // 🔐 ADMIN BYPASS (LOCKED)
+      // 🔐 ADMIN BYPASS
       if (user.email === ADMIN_EMAIL) {
         router.replace('/admin');
         return;
       }
 
+      // 🔎 Check if role already exists
       const { data: roleRow, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -40,6 +40,7 @@ export default function RoleSelect() {
         return;
       }
 
+      // 🚀 Auto-redirect if role already chosen
       if (roleRow?.role === 'pharmacist') {
         router.replace('/pharmacist-profile');
         return;
@@ -50,7 +51,7 @@ export default function RoleSelect() {
         return;
       }
 
-      // No role set yet → show selection
+      // 🟢 No role yet → show role selection
       setLoading(false);
     };
 
@@ -58,16 +59,25 @@ export default function RoleSelect() {
   }, [router]);
 
   const setRole = async (role) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      router.replace('/simple-login');
+      return;
+    }
 
-    if (!session || !session.user) return;
+    const user = session.user;
 
-    await supabase.from('user_roles').upsert({
-      user_id: session.user.id,
-      role,
-    });
+    const { error } = await supabase
+      .from('user_roles')
+      .upsert({
+        user_id: user.id,
+        role,
+      });
+
+    if (error) {
+      alert('Failed to save role. Please try again.');
+      return;
+    }
 
     router.replace(
       role === 'pharmacist'
@@ -76,19 +86,33 @@ export default function RoleSelect() {
     );
   };
 
-  if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <p>Loading…</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 40, textAlign: 'center' }}>
       <h2>Select your role</h2>
 
-      <button onClick={() => setRole('pharmacist')} style={{ margin: 10 }}>
-        I am a Pharmacist
-      </button>
+      <div style={{ marginTop: 20 }}>
+        <button
+          onClick={() => setRole('pharmacist')}
+          style={{ margin: 10, padding: '10px 20px' }}
+        >
+          I am a Pharmacist
+        </button>
 
-      <button onClick={() => setRole('store_owner')} style={{ margin: 10 }}>
-        I am a Store Owner
-      </button>
+        <button
+          onClick={() => setRole('store_owner')}
+          style={{ margin: 10, padding: '10px 20px' }}
+        >
+          I am a Store Owner
+        </button>
+      </div>
     </div>
   );
 }
