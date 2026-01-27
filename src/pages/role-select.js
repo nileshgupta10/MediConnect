@@ -11,25 +11,34 @@ export default function RoleSelect() {
   useEffect(() => {
     const init = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        router.replace('/simple-login');
+      if (!session || !session.user) {
+        // Session not ready yet — wait briefly
+        setTimeout(init, 300);
         return;
       }
 
-      // 🔐 ADMIN BYPASS (CRITICAL, MINIMAL)
+      const user = session.user;
+
+      // 🔐 ADMIN BYPASS (LOCKED)
       if (user.email === ADMIN_EMAIL) {
         router.replace('/admin');
         return;
       }
 
-      const { data: roleRow } = await supabase
+      const { data: roleRow, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      if (error) {
+        console.error('Role fetch error:', error);
+        setLoading(false);
+        return;
+      }
 
       if (roleRow?.role === 'pharmacist') {
         router.replace('/pharmacist-profile');
@@ -41,7 +50,7 @@ export default function RoleSelect() {
         return;
       }
 
-      // Only reach here if role not set
+      // No role set yet → show selection
       setLoading(false);
     };
 
@@ -50,16 +59,15 @@ export default function RoleSelect() {
 
   const setRole = async (role) => {
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    await supabase
-      .from('user_roles')
-      .upsert({
-        user_id: user.id,
-        role,
-      });
+    if (!session || !session.user) return;
+
+    await supabase.from('user_roles').upsert({
+      user_id: session.user.id,
+      role,
+    });
 
     router.replace(
       role === 'pharmacist'
