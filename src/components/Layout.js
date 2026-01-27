@@ -9,27 +9,40 @@ export default function Layout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user || null);
+    // Initial session load
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data?.session?.user || null);
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes (NO REDIRECTS HERE)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
-      if (!session) router.push('/');
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setRole(null);
+      return;
+    }
 
     supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
-      .then(({ data }) => setRole(data?.role));
+      .then(({ data }) => setRole(data?.role || null));
   }, [user]);
 
+  // ⚠️ IMPORTANT:
+  // If no user, DO NOT block rendering.
+  // Auth pages handle redirects themselves.
   if (!user) return <>{children}</>;
 
   return (
@@ -62,7 +75,10 @@ export default function Layout({ children }) {
 
             <button
               style={styles.logout}
-              onClick={() => supabase.auth.signOut()}
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.replace('/');
+              }}
             >
               Logout
             </button>
@@ -78,7 +94,7 @@ export default function Layout({ children }) {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#f8fafc', // warm off-white
+    background: '#f8fafc',
   },
 
   nav: {
@@ -87,7 +103,7 @@ const styles = {
   },
 
   navInner: {
-    maxWidth: 980,              // narrower = calmer
+    maxWidth: 980,
     margin: '0 auto',
     padding: '16px 20px',
     display: 'flex',
@@ -98,7 +114,7 @@ const styles = {
   brand: {
     fontSize: 18,
     fontWeight: 500,
-    color: '#0f172a',           // deep trust blue
+    color: '#0f172a',
     cursor: 'pointer',
   },
 
@@ -111,7 +127,7 @@ const styles = {
 
   logout: {
     background: 'transparent',
-    color: '#0ea5a4',           // teal action
+    color: '#0ea5a4',
     border: '1px solid #cbd5e1',
     padding: '6px 12px',
     borderRadius: 6,
@@ -119,7 +135,7 @@ const styles = {
   },
 
   content: {
-    maxWidth: 860,              // matches design system
+    maxWidth: 860,
     margin: '0 auto',
     padding: '32px 20px',
   },
