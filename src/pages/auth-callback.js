@@ -6,17 +6,23 @@ export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        router.replace('/role-select');
-      }
-    });
+    const finalizeAuth = async () => {
+      // This call tells Supabase:
+      // "Read access_token / refresh_token from URL hash
+      //  and persist the session"
+      const { error } = await supabase.auth.getSession();
 
-    return () => {
-      subscription.unsubscribe();
+      if (error) {
+        console.error('Auth callback error:', error);
+        router.replace('/simple-login');
+        return;
+      }
+
+      // ✅ Session is now written to LocalStorage
+      router.replace('/role-select');
     };
+
+    finalizeAuth();
   }, [router]);
 
   return (
@@ -24,8 +30,8 @@ export default function AuthCallback() {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       <p>Signing you in…</p>
