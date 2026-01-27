@@ -8,16 +8,26 @@ export default function Layout({ children }) {
   const [role, setRole] = useState(null);
   const router = useRouter();
 
-  // ✅ Read session ONCE, do not subscribe
+  // ✅ Session hydration + passive listener (NO redirects)
   useEffect(() => {
-    const loadSession = async () => {
-      const { data } = await supabase.auth.getSession();
+    // Initial session load
+    supabase.auth.getSession().then(({ data }) => {
       setUser(data?.session?.user || null);
-    };
+    });
 
-    loadSession();
+    // Passive listener — state only
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
+  // Load role when user is present
   useEffect(() => {
     if (!user) {
       setRole(null);
@@ -29,11 +39,10 @@ export default function Layout({ children }) {
       .select('role')
       .eq('user_id', user.id)
       .single()
-      .then(({ data }) => setRole(data?.role || null));
+      .then(({ data }) => {
+        setRole(data?.role || null);
+      });
   }, [user]);
-
-  // ❗ Layout NEVER redirects
-  if (!user) return <>{children}</>;
 
   return (
     <div style={styles.page}>
@@ -43,36 +52,38 @@ export default function Layout({ children }) {
             <span style={styles.brand}>MediClan</span>
           </Link>
 
-          <nav style={styles.menu}>
-            {role === 'pharmacist' && (
-              <>
-                <Link href="/jobs">Jobs</Link>
-                <Link href="/training-apply">Training</Link>
-                <Link href="/my-training">My Training</Link>
-                <Link href="/pharmacist-profile">Profile</Link>
-              </>
-            )}
+          {user && (
+            <nav style={styles.menu}>
+              {role === 'pharmacist' && (
+                <>
+                  <Link href="/jobs">Jobs</Link>
+                  <Link href="/training-apply">Training</Link>
+                  <Link href="/my-training">My Training</Link>
+                  <Link href="/pharmacist-profile">Profile</Link>
+                </>
+              )}
 
-            {role === 'store_owner' && (
-              <>
-                <Link href="/post-job">Post Job</Link>
-                <Link href="/applicants">Applicants</Link>
-                <Link href="/training-slots">Training Slots</Link>
-                <Link href="/training-requests">Training Requests</Link>
-                <Link href="/store-profile">Profile</Link>
-              </>
-            )}
+              {role === 'store_owner' && (
+                <>
+                  <Link href="/post-job">Post Job</Link>
+                  <Link href="/applicants">Applicants</Link>
+                  <Link href="/training-slots">Training Slots</Link>
+                  <Link href="/training-requests">Training Requests</Link>
+                  <Link href="/store-profile">Profile</Link>
+                </>
+              )}
 
-            <button
-              style={styles.logout}
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.replace('/');
-              }}
-            >
-              Logout
-            </button>
-          </nav>
+              <button
+                style={styles.logout}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.replace('/');
+                }}
+              >
+                Logout
+              </button>
+            </nav>
+          )}
         </div>
       </header>
 
