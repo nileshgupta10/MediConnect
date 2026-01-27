@@ -5,14 +5,29 @@ export default function SimpleLogin() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: false,
       },
     });
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ padding: 30, border: '1px solid #ccc', borderRadius: 8 }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          padding: 30,
+          border: '1px solid #ccc',
+          borderRadius: 8,
+          maxWidth: 360,
+        }}
+      >
         <h2>MediClan Login</h2>
         <p>Login using Google to continue</p>
 
@@ -26,6 +41,7 @@ export default function SimpleLogin() {
             color: 'white',
             border: 'none',
             borderRadius: '6px',
+            width: '100%',
           }}
         >
           Continue with Google
