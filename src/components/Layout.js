@@ -8,22 +8,14 @@ export default function Layout({ children }) {
   const [role, setRole] = useState(null);
   const router = useRouter();
 
+  // ✅ Read session ONCE, do not subscribe
   useEffect(() => {
-    // Initial session load
-    supabase.auth.getSession().then(({ data }) => {
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
       setUser(data?.session?.user || null);
-    });
-
-    // Listen for auth changes (NO REDIRECTS HERE)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+
+    loadSession();
   }, []);
 
   useEffect(() => {
@@ -40,9 +32,7 @@ export default function Layout({ children }) {
       .then(({ data }) => setRole(data?.role || null));
   }, [user]);
 
-  // ⚠️ IMPORTANT:
-  // If no user, DO NOT block rendering.
-  // Auth pages handle redirects themselves.
+  // ❗ Layout NEVER redirects
   if (!user) return <>{children}</>;
 
   return (
@@ -96,12 +86,10 @@ const styles = {
     minHeight: '100vh',
     background: '#f8fafc',
   },
-
   nav: {
     background: '#ffffff',
     borderBottom: '1px solid #e2e8f0',
   },
-
   navInner: {
     maxWidth: 980,
     margin: '0 auto',
@@ -110,21 +98,18 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   brand: {
     fontSize: 18,
     fontWeight: 500,
     color: '#0f172a',
     cursor: 'pointer',
   },
-
   menu: {
     display: 'flex',
     gap: 18,
     alignItems: 'center',
     fontSize: 14,
   },
-
   logout: {
     background: 'transparent',
     color: '#0ea5a4',
@@ -133,7 +118,6 @@ const styles = {
     borderRadius: 6,
     cursor: 'pointer',
   },
-
   content: {
     maxWidth: 860,
     margin: '0 auto',
