@@ -7,15 +7,22 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const finishLogin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // 🔑 Ensure Supabase processes the OAuth session
+      const { data, error } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (error) {
+        console.error('Auth callback error:', error);
         router.replace('/simple-login');
         return;
       }
 
-      // ✅ Always go to role-select.
-      // Role-based routing is handled later.
+      if (!data?.session) {
+        // Session not ready yet — retry once after short delay
+        setTimeout(finishLogin, 500);
+        return;
+      }
+
+      // ✅ Session exists → proceed
       router.replace('/role-select');
     };
 
