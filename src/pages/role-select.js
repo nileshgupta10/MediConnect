@@ -1,24 +1,41 @@
-import { createServerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 
 export default function RoleSelect() {
-  // This page will never render visibly
-  // because it always redirects
-  return null;
+  // This page never renders on client if redirected
+  return (
+    <div style={{ padding: 40 }}>
+      <p>Redirecting…</p>
+    </div>
+  );
 }
 
-export async function getServerSideProps(ctx) {
+export async function getServerSideProps({ req, res }) {
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    ctx
+    {
+      cookies: {
+        getAll() {
+          return Object.entries(req.cookies).map(([name, value]) => ({
+            name,
+            value,
+          }));
+        },
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            res.setHeader('Set-Cookie', `${name}=${value}; Path=/; HttpOnly`);
+          });
+        },
+      },
+    }
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // 🔴 Not logged in → go to simple login
-  if (!session) {
+  // 🔐 NOT LOGGED IN → BACK TO LOGIN
+  if (!user) {
     return {
       redirect: {
         destination: '/simple-login',
@@ -27,8 +44,8 @@ export async function getServerSideProps(ctx) {
     };
   }
 
-  // 🔐 Admin override
-  if (session.user.email === 'maniac.gupta@gmail.com') {
+  // 🔑 ADMIN BYPASS
+  if (user.email === 'maniac.gupta@gmail.com') {
     return {
       redirect: {
         destination: '/admin',
@@ -37,14 +54,13 @@ export async function getServerSideProps(ctx) {
     };
   }
 
-  // 🔍 Check role
+  // 🎭 CHECK ROLE
   const { data: roleRow } = await supabase
     .from('user_roles')
     .select('role')
-    .eq('user_id', session.user.id)
-    .single();
+    .eq('user_id', user.id)
+    .maybeSingle();
 
-  // ✅ Role already selected → direct entry
   if (roleRow?.role === 'pharmacist') {
     return {
       redirect: {
@@ -63,7 +79,7 @@ export async function getServerSideProps(ctx) {
     };
   }
 
-  // 🆕 No role yet → show role select UI
+  // ❓ NO ROLE → LET USER SELECT
   return {
     props: {},
   };
