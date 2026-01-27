@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
+import { parse, serialize } from 'cookie';
 
 export default function RoleSelect() {
-  // This page never renders on client if redirected
   return (
     <div style={{ padding: 40 }}>
       <p>Redirecting…</p>
@@ -10,21 +10,32 @@ export default function RoleSelect() {
 }
 
 export async function getServerSideProps({ req, res }) {
+  const cookies = parse(req.headers.cookie || '');
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {
-          return Object.entries(req.cookies).map(([name, value]) => ({
+          return Object.entries(cookies).map(([name, value]) => ({
             name,
             value,
           }));
         },
-        setAll(cookies) {
-          cookies.forEach(({ name, value, options }) => {
-            res.setHeader('Set-Cookie', `${name}=${value}; Path=/; HttpOnly`);
-          });
+        setAll(cookiesToSet) {
+          res.setHeader(
+            'Set-Cookie',
+            cookiesToSet.map(({ name, value, options }) =>
+              serialize(name, value, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax',
+                secure: true,
+                ...options,
+              })
+            )
+          );
         },
       },
     }
@@ -34,7 +45,7 @@ export async function getServerSideProps({ req, res }) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 🔐 NOT LOGGED IN → BACK TO LOGIN
+  // 🔐 NOT LOGGED IN
   if (!user) {
     return {
       redirect: {
@@ -44,7 +55,7 @@ export async function getServerSideProps({ req, res }) {
     };
   }
 
-  // 🔑 ADMIN BYPASS
+  // 🔑 ADMIN
   if (user.email === 'maniac.gupta@gmail.com') {
     return {
       redirect: {
@@ -54,7 +65,7 @@ export async function getServerSideProps({ req, res }) {
     };
   }
 
-  // 🎭 CHECK ROLE
+  // 🎭 ROLE CHECK
   const { data: roleRow } = await supabase
     .from('user_roles')
     .select('role')
@@ -79,8 +90,6 @@ export async function getServerSideProps({ req, res }) {
     };
   }
 
-  // ❓ NO ROLE → LET USER SELECT
-  return {
-    props: {},
-  };
+  // ❓ NO ROLE
+  return { props: {} };
 }
