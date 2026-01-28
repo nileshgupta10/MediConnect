@@ -8,10 +8,11 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function RoleSelect() {
   const router = useRouter();
+
   const [user, setUser] = useState(undefined); // undefined = loading
   const [loading, setLoading] = useState(true);
 
-  // 🔑 Restore session safely
+  // 🔑 Restore session
   useEffect(() => {
     let mounted = true;
 
@@ -36,19 +37,22 @@ export default function RoleSelect() {
     };
   }, []);
 
+  // 🔁 Redirect to login ONLY after session check completes
+  useEffect(() => {
+    if (user === null) {
+      router.replace('/simple-login');
+    }
+  }, [user, router]);
+
   // ⏳ Still restoring session
   if (user === undefined) {
     return <p style={{ padding: 40 }}>Finalizing sign-in…</p>;
   }
 
-  // ❌ No user → login
-  if (!user) {
-    router.replace('/simple-login');
-    return null;
-  }
-
-  // 🔑 Resolve role only AFTER user exists
+  // 🔑 Resolve role
   useEffect(() => {
+    if (!user) return;
+
     const resolveRole = async () => {
       // Admin bypass
       if (user.email === ADMIN_EMAIL) {
@@ -72,7 +76,6 @@ export default function RoleSelect() {
         return;
       }
 
-      // No role → show selector
       setLoading(false);
     };
 
