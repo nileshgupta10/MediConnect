@@ -1,3 +1,5 @@
+// src/pages/simple-login.js
+
 import { supabase } from '../lib/supabase';
 
 export default function SimpleLogin() {
@@ -5,8 +7,8 @@ export default function SimpleLogin() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        skipBrowserRedirect: false,
+        // 🔑 PKCE flow — Supabase handles everything
+        redirectTo: `${window.location.origin}/role-select`,
       },
     });
   };

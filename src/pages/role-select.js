@@ -8,18 +8,16 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function RoleSelect() {
   const router = useRouter();
-
-  const [user, setUser] = useState(undefined); // undefined = still loading
+  const [user, setUser] = useState(undefined); // undefined = loading
   const [loading, setLoading] = useState(true);
 
-  // 🔑 STEP 1: Wait for session to restore
+  // 🔑 Restore session safely
   useEffect(() => {
     let mounted = true;
 
     const loadSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (!mounted) return;
-
       setUser(data.session?.user ?? null);
     };
 
@@ -38,21 +36,21 @@ export default function RoleSelect() {
     };
   }, []);
 
-  // ⏳ Still initializing → show loader
+  // ⏳ Still restoring session
   if (user === undefined) {
     return <p style={{ padding: 40 }}>Finalizing sign-in…</p>;
   }
 
-  // ❌ No user → go to login ONCE
+  // ❌ No user → login
   if (!user) {
     router.replace('/simple-login');
     return null;
   }
 
-  // 🔑 STEP 2: Role logic (runs only AFTER user exists)
+  // 🔑 Resolve role only AFTER user exists
   useEffect(() => {
     const resolveRole = async () => {
-      // 🔐 Admin bypass
+      // Admin bypass
       if (user.email === ADMIN_EMAIL) {
         router.replace('/admin');
         return;
@@ -74,19 +72,17 @@ export default function RoleSelect() {
         return;
       }
 
-      // No role yet → show selector
+      // No role → show selector
       setLoading(false);
     };
 
     resolveRole();
   }, [user, router]);
 
-  // ⏳ Checking role
   if (loading) {
     return <p style={{ padding: 40 }}>Loading…</p>;
   }
 
-  // 🔑 STEP 3: Role selection (first-time users)
   const setRole = async (role) => {
     await supabase.from('user_roles').upsert({
       user_id: user.id,
