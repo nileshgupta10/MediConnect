@@ -1,3 +1,5 @@
+// src/lib/supabase.js
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,7 +12,8 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false, // 🔥 CRITICAL
+      flowType: 'pkce',          // 🔥 CRITICAL
     },
   }
 );
