@@ -12,7 +12,7 @@ export default function RoleSelect() {
   const [user, setUser] = useState(undefined); // undefined = loading
   const [loading, setLoading] = useState(true);
 
-  // 🔑 Restore session
+  // 1️⃣ Restore session (ALWAYS runs)
   useEffect(() => {
     let mounted = true;
 
@@ -37,19 +37,14 @@ export default function RoleSelect() {
     };
   }, []);
 
-  // 🔁 Redirect to login ONLY after session check completes
+  // 2️⃣ Redirect unauthenticated users (ALWAYS runs)
   useEffect(() => {
     if (user === null) {
       router.replace('/simple-login');
     }
   }, [user, router]);
 
-  // ⏳ Still restoring session
-  if (user === undefined) {
-    return <p style={{ padding: 40 }}>Finalizing sign-in…</p>;
-  }
-
-  // 🔑 Resolve role
+  // 3️⃣ Resolve role (ALWAYS runs)
   useEffect(() => {
     if (!user) return;
 
@@ -81,6 +76,11 @@ export default function RoleSelect() {
 
     resolveRole();
   }, [user, router]);
+
+  // ⏳ UI STATES (returns happen ONLY after all hooks)
+  if (user === undefined) {
+    return <p style={{ padding: 40 }}>Finalizing sign-in…</p>;
+  }
 
   if (loading) {
     return <p style={{ padding: 40 }}>Loading…</p>;
