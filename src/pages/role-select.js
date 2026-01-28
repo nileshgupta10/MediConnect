@@ -1,3 +1,5 @@
+// src/pages/role-select.js
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
@@ -6,18 +8,50 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function RoleSelect() {
   const router = useRouter();
+
+  const [user, setUser] = useState(undefined); // undefined = still loading
   const [loading, setLoading] = useState(true);
 
+  // 🔑 STEP 1: Wait for session to restore
   useEffect(() => {
-    const init = async () => {
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
+    let mounted = true;
 
-      if (!user) {
-        router.replace('/simple-login');
-        return;
-      }
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
 
+      setUser(data.session?.user ?? null);
+    };
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // ⏳ Still initializing → show loader
+  if (user === undefined) {
+    return <p style={{ padding: 40 }}>Finalizing sign-in…</p>;
+  }
+
+  // ❌ No user → go to login ONCE
+  if (!user) {
+    router.replace('/simple-login');
+    return null;
+  }
+
+  // 🔑 STEP 2: Role logic (runs only AFTER user exists)
+  useEffect(() => {
+    const resolveRole = async () => {
       // 🔐 Admin bypass
       if (user.email === ADMIN_EMAIL) {
         router.replace('/admin');
@@ -40,17 +74,20 @@ export default function RoleSelect() {
         return;
       }
 
+      // No role yet → show selector
       setLoading(false);
     };
 
-    init();
-  }, [router]);
+    resolveRole();
+  }, [user, router]);
 
+  // ⏳ Checking role
+  if (loading) {
+    return <p style={{ padding: 40 }}>Loading…</p>;
+  }
+
+  // 🔑 STEP 3: Role selection (first-time users)
   const setRole = async (role) => {
-    const { data } = await supabase.auth.getUser();
-    const user = data?.user;
-    if (!user) return;
-
     await supabase.from('user_roles').upsert({
       user_id: user.id,
       role,
@@ -62,8 +99,6 @@ export default function RoleSelect() {
         : '/store-profile'
     );
   };
-
-  if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
 
   return (
     <div style={{ padding: 40, textAlign: 'center' }}>
