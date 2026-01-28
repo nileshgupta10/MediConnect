@@ -1,20 +1,28 @@
-import '../styles/globals.css';
+// src/pages/_app.js
+
+import { useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import Layout from '../components/Layout';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
 
 export default function MyApp({ Component, pageProps }) {
-  const router = useRouter();
+  useEffect(() => {
+    // 🔒 Passive auth state listener
+    // IMPORTANT: No redirects, no routing, no logic here
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, _session) => {
+      // Intentionally empty
+      // Supabase handles session hydration internally
+    });
 
-  const noLayoutPages = ['/', '/simple-login'];
-  const isNoLayout = noLayoutPages.includes(router.pathname);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
-    <>
-      <Head>
-        <title>MediClan</title>
-      </Head>
-      {isNoLayout ? <Component {...pageProps} /> : <Layout><Component {...pageProps} /></Layout>}
-    </>
+    <Layout>
+      <Component {...pageProps} />
+    </Layout>
   );
 }
