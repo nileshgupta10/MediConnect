@@ -1,5 +1,3 @@
-// src/lib/supabase.js
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,9 +14,3 @@ export const supabase = createClient(
     },
   }
 );
-
-// Optional helper (safe to keep)
-export const getSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
-};
