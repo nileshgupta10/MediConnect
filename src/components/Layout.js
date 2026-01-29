@@ -1,4 +1,4 @@
-// src/components/Layout.js (or wherever it lives)
+// src/components/Layout.js
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -6,27 +6,51 @@ import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/router'
 
 export default function Layout({ children }) {
-  const [user, setUser] = useState(undefined) // 🔑 undefined = not ready
+  const [user, setUser] = useState(undefined) // undefined = loading
   const [role, setRole] = useState(null)
   const router = useRouter()
 
+  // 🔑 1. Session hydration (always runs)
   useEffect(() => {
-    // 1️⃣ Initial session load
+    let mounted = true
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
       setUser(data.session?.user ?? null)
     })
 
-    // 2️⃣ Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
       setUser(session?.user ?? null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  // ⏳ IMPORTANT: wait until Supabase is ready
+  // 🔑 2. Role load (always declared, condition inside)
+  useEffect(() => {
+    if (!user) {
+      setRole(null)
+      return
+    }
+
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        setRole(data?.role ?? null)
+      })
+  }, [user])
+
+  // ⏳ Render logic (AFTER all hooks)
+
   if (user === undefined) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
@@ -35,33 +59,22 @@ export default function Layout({ children }) {
     )
   }
 
-  // ❌ Layout NEVER redirects
-  if (!user) return <>{children}</>
-
-  // 🔁 Load role only after user exists
-  useEffect(() => {
-    if (!user) return
-
-    supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => setRole(data?.role ?? null))
-  }, [user])
-
   return (
     <div>
-      <header>
+      <header style={{ padding: 12 }}>
         <Link href="/">MediClan</Link>
-        <button
-          onClick={async () => {
-            await supabase.auth.signOut()
-            router.replace('/')
-          }}
-        >
-          Logout
-        </button>
+
+        {user && (
+          <button
+            style={{ marginLeft: 12 }}
+            onClick={async () => {
+              await supabase.auth.signOut()
+              router.replace('/')
+            }}
+          >
+            Logout
+          </button>
+        )}
       </header>
 
       <main>{children}</main>
