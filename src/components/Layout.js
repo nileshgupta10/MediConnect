@@ -35,9 +35,7 @@ export default function Layout({ children }) {
   return (
     <div>
       <header style={styles.header}>
-        <Link href="/" style={styles.brand}>
-          MediClan
-        </Link>
+        <span style={styles.brand}>MediClan</span>
 
         {user && (
           <button
@@ -69,8 +67,8 @@ const styles = {
   brand: {
     fontSize: 20,
     fontWeight: 700,
-    textDecoration: 'none',
     color: '#0f172a',
+    cursor: 'default',
   },
   logout: {
     background: '#ef4444',
