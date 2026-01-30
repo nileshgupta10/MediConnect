@@ -6,11 +6,19 @@ export default function PostJob() {
   const router = useRouter();
 
   const [title, setTitle] = useState('');
-  const [location, setLocation] = useState('');
+  const [shift, setShift] = useState('');
+  const [numOpenings, setNumOpenings] = useState('');
+  const [requiredExperience, setRequiredExperience] = useState('');
+  const [preferredSoftware, setPreferredSoftware] = useState('');
   const [description, setDescription] = useState('');
   const [message, setMessage] = useState('');
 
   const submitJob = async () => {
+    if (!title || !shift || !numOpenings || !requiredExperience) {
+      setMessage('Please fill in all required fields.');
+      return;
+    }
+
     setMessage('Posting job…');
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -19,10 +27,23 @@ export default function PostJob() {
       return;
     }
 
+    // Get store location from profile
+    const { data: storeProfile } = await supabase
+      .from('store_profiles')
+      .select('latitude, longitude, store_name')
+      .eq('user_id', user.id)
+      .single();
+
+    const location = storeProfile?.store_name || 'Location not set';
+
     const { error } = await supabase.from('jobs').insert({
       title,
+      shift,
+      num_openings: parseInt(numOpenings),
+      required_experience: requiredExperience,
+      preferred_software: preferredSoftware || null,
+      description: description || null,
       location,
-      description,
       store_owner_id: user.id,
     });
 
@@ -33,7 +54,10 @@ export default function PostJob() {
 
     setMessage('Job posted successfully.');
     setTitle('');
-    setLocation('');
+    setShift('');
+    setNumOpenings('');
+    setRequiredExperience('');
+    setPreferredSoftware('');
     setDescription('');
   };
 
@@ -42,7 +66,7 @@ export default function PostJob() {
       <div style={styles.card}>
         <h1 style={styles.heading}>Post a Job</h1>
 
-        <label style={styles.label}>Job Title</label>
+        <label style={styles.label}>Job Title *</label>
         <input
           style={styles.input}
           value={title}
@@ -50,20 +74,53 @@ export default function PostJob() {
           placeholder="e.g. Full-time Pharmacist"
         />
 
-        <label style={styles.label}>Location</label>
+        <label style={styles.label}>Shift *</label>
+        <select
+          style={styles.select}
+          value={shift}
+          onChange={(e) => setShift(e.target.value)}
+        >
+          <option value="">Select Shift</option>
+          <option value="Morning">Morning</option>
+          <option value="Night">Night</option>
+          <option value="Both">Both (Morning & Night)</option>
+        </select>
+
+        <label style={styles.label}>Number of Openings *</label>
         <input
+          type="number"
           style={styles.input}
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Dehu Road, Pune"
+          value={numOpenings}
+          onChange={(e) => setNumOpenings(e.target.value)}
+          placeholder="e.g. 2"
         />
 
-        <label style={styles.label}>Job Description</label>
+        <label style={styles.label}>Required Experience *</label>
+        <select
+          style={styles.select}
+          value={requiredExperience}
+          onChange={(e) => setRequiredExperience(e.target.value)}
+        >
+          <option value="">Select Experience</option>
+          <option value="Fresher">Fresher</option>
+          <option value="1-5 years">1-5 years</option>
+          <option value="5+ years">5+ years</option>
+        </select>
+
+        <label style={styles.label}>Preferred Software (Optional)</label>
+        <input
+          style={styles.input}
+          value={preferredSoftware}
+          onChange={(e) => setPreferredSoftware(e.target.value)}
+          placeholder="e.g. PharmERP, Marg, GoFrugal"
+        />
+
+        <label style={styles.label}>Job Description (Optional)</label>
         <textarea
           style={styles.textarea}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Working hours, experience required, shift details"
+          placeholder="Additional details about working hours, benefits, etc."
         />
 
         <button style={styles.primaryBtn} onClick={submitJob}>
@@ -108,15 +165,23 @@ const styles = {
     width: '100%',
     padding: 12,
     borderRadius: 8,
-    border: '1px solid #cbd5f5',
+    border: '1px solid #cbd5e1',
     fontSize: 14,
+  },
+  select: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    fontSize: 14,
+    background: 'white',
   },
   textarea: {
     width: '100%',
     minHeight: 100,
     padding: 12,
     borderRadius: 8,
-    border: '1px solid #cbd5f5',
+    border: '1px solid #cbd5e1',
     fontSize: 14,
   },
   primaryBtn: {

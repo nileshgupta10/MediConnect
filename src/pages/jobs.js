@@ -5,10 +5,15 @@ import { useRouter } from 'next/router'
 export default function JobsPage() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
     const load = async () => {
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
       const { data } = await supabase
         .from('jobs')
         .select('*')
@@ -21,6 +26,27 @@ export default function JobsPage() {
     load()
   }, [])
 
+  const applyForJob = async (jobId) => {
+    if (!user) {
+      router.push('/simple-login')
+      return
+    }
+
+    const { error } = await supabase
+      .from('job_applications')
+      .insert({
+        job_id: jobId,
+        pharmacist_id: user.id,
+      })
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    alert('Application submitted successfully!')
+  }
+
   if (loading) return <p style={{ padding: 40 }}>Loading jobs…</p>
 
   return (
@@ -32,14 +58,14 @@ export default function JobsPage() {
       {jobs.map((job) => (
         <div key={job.id} style={styles.card}>
           <h3>{job.title}</h3>
-          <p style={styles.location}>{job.location}</p>
-          <p>{job.description}</p>
+          <p style={styles.location}>📍 {job.location}</p>
+          {job.description && <p>{job.description}</p>}
 
           <button
             style={styles.btn}
-            onClick={() => router.push('/simple-login')}
+            onClick={() => applyForJob(job.id)}
           >
-            Login to Apply
+            {user ? 'Apply Now' : 'Login to Apply'}
           </button>
         </div>
       ))}

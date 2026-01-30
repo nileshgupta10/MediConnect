@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 export default function StoreProfile() {
@@ -52,8 +52,11 @@ export default function StoreProfile() {
       const data = await response.json()
       if (data.results && data.results[0]) {
         setAddress(data.results[0].formatted_address)
+      } else {
+        setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
       }
     } catch (e) {
+      console.error('Geocoding error:', e)
       setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
     }
   }
@@ -78,24 +81,31 @@ export default function StoreProfile() {
       return
     }
 
+    const { data: updated } = await supabase
+      .from('store_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    setProfile(updated)
     setMessage('Profile saved successfully.')
     setEditing(false)
 
-    // Reload to refresh address
+    // Reload address
     if (latitude && longitude) {
-      getAddressFromCoords(latitude, longitude)
+      await getAddressFromCoords(latitude, longitude)
     }
   }
 
   const detectLocation = () => {
     setMessage('Detecting location…')
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const newLat = pos.coords.latitude
         const newLng = pos.coords.longitude
         setLatitude(newLat)
         setLongitude(newLng)
-        getAddressFromCoords(newLat, newLng)
+        await getAddressFromCoords(newLat, newLng)
         setMessage('Location detected.')
       },
       () => {
@@ -120,7 +130,7 @@ export default function StoreProfile() {
             <p><b>Store Name:</b> {storeName || '—'}</p>
             <p><b>Contact:</b> {phone || '—'}</p>
             <p><b>Timings:</b> {storeTimings || '—'}</p>
-            <p><b>Location:</b> {address || (latitude && longitude ? `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` : 'Not set')}</p>
+            <p><b>Location:</b> {address || 'Not set'}</p>
 
             <button onClick={() => setEditing(true)} style={styles.secondaryBtn}>
               Edit Profile

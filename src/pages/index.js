@@ -8,9 +8,16 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          {/* BRAND */}
+          {/* BRAND WITH LOGO */}
           <div style={styles.brandBlock}>
-            <h1 style={styles.brandName}>MediClan</h1>
+            <div style={styles.logoRow}>
+              <img 
+                src="/brand/mediclan-logo.png" 
+                alt="MediClan Logo" 
+                style={styles.logo}
+              />
+              <h1 style={styles.brandName}>MediClan</h1>
+            </div>
             <p style={styles.tagline}>Relations, over the counter.</p>
           </div>
 
@@ -23,13 +30,51 @@ export default function HomePage() {
 
           <p style={styles.subtitle}>
             MediClan is a focused employment platform built exclusively for the
-            pharmacy ecosystem. Pharmacists create verified profiles. Pharmacy
-            owners post genuine job openings. No noise. No complexity.
+            pharmacy ecosystem. Pharmacists create verified profiles and apply 
+            for nearby jobs. Pharmacy owners post genuine job openings and receive 
+            applications from qualified candidates. No noise. No complexity. Just 
+            direct connections between verified professionals and trusted stores.
           </p>
 
           <Link href="/simple-login">
             <button style={styles.primaryBtn}>Get Started</button>
           </Link>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section style={styles.howItWorks}>
+        <div style={styles.howInner}>
+          <h2 style={styles.sectionTitle}>How MediClan Works</h2>
+          
+          <div style={styles.grid}>
+            <div style={styles.step}>
+              <div style={styles.stepNumber}>1</div>
+              <h3 style={styles.stepTitle}>Sign Up with Google</h3>
+              <p style={styles.stepDesc}>
+                Quick and secure login using your Google account. Choose whether 
+                you're a pharmacist looking for work or a pharmacy owner looking to hire.
+              </p>
+            </div>
+
+            <div style={styles.step}>
+              <div style={styles.stepNumber}>2</div>
+              <h3 style={styles.stepTitle}>Create Your Profile</h3>
+              <p style={styles.stepDesc}>
+                Pharmacists upload their license and experience. Store owners set 
+                their location and operating hours. Admin verification ensures quality.
+              </p>
+            </div>
+
+            <div style={styles.step}>
+              <div style={styles.stepNumber}>3</div>
+              <h3 style={styles.stepTitle}>Connect & Hire</h3>
+              <p style={styles.stepDesc}>
+                Browse jobs by location. Apply instantly. Store owners review verified 
+                candidates and contact them directly. Simple, fast, and effective.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -51,7 +96,9 @@ export default function HomePage() {
             <p style={styles.imageDesc}>
               Built around how pharmacies actually operate — patient flow,
               working hours, locality, and trust. MediClan connects the right
-              pharmacist to the right store, faster and cleaner.
+              pharmacist to the right store, faster and cleaner. Our platform 
+              understands the unique needs of pharmacy employment: shift patterns, 
+              software experience, license verification, and location proximity.
             </p>
           </div>
         </div>
@@ -88,11 +135,22 @@ const styles = {
   brandBlock: {
     marginBottom: 28,
   },
+  logoRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
+  },
+  logo: {
+    width: 48,
+    height: 48,
+    objectFit: 'contain',
+  },
   brandName: {
     fontSize: 36,
     fontWeight: 800,
     letterSpacing: 0.4,
-    marginBottom: 6,
+    margin: 0,
   },
   tagline: {
     fontSize: 14,
@@ -127,15 +185,61 @@ const styles = {
     cursor: 'pointer',
   },
 
-  imageSection: {
+  howItWorks: {
     padding: '80px 20px',
     background: '#ffffff',
+  },
+  howInner: {
+    maxWidth: 1100,
+    margin: '0 auto',
+  },
+  sectionTitle: {
+    fontSize: 32,
+    fontWeight: 700,
+    textAlign: 'center',
+    marginBottom: 48,
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: 32,
+  },
+  step: {
+    textAlign: 'center',
+  },
+  stepNumber: {
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    background: ACCENT,
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 16px',
+  },
+  stepTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    marginBottom: 12,
+  },
+  stepDesc: {
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: '#475569',
+  },
+
+  imageSection: {
+    padding: '80px 20px',
+    background: '#f8fafc',
   },
   imageInner: {
     maxWidth: 1100,
     margin: '0 auto',
     display: 'grid',
-    gridTemplateColumns: '1.1fr 0.9fr',
+    gridTemplateColumns: '1fr',
     gap: 48,
     alignItems: 'center',
   },
@@ -143,15 +247,18 @@ const styles = {
     borderRadius: 16,
     overflow: 'hidden',
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+    width: '100%',
+    maxWidth: 600,
+    margin: '0 auto',
   },
   image: {
     width: '100%',
-    height: '100%',
-    objectFit: 'cover',
+    height: 'auto',
     display: 'block',
   },
   imageText: {
-    maxWidth: 420,
+    maxWidth: 600,
+    margin: '0 auto',
   },
   imageTitle: {
     fontSize: 26,
@@ -177,7 +284,14 @@ const styles = {
   },
   footerText: {
     fontSize: 14,
-    color: '#cbd5f5',
+    color: '#cbd5e1',
     marginTop: 6,
   },
-};
+
+  // MEDIA QUERY FOR DESKTOP
+  '@media (min-width: 768px)': {
+    imageInner: {
+      gridTemplateColumns: '1.1fr 0.9fr',
+    },
+  },
+}
