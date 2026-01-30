@@ -1,16 +1,12 @@
-// src/components/Layout.js
-
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/router'
 
 export default function Layout({ children }) {
-  const [user, setUser] = useState(undefined) // undefined = loading
-  const [role, setRole] = useState(null)
+  const [user, setUser] = useState(undefined)
   const router = useRouter()
 
-  // 🔑 1. Session hydration (always runs)
   useEffect(() => {
     let mounted = true
 
@@ -32,41 +28,20 @@ export default function Layout({ children }) {
     }
   }, [])
 
-  // 🔑 2. Role load (always declared, condition inside)
-  useEffect(() => {
-    if (!user) {
-      setRole(null)
-      return
-    }
-
-    supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
-        setRole(data?.role ?? null)
-      })
-  }, [user])
-
-  // ⏳ Render logic (AFTER all hooks)
-
   if (user === undefined) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center' }}>
-        Loading…
-      </div>
-    )
+    return <div style={{ padding: 40 }}>Loading…</div>
   }
 
   return (
     <div>
-      <header style={{ padding: 12 }}>
-        <Link href="/">MediClan</Link>
+      <header style={styles.header}>
+        <Link href="/" style={styles.brand}>
+          MediClan
+        </Link>
 
         {user && (
           <button
-            style={{ marginLeft: 12 }}
+            style={styles.logout}
             onClick={async () => {
               await supabase.auth.signOut()
               router.replace('/')
@@ -80,4 +55,29 @@ export default function Layout({ children }) {
       <main>{children}</main>
     </div>
   )
+}
+
+const styles = {
+  header: {
+    padding: '14px 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #e5e7eb',
+    background: '#ffffff',
+  },
+  brand: {
+    fontSize: 20,
+    fontWeight: 700,
+    textDecoration: 'none',
+    color: '#0f172a',
+  },
+  logout: {
+    background: '#ef4444',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 6,
+    cursor: 'pointer',
+  },
 }

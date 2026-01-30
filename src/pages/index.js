@@ -8,28 +8,23 @@ export default function HomePage() {
       {/* HERO */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-        <h1 style={{ color: 'red' }}>
-  THIS IS THE NEW MEDICLAN HOMEPAGE — TEST 123
-</h1>
-
-          {/* BRAND (TEXT ONLY FOR NOW) */}
+          {/* BRAND */}
           <div style={styles.brandBlock}>
             <h1 style={styles.brandName}>MediClan</h1>
             <p style={styles.tagline}>Relations, over the counter.</p>
           </div>
 
           <h2 style={styles.mainTitle}>
-            Hiring and training for Pharmacies,
+            Hiring made simple
             <br />
-            built on <span style={styles.accent}>Connection</span>
+            for <span style={styles.accent}>Pharmacies</span> and{' '}
+            <span style={styles.accent}>Pharmacists</span>
           </h2>
 
           <p style={styles.subtitle}>
-            MediClan is a verified platform that enables
-            <span style={styles.accent}> Credibility</span>,
-            clear processes, and genuine
-            <span style={styles.accent}> Care</span>
-            for Pharmacists and Pharmacies.
+            MediClan is a focused employment platform built exclusively for the
+            pharmacy ecosystem. Pharmacists create verified profiles. Pharmacy
+            owners post genuine job openings. No noise. No complexity.
           </p>
 
           <Link href="/simple-login">
@@ -38,7 +33,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROFESSIONAL IMAGE SECTION */}
+      {/* IMAGE SECTION */}
       <section style={styles.imageSection}>
         <div style={styles.imageInner}>
           <div style={styles.imageWrap}>
@@ -51,13 +46,12 @@ export default function HomePage() {
 
           <div style={styles.imageText}>
             <h3 style={styles.imageTitle}>
-              Built for real Pharmacy environments
+              Designed for real pharmacy counters
             </h3>
             <p style={styles.imageDesc}>
-              MediClan is designed around how Pharmacies actually work —
-              real counters, real patients, real training, and real trust.
-              Structured processes help Pharmacists and Pharmacy owners
-              connect with clarity and confidence.
+              Built around how pharmacies actually operate — patient flow,
+              working hours, locality, and trust. MediClan connects the right
+              pharmacist to the right store, faster and cleaner.
             </p>
           </div>
         </div>
@@ -78,10 +72,12 @@ const styles = {
   page: {
     background: '#ffffff',
     color: '#0f172a',
+    fontFamily:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   },
 
   hero: {
-    padding: '100px 20px 80px',
+    padding: '96px 20px 72px',
     background: '#f8fafc',
   },
   heroInner: {
@@ -90,31 +86,31 @@ const styles = {
   },
 
   brandBlock: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   brandName: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: 800,
-    letterSpacing: 0.3,
-    marginBottom: 4,
+    letterSpacing: 0.4,
+    marginBottom: 6,
   },
   tagline: {
     fontSize: 14,
-    color: '#475569',
+    color: '#64748b',
   },
 
   mainTitle: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: 800,
     lineHeight: 1.25,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   subtitle: {
     fontSize: 17,
     color: '#334155',
-    lineHeight: 1.7,
-    maxWidth: 650,
-    marginBottom: 34,
+    lineHeight: 1.75,
+    maxWidth: 680,
+    marginBottom: 36,
   },
   accent: {
     color: ACCENT,
@@ -124,10 +120,10 @@ const styles = {
     background: ACCENT,
     color: '#ffffff',
     border: 'none',
-    padding: '13px 36px',
-    fontSize: 15,
+    padding: '14px 38px',
+    fontSize: 16,
     fontWeight: 600,
-    borderRadius: 8,
+    borderRadius: 10,
     cursor: 'pointer',
   },
 
@@ -144,7 +140,7 @@ const styles = {
     alignItems: 'center',
   },
   imageWrap: {
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
     boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
   },
@@ -158,13 +154,13 @@ const styles = {
     maxWidth: 420,
   },
   imageTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 700,
     marginBottom: 14,
   },
   imageDesc: {
     fontSize: 15,
-    lineHeight: 1.8,
+    lineHeight: 1.85,
     color: '#475569',
   },
 
@@ -177,7 +173,7 @@ const styles = {
   footerBrand: {
     fontSize: 15,
     fontWeight: 600,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   footerText: {
     fontSize: 14,

@@ -1,16 +1,10 @@
-// src/pages/_app.js
+import Layout from '../components/Layout'
+import '../styles/globals.css'
 
-import Layout from '../components/Layout';
-
-export default function MyApp({ Component, pageProps }) {
-  // ❌ NO hooks
-  // ❌ NO auth listeners
-  // ❌ NO effects
-  // ❌ NO router usage
-
+export default function App({ Component, pageProps }) {
   return (
     <Layout>
       <Component {...pageProps} />
     </Layout>
-  );
+  )
 }

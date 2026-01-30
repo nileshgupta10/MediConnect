@@ -1,235 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageCompress';
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 export default function StoreProfile() {
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const [storeName, setStoreName] = useState('');
-  const [contactPerson, setContactPerson] = useState('');
-  const [storeTimings, setStoreTimings] = useState('');
-  const [phone, setPhone] = useState('');
-
-  const cameraInputRef = useRef(null);
-  const galleryInputRef = useRef(null);
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
 
       const { data } = await supabase
         .from('store_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .maybeSingle()
 
-      if (data) {
-        setProfile(data);
-        setStoreName(data.store_name || '');
-        setContactPerson(data.contact_person || '');
-        setStoreTimings(data.store_timings || '');
-        setPhone(data.phone || '');
-      }
-
-      setLoading(false);
-    };
-
-    load();
-  }, []);
-
-  const saveProfile = async () => {
-    setMessage('Saving store profile…');
-    const { data: { user } } = await supabase.auth.getUser();
-
-    const { error } = await supabase.from('store_profiles').upsert({
-      user_id: user.id,
-      store_name: storeName,
-      contact_person: contactPerson,
-      store_timings: storeTimings,
-      phone,
-    });
-
-    if (error) {
-      setMessage(error.message);
-      return;
+      setProfile(data)
+      setLoading(false)
     }
 
-    setProfile(prev => ({
-      ...prev,
-      store_name: storeName,
-      contact_person: contactPerson,
-      store_timings: storeTimings,
-      phone,
-    }));
+    load()
+  }, [])
 
-    setEditing(false);
-    setMessage('Store profile updated.');
-  };
-
-  const uploadLicense = async (file) => {
-    if (!file) return;
-
-    try {
-      const compressed = await compressImage(file);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const path = `store-licenses/${user.id}.jpg`;
-
-      await supabase.storage
-        .from('licenses')
-        .upload(path, compressed, { upsert: true });
-
-      const { data: url } = supabase.storage
-        .from('licenses')
-        .getPublicUrl(path);
-
-      await supabase.from('store_profiles').upsert({
-        user_id: user.id,
-        license_url: url.publicUrl,
-        is_verified: false,
-        verification_status: 'pending',
-        is_training_eligible: false,
-      });
-
-      setProfile(prev => ({
-        ...prev,
-        license_url: url.publicUrl,
-        is_verified: false,
-        verification_status: 'pending',
-        is_training_eligible: false,
-      }));
-
-      setMessage('License uploaded. Verification pending.');
-    } catch (e) {
-      setMessage(e.message);
-    }
-  };
-
-  if (loading) return <p style={{ padding: 40 }}>Loading…</p>;
+  if (loading) return <p style={{ padding: 40 }}>Loading…</p>
 
   return (
     <div style={styles.page}>
       <div style={styles.card}>
         <h1>Store Profile</h1>
 
-        <p style={profile?.is_verified ? styles.verified : styles.pending}>
-          {profile?.is_verified ? '✅ Verified Store' : '⏳ Verification Pending'}
+        <p><b>Store Name:</b> {profile?.store_name || '—'}</p>
+        <p><b>Contact:</b> {profile?.phone || '—'}</p>
+        <p><b>Timings:</b> {profile?.store_timings || '—'}</p>
+        <p><b>Location:</b> {profile?.latitude && profile?.longitude
+          ? `${profile.latitude}, ${profile.longitude}`
+          : 'Not set'}
         </p>
-
-        {profile?.is_verified && profile?.is_training_eligible && (
-          <div style={styles.trainingBadge}>
-            🏅 Approved Training Pharmacy
-          </div>
-        )}
-
-        <h3>Store Details</h3>
-
-        {!editing ? (
-          <>
-            <p><b>Store Name:</b> {profile?.store_name || '—'}</p>
-            <p><b>Contact Person:</b> {profile?.contact_person || '—'}</p>
-            <p><b>Store Timings:</b> {profile?.store_timings || '—'}</p>
-
-            <button style={styles.secondaryBtn} onClick={() => setEditing(true)}>
-              ✏️ Edit Store Profile
-            </button>
-          </>
-        ) : (
-          <>
-            <label style={styles.label}>Store Name</label>
-            <input style={styles.input} value={storeName} onChange={e => setStoreName(e.target.value)} />
-
-            <label style={styles.label}>Contact Person</label>
-            <input style={styles.input} value={contactPerson} onChange={e => setContactPerson(e.target.value)} />
-
-            <label style={styles.label}>Store Timings</label>
-            <input style={styles.input} value={storeTimings} onChange={e => setStoreTimings(e.target.value)} />
-
-            <label style={styles.label}>Phone Number (not shared publicly)</label>
-            <input style={styles.input} value={phone} onChange={e => setPhone(e.target.value)} />
-
-            <button style={styles.primaryBtn} onClick={saveProfile}>
-              Save Store Profile
-            </button>
-          </>
-        )}
-
-        <hr />
-
-        <h3>Upload Store License</h3>
-
-        <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])} />
-
-        <input type="file" accept="image/*" ref={galleryInputRef} style={{ display: 'none' }}
-          onChange={e => uploadLicense(e.target.files[0])} />
-
-        <div style={styles.btnRow}>
-          <button style={styles.primaryBtn} onClick={() => cameraInputRef.current.click()}>📷 Take Photo</button>
-          <button style={styles.secondaryBtn} onClick={() => galleryInputRef.current.click()}>🖼️ Choose from Gallery</button>
-        </div>
-
-        {message && <p>{message}</p>}
       </div>
     </div>
-  );
+  )
 }
 
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'linear-gradient(120deg, #e0f2fe, #f0fdf4)',
+    background: '#f8fafc',
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
   card: {
-    background: 'white',
-    borderRadius: 12,
-    padding: 30,
+    background: '#fff',
+    padding: 28,
+    borderRadius: 14,
     maxWidth: 420,
     width: '100%',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
-  verified: { color: 'green', fontWeight: 'bold' },
-  pending: { color: '#b45309', fontWeight: 'bold' },
-  trainingBadge: {
-    background: '#ecfeff',
-    border: '1px solid #67e8f9',
-    color: '#0369a1',
-    padding: '8px 12px',
-    borderRadius: 8,
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  label: { fontSize: 14, marginTop: 10, display: 'block' },
-  input: {
-    width: '100%',
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 6,
-    border: '1px solid #ccc',
-  },
-  btnRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
-  primaryBtn: {
-    background: '#2563eb',
-    color: 'white',
-    border: 'none',
-    padding: '10px 14px',
-    borderRadius: 6,
-    cursor: 'pointer',
-  },
-  secondaryBtn: {
-    background: '#e5e7eb',
-    border: 'none',
-    padding: '10px 14px',
-    borderRadius: 6,
-    cursor: 'pointer',
-  },
-};
+}

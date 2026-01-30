@@ -9,59 +9,74 @@ export default function JobsPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.replace('/simple-login')
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from('pharmacist_profiles')
-        .select('latitude, longitude')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!profile?.latitude || !profile?.longitude) {
-        setLoading(false)
-        return
-      }
-
-      const { data } = await supabase.rpc('nearby_jobs', {
-        lat: profile.latitude,
-        lng: profile.longitude,
-      })
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false })
 
       setJobs(data || [])
       setLoading(false)
     }
 
     load()
-  }, [router])
+  }, [])
 
   if (loading) return <p style={{ padding: 40 }}>Loading jobs…</p>
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Nearby Jobs</h1>
+    <div style={styles.page}>
+      <h1 style={styles.heading}>Available Pharmacy Jobs</h1>
 
-      {jobs.length === 0 && <p>No nearby jobs found.</p>}
+      {jobs.length === 0 && <p>No jobs posted yet.</p>}
 
-      {jobs.map((j) => (
-        <div key={j.job_id} style={card}>
-          <h3>{j.title}</h3>
-          <p>{j.store_name}</p>
-          <p>{j.description}</p>
-          <p><b>{j.distance_km.toFixed(1)} km away</b></p>
+      {jobs.map((job) => (
+        <div key={job.id} style={styles.card}>
+          <h3>{job.title}</h3>
+          <p style={styles.location}>{job.location}</p>
+          <p>{job.description}</p>
+
+          <button
+            style={styles.btn}
+            onClick={() => router.push('/simple-login')}
+          >
+            Login to Apply
+          </button>
         </div>
       ))}
     </div>
   )
 }
 
-const card = {
-  background: 'white',
-  padding: 16,
-  marginBottom: 12,
-  borderRadius: 8,
-  boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+const styles = {
+  page: {
+    padding: 24,
+    maxWidth: 800,
+    margin: '0 auto',
+    fontFamily:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  },
+  heading: {
+    fontSize: 26,
+    marginBottom: 20,
+  },
+  card: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
+    marginBottom: 18,
+  },
+  location: {
+    color: '#64748b',
+    fontSize: 14,
+  },
+  btn: {
+    marginTop: 10,
+    padding: '10px 16px',
+    border: 'none',
+    borderRadius: 8,
+    background: '#2563eb',
+    color: '#fff',
+    cursor: 'pointer',
+  },
 }
