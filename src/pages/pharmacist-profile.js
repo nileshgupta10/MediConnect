@@ -92,12 +92,12 @@ export default function PharmacistProfile() {
 
       const path = `pharmacist-licenses/${user.id}.jpg`
 
-      await supabase.storage
-        .from('licenses')
-        .upload(path, compressed, { upsert: true })
+await supabase.storage
+  .from('license-documents')
+  .upload(path, compressed, { upsert: true })
 
-      const { data: url } =
-        supabase.storage.from('licenses').getPublicUrl(path)
+const { data: url } =
+  supabase.storage.from('license-documents').getPublicUrl(path)
 
       await supabase
         .from('pharmacist_profiles')
