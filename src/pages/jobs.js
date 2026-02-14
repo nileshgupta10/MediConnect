@@ -54,7 +54,7 @@ const { data: appts, error: apptError } = await supabase
     appointment_time,
     status,
     pharmacist_note,
-    jobs (title),
+    jobs!appointments_job_id_fkey (title),
     store_profiles (
       store_name,
       phone,
