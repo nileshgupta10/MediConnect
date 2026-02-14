@@ -8,6 +8,7 @@ export default function PharmacistProfile() {
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [licenseUrl, setLicenseUrl] = useState(null)
 
   const [name, setName] = useState('')
   const [yearsExperience, setYearsExperience] = useState('')
@@ -38,12 +39,33 @@ export default function PharmacistProfile() {
         setPhone(data.phone || '')
         setLatitude(data.latitude ?? null)
         setLongitude(data.longitude ?? null)
+
+        // Generate signed URL if license exists
+        if (data.license_url) {
+          await generateSignedUrl(user.id)
+        }
       }
 
       setLoading(false)
     }
     load()
   }, [])
+
+  // Generate a signed URL that expires in 1 hour
+  const generateSignedUrl = async (userId) => {
+    const path = `pharmacist-licenses/${userId}.jpg`
+    
+    const { data, error } = await supabase.storage
+      .from('licenses')
+      .createSignedUrl(path, 3600) // 3600 seconds = 1 hour
+
+    if (error) {
+      console.error('Signed URL error:', error)
+      return
+    }
+
+    setLicenseUrl(data.signedUrl)
+  }
 
   const saveProfile = async () => {
     setMessage('Saving profile…')
@@ -92,23 +114,29 @@ export default function PharmacistProfile() {
 
       const path = `pharmacist-licenses/${user.id}.jpg`
 
-await supabase.storage
-  .from('license-documents')
-  .upload(path, compressed, { upsert: true })
+      const { error: uploadError } = await supabase.storage
+        .from('licenses')
+        .upload(path, compressed, { upsert: true })
 
-const { data: url } =
-  supabase.storage.from('license-documents').getPublicUrl(path)
+      if (uploadError) {
+        setMessage('Upload error: ' + uploadError.message)
+        return
+      }
 
+      // Store just the path, not a public URL
       await supabase
         .from('pharmacist_profiles')
         .update({
-          license_url: url.publicUrl,
+          license_url: path,
           is_verified: false,
           verification_status: 'pending',
         })
         .eq('user_id', user.id)
 
-      setMessage('License uploaded. Verification pending.')
+      // Generate signed URL to show immediately
+      await generateSignedUrl(user.id)
+
+      setMessage('License uploaded successfully. Verification pending.')
     } catch (e) {
       setMessage(e.message)
     } finally {
@@ -124,15 +152,31 @@ const { data: url } =
         <h1>Pharmacist Profile</h1>
 
         <p style={profile?.is_verified ? styles.verified : styles.pending}>
-          {profile?.is_verified ? '✅ Verified' : '⏳ Verification Pending'}
+          {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
         </p>
 
         {!editing ? (
           <>
-            <p><b>Name:</b> {name || '—'}</p>
-            <p><b>Experience:</b> {yearsExperience || '—'} years</p>
-            <p><b>Software:</b> {softwareExperience || '—'}</p>
-            <p><b>Location:</b> {latitude ? 'Saved' : 'Not set'}</p>
+            <div style={styles.field}>
+              <span style={styles.label}>Name</span>
+              <span style={styles.value}>{name || '—'}</span>
+            </div>
+            <div style={styles.field}>
+              <span style={styles.label}>Experience</span>
+              <span style={styles.value}>{yearsExperience ? yearsExperience + ' years' : '—'}</span>
+            </div>
+            <div style={styles.field}>
+              <span style={styles.label}>Software</span>
+              <span style={styles.value}>{softwareExperience || '—'}</span>
+            </div>
+            <div style={styles.field}>
+              <span style={styles.label}>Phone</span>
+              <span style={styles.value}>{phone || '—'}</span>
+            </div>
+            <div style={styles.field}>
+              <span style={styles.label}>Location</span>
+              <span style={styles.value}>{latitude ? '📍 Saved' : 'Not set'}</span>
+            </div>
 
             <button onClick={() => setEditing(true)} style={styles.secondaryBtn}>
               Edit Profile
@@ -146,24 +190,21 @@ const { data: url } =
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-
             <input
               style={styles.input}
               placeholder="Years of Experience"
               value={yearsExperience}
               onChange={(e) => setYearsExperience(e.target.value)}
             />
-
             <input
               style={styles.input}
-              placeholder="Software Experience"
+              placeholder="Software Experience (e.g. Marg, GoFrugal)"
               value={softwareExperience}
               onChange={(e) => setSoftwareExperience(e.target.value)}
             />
-
             <input
               style={styles.input}
-              placeholder="Phone"
+              placeholder="Phone Number"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -175,12 +216,37 @@ const { data: url } =
             <button onClick={saveProfile} style={styles.primaryBtn}>
               Save Profile
             </button>
+
+            <button onClick={() => setEditing(false)} style={styles.cancelBtn}>
+              Cancel
+            </button>
           </>
         )}
 
-        <hr />
+        <hr style={{ margin: '20px 0' }} />
 
-        <h3>Upload License</h3>
+        <h3>License</h3>
+
+        {licenseUrl ? (
+          <div style={styles.licenseBox}>
+            <img
+              src={licenseUrl}
+              alt="License"
+              style={styles.licenseImage}
+            />
+            <p style={styles.licenseNote}>
+              ⏱ This preview expires in 1 hour for security
+            </p>
+            <button
+              onClick={() => window.open(licenseUrl, '_blank')}
+              style={styles.viewBtn}
+            >
+              View Full Size
+            </button>
+          </div>
+        ) : (
+          <p style={styles.noLicense}>No license uploaded yet</p>
+        )}
 
         <input
           type="file"
@@ -190,7 +256,6 @@ const { data: url } =
           hidden
           onChange={(e) => uploadLicense(e.target.files[0])}
         />
-
         <input
           type="file"
           accept="image/*"
@@ -199,18 +264,26 @@ const { data: url } =
           onChange={(e) => uploadLicense(e.target.files[0])}
         />
 
-        <button onClick={() => cameraInputRef.current.click()} style={styles.primaryBtn}>
-          Take Photo
+        <button
+          onClick={() => cameraInputRef.current.click()}
+          style={styles.primaryBtn}
+          disabled={uploading}
+        >
+          📷 Take Photo of License
         </button>
 
-        <button onClick={() => galleryInputRef.current.click()} style={styles.secondaryBtn}>
-          Choose from Gallery
+        <button
+          onClick={() => galleryInputRef.current.click()}
+          style={styles.secondaryBtn}
+          disabled={uploading}
+        >
+          🖼️ Upload from Gallery
         </button>
 
-        {message && <p>{message}</p>}
+        {message && <p style={styles.message}>{message}</p>}
 
-        <hr />
-        <a href="/jobs">Go to Job Listings →</a>
+        <hr style={{ margin: '20px 0' }} />
+        <a href="/jobs" style={styles.link}>Go to Job Listings →</a>
       </div>
     </div>
   )
@@ -221,19 +294,44 @@ const styles = {
     minHeight: '100vh',
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
     background: '#f8fafc',
+    padding: 20,
   },
   card: {
     background: 'white',
     padding: 24,
     borderRadius: 12,
-    width: 420,
+    width: '100%',
+    maxWidth: 440,
+    height: 'fit-content',
+  },
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '10px 0',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  label: {
+    fontSize: 12,
+    color: '#94a3b8',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: 500,
   },
   input: {
     width: '100%',
     padding: 10,
     marginBottom: 10,
+    borderRadius: 6,
+    border: '1px solid #cbd5e1',
+    fontSize: 14,
+    boxSizing: 'border-box',
   },
   primaryBtn: {
     background: '#2563eb',
@@ -241,15 +339,89 @@ const styles = {
     padding: 10,
     border: 'none',
     borderRadius: 6,
-    marginRight: 6,
+    marginTop: 6,
+    cursor: 'pointer',
+    width: '100%',
+    fontSize: 14,
+    fontWeight: 600,
   },
   secondaryBtn: {
     background: '#e5e7eb',
+    color: '#0f172a',
     padding: 10,
     border: 'none',
     borderRadius: 6,
     marginTop: 6,
+    cursor: 'pointer',
+    width: '100%',
+    fontSize: 14,
   },
-  verified: { color: 'green' },
-  pending: { color: '#b45309' },
+  cancelBtn: {
+    background: '#f1f5f9',
+    color: '#475569',
+    padding: 10,
+    border: 'none',
+    borderRadius: 6,
+    marginTop: 6,
+    cursor: 'pointer',
+    width: '100%',
+    fontSize: 14,
+  },
+  verified: {
+    color: 'green',
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  pending: {
+    color: '#b45309',
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  licenseBox: {
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    border: '1px solid #e2e8f0',
+  },
+  licenseImage: {
+    width: '100%',
+    display: 'block',
+  },
+  licenseNote: {
+    fontSize: 12,
+    color: '#94a3b8',
+    padding: '6px 10px',
+    background: '#f8fafc',
+    margin: 0,
+  },
+  viewBtn: {
+    width: '100%',
+    padding: 10,
+    background: '#f8fafc',
+    border: 'none',
+    borderTop: '1px solid #e2e8f0',
+    cursor: 'pointer',
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: 600,
+  },
+  noLicense: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginBottom: 12,
+  },
+  message: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#059669',
+    padding: '8px 12px',
+    background: '#f0fdf4',
+    borderRadius: 6,
+  },
+  link: {
+    color: '#2563eb',
+    textDecoration: 'none',
+    fontSize: 14,
+    fontWeight: 500,
+  },
 }

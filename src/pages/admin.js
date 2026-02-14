@@ -181,10 +181,21 @@ export default function AdminPage() {
           </p>
 
           {item.license_url && (
-            <a href={item.license_url} target="_blank" rel="noreferrer">
-              View License
-            </a>
-          )}
+  <button
+    style={styles.viewLicenseBtn}
+    onClick={async () => {
+      const path = `pharmacist-licenses/${item.user_id}.jpg`
+      const { data } = await supabase.storage
+        .from('licenses')
+        .createSignedUrl(path, 3600)
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank')
+      }
+    }}
+  >
+    View License
+  </button>
+)}
 
           {/* ACTIONS */}
           {status === 'pending' && (
