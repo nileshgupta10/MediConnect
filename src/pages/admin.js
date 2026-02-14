@@ -6,10 +6,8 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com';
 
 export default function AdminPage() {
   const router = useRouter();
-
-  const [entity, setEntity] = useState('pharmacists'); // pharmacists | stores
-  const [status, setStatus] = useState('pending'); // pending | approved | rejected
-
+  const [entity, setEntity] = useState('pharmacists');
+  const [status, setStatus] = useState('pending');
   const [pharmacists, setPharmacists] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,47 +15,29 @@ export default function AdminPage() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace('/simple-login');
-        return;
-      }
-
-      if (user.email !== ADMIN_EMAIL) {
-        alert('Unauthorized');
-        router.replace('/');
-        return;
-      }
-
-      await loadPharmacists();
-      await loadStores();
+      if (!user) { router.replace('/simple-login'); return; }
+      if (user.email !== ADMIN_EMAIL) { router.replace('/'); return; }
+      await Promise.all([loadPharmacists(), loadStores()]);
       setLoading(false);
     };
-
     init();
   }, [router]);
-
-  /* ---------- LOADERS ---------- */
 
   const loadPharmacists = async () => {
     const { data } = await supabase
       .from('pharmacist_profiles')
-      .select('*')
+      .select('user_id, name, verification_status, is_verified, license_url')
       .order('name', { ascending: true });
-
     setPharmacists(data || []);
   };
 
   const loadStores = async () => {
     const { data } = await supabase
       .from('store_profiles')
-      .select('*')
+      .select('user_id, store_name, verification_status, is_verified')
       .order('store_name', { ascending: true });
-
     setStores(data || []);
   };
-
-  /* ---------- ACTIONS ---------- */
 
   const updatePharmacistStatus = async (userId, newStatus) => {
     await supabase
@@ -67,8 +47,7 @@ export default function AdminPage() {
         is_verified: newStatus === 'approved',
       })
       .eq('user_id', userId);
-
-    loadPharmacists();
+    await loadPharmacists();
   };
 
   const updateStoreStatus = async (userId, newStatus) => {
@@ -77,40 +56,43 @@ export default function AdminPage() {
       .update({
         verification_status: newStatus,
         is_verified: newStatus === 'approved',
-        is_training_eligible: false, // reset on re-verify
       })
       .eq('user_id', userId);
-
-    loadStores();
+    await loadStores();
   };
 
-  const toggleTrainingEligibility = async (userId, current) => {
-    await supabase
-      .from('store_profiles')
-      .update({
-        is_training_eligible: !current,
-      })
-      .eq('user_id', userId);
+  const viewLicense = async (item) => {
+    if (!item.license_url) {
+      alert('No license uploaded.');
+      return;
+    }
 
-    loadStores();
+    const cleanPath = item.license_url.includes('supabase.co')
+      ? item.license_url.split('/licenses/')[1]
+      : item.license_url
+
+    const { data, error } = await supabase.storage
+      .from('licenses')
+      .createSignedUrl(cleanPath, 3600);
+
+    if (error || !data?.signedUrl) {
+      alert('Could not load license.');
+      return;
+    }
+
+    window.open(data.signedUrl, '_blank');
   };
 
-  /* ---------- FILTERED LIST ---------- */
+  const list = entity === 'pharmacists'
+    ? pharmacists.filter(p => (p.verification_status || 'pending') === status)
+    : stores.filter(s => (s.verification_status || 'pending') === status);
 
-  const list =
-    entity === 'pharmacists'
-      ? pharmacists.filter(p => (p.verification_status || 'pending') === status)
-      : stores.filter(s => (s.verification_status || 'pending') === status);
-
-  if (loading) {
-    return <p style={{ padding: 20 }}>Loading admin panel…</p>;
-  }
+  if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>;
 
   return (
     <div style={styles.page}>
       <h1>Admin Panel</h1>
 
-      {/* ENTITY SELECT */}
       <div style={styles.switchRow}>
         <button
           style={entity === 'pharmacists' ? styles.activeBtn : styles.btn}
@@ -126,51 +108,32 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* STATUS SELECT */}
       <div style={styles.switchRow}>
-        <button
-          style={status === 'pending' ? styles.activeBtn : styles.btn}
-          onClick={() => setStatus('pending')}
-        >
-          Pending
-        </button>
-        <button
-          style={status === 'approved' ? styles.activeBtn : styles.btn}
-          onClick={() => setStatus('approved')}
-        >
-          Approved
-        </button>
-        <button
-          style={status === 'rejected' ? styles.activeBtn : styles.btn}
-          onClick={() => setStatus('rejected')}
-        >
-          Rejected
-        </button>
+        {['pending', 'approved', 'rejected'].map(s => (
+          <button
+            key={s}
+            style={status === s ? styles.activeBtn : styles.btn}
+            onClick={() => setStatus(s)}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {/* CONTEXT HEADER */}
       <h2 style={{ marginTop: 20 }}>
         {status.charAt(0).toUpperCase() + status.slice(1)}{' '}
         {entity === 'pharmacists' ? 'Pharmacists' : 'Stores'}
+        {' '}({list.length})
       </h2>
 
-      {/* NOTE */}
-      {entity === 'stores' && status === 'pending' && (
-        <div style={styles.note}>
-          After approval or rejection, stores will automatically move to the
-          respective tab. Approved stores can be marked as training-eligible.
-        </div>
-      )}
-
-      {/* LIST */}
       {list.length === 0 && <p>No records found.</p>}
 
       {list.map((item) => (
         <div key={item.user_id} style={styles.card}>
           <h3>
             {entity === 'pharmacists'
-              ? item.name || 'Unnamed Pharmacist'
-              : item.store_name || item.name || 'Unnamed Store'}
+              ? item.name || 'Unnamed'
+              : item.store_name || 'Unnamed Store'}
           </h3>
 
           <p>
@@ -180,26 +143,17 @@ export default function AdminPage() {
             </span>
           </p>
 
-          {item.license_url && (
-  <button
-    style={styles.viewLicenseBtn}
-    onClick={async () => {
-      const path = `pharmacist-licenses/${item.user_id}.jpg`
-      const { data } = await supabase.storage
-        .from('licenses')
-        .createSignedUrl(path, 3600)
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank')
-      }
-    }}
-  >
-    View License
-  </button>
-)}
+          {entity === 'pharmacists' && item.license_url && (
+            <button
+              style={styles.licenseBtn}
+              onClick={() => viewLicense(item)}
+            >
+              📄 View License
+            </button>
+          )}
 
-          {/* ACTIONS */}
           {status === 'pending' && (
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 10 }}>
               <button
                 style={styles.approve}
                 onClick={() =>
@@ -222,44 +176,15 @@ export default function AdminPage() {
               </button>
             </div>
           )}
-
-          {/* TRAINING TOGGLE */}
-          {entity === 'stores' && status === 'approved' && (
-            <div style={{ marginTop: 10 }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={item.is_training_eligible || false}
-                  onChange={() =>
-                    toggleTrainingEligibility(
-                      item.user_id,
-                      item.is_training_eligible
-                    )
-                  }
-                />{' '}
-                Training Eligible
-              </label>
-            </div>
-          )}
         </div>
       ))}
     </div>
   );
 }
 
-/* ---------- STYLES ---------- */
-
 const styles = {
-  page: {
-    padding: 20,
-    maxWidth: 800,
-    margin: '0 auto',
-  },
-  switchRow: {
-    display: 'flex',
-    gap: 10,
-    marginTop: 10,
-  },
+  page: { padding: 20, maxWidth: 800, margin: '0 auto' },
+  switchRow: { display: 'flex', gap: 10, marginTop: 10 },
   btn: {
     padding: '8px 14px',
     borderRadius: 6,
@@ -288,6 +213,16 @@ const styles = {
     borderRadius: 12,
     fontSize: 12,
   },
+  licenseBtn: {
+    marginTop: 8,
+    padding: '6px 12px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 6,
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
+  },
   approve: {
     background: '#16a34a',
     color: 'white',
@@ -303,13 +238,5 @@ const styles = {
     padding: '6px 12px',
     borderRadius: 6,
     cursor: 'pointer',
-  },
-  note: {
-    background: '#fff7ed',
-    border: '1px solid #fed7aa',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    fontSize: 14,
   },
 };

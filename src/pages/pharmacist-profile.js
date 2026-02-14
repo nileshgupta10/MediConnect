@@ -8,7 +8,6 @@ export default function PharmacistProfile() {
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [licenseUrl, setLicenseUrl] = useState(null)
 
   const [name, setName] = useState('')
   const [yearsExperience, setYearsExperience] = useState('')
@@ -20,15 +19,12 @@ export default function PharmacistProfile() {
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Only fetch needed columns
     const { data, error } = await supabase
       .from('pharmacist_profiles')
       .select('user_id, name, years_experience, software_experience, phone, latitude, longitude, license_url, is_verified, verification_status')
@@ -36,7 +32,7 @@ export default function PharmacistProfile() {
       .maybeSingle()
 
     if (error) {
-      console.error('Profile load error:', error)
+      console.error('Load error:', error)
       setLoading(false)
       return
     }
@@ -49,32 +45,9 @@ export default function PharmacistProfile() {
       setPhone(data.phone || '')
       setLatitude(data.latitude ?? null)
       setLongitude(data.longitude ?? null)
-
-      // Generate signed URL only if license exists
-      if (data.license_url) {
-        await generateSignedUrl(data.license_url)
-      }
     }
 
     setLoading(false)
-  }
-
-  const generateSignedUrl = async (path) => {
-    // Clean path - remove full URL if accidentally stored
-    const cleanPath = path.includes('supabase.co')
-      ? path.split('/licenses/')[1]
-      : path
-
-    const { data, error } = await supabase.storage
-      .from('licenses')
-      .createSignedUrl(cleanPath, 3600) // 1 hour expiry
-
-    if (error) {
-      console.error('Signed URL error:', error)
-      return
-    }
-
-    setLicenseUrl(data.signedUrl)
   }
 
   const saveProfile = async () => {
@@ -83,7 +56,7 @@ export default function PharmacistProfile() {
       return
     }
 
-    setMessage('Saving profile…')
+    setMessage('Saving…')
     const { data: { user } } = await supabase.auth.getUser()
 
     const { error } = await supabase
@@ -103,12 +76,13 @@ export default function PharmacistProfile() {
       return
     }
 
-    setMessage('Profile saved successfully.')
+    await load()
+    setMessage('Profile saved.')
     setEditing(false)
   }
 
   const detectLocation = () => {
-    setMessage('Detecting location…')
+    setMessage('Detecting…')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLatitude(pos.coords.latitude)
@@ -121,9 +95,8 @@ export default function PharmacistProfile() {
 
   const uploadLicense = async (file) => {
     if (!file) return
-
     setUploading(true)
-    setMessage('Compressing and uploading…')
+    setMessage('Uploading…')
 
     try {
       const compressed = await compressImage(file)
@@ -139,7 +112,6 @@ export default function PharmacistProfile() {
         return
       }
 
-      // Store only the path, never the full URL
       const { error: updateError } = await supabase
         .from('pharmacist_profiles')
         .update({
@@ -150,13 +122,12 @@ export default function PharmacistProfile() {
         .eq('user_id', user.id)
 
       if (updateError) {
-        setMessage('Error saving license: ' + updateError.message)
+        setMessage('Error saving: ' + updateError.message)
         return
       }
 
-      // Generate signed URL to show immediately
-      await generateSignedUrl(path)
-      setMessage('License uploaded. Verification pending.')
+      await load()
+      setMessage('License uploaded. Pending verification.')
     } catch (e) {
       setMessage('Error: ' + e.message)
     } finally {
@@ -169,7 +140,7 @@ export default function PharmacistProfile() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Pharmacist Profile</h1>
+        <h1 style={styles.title}>My Profile</h1>
 
         <div style={profile?.is_verified ? styles.verifiedBadge : styles.pendingBadge}>
           {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
@@ -177,148 +148,189 @@ export default function PharmacistProfile() {
 
         {!editing ? (
           <div style={styles.viewMode}>
-            <div style={styles.field}>
-              <span style={styles.label}>Name</span>
-              <span style={styles.value}>{name || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Experience</span>
-              <span style={styles.value}>{yearsExperience ? yearsExperience + ' years' : '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Software</span>
-              <span style={styles.value}>{softwareExperience || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Phone</span>
-              <span style={styles.value}>{phone || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Location</span>
-              <span style={styles.value}>{latitude ? '📍 Saved' : 'Not set'}</span>
-            </div>
+            <Field label="Name" value={name} />
+            <Field label="Experience" value={yearsExperience ? yearsExperience + ' years' : null} />
+            <Field label="Software" value={softwareExperience} />
+            <Field label="Phone" value={phone} />
+            <Field label="Location" value={latitude ? '📍 Saved' : null} />
 
-            <button onClick={() => setEditing(true)} style={styles.secondaryBtn}>
+            <button onClick={() => setEditing(true)} style={styles.primaryBtn}>
               Edit Profile
             </button>
+
+            <a href="/jobs" style={styles.jobsLink}>Browse Jobs →</a>
           </div>
         ) : (
           <div style={styles.editMode}>
-            <label style={styles.inputLabel}>Full Name *</label>
-            <input
-              style={styles.input}
-              placeholder="Your full name"
+            <InputField
+              label="Full Name *"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={setName}
+              placeholder="Your full name"
             />
-
-            <label style={styles.inputLabel}>Years of Experience</label>
-            <input
-              style={styles.input}
-              placeholder="e.g. 3"
+            <InputField
+              label="Years of Experience"
               value={yearsExperience}
-              onChange={(e) => setYearsExperience(e.target.value)}
+              onChange={setYearsExperience}
+              placeholder="e.g. 3"
+              type="number"
             />
-
-            <label style={styles.inputLabel}>Software Experience</label>
-            <input
-              style={styles.input}
-              placeholder="e.g. Marg, GoFrugal, PharmERP"
+            <InputField
+              label="Software Experience"
               value={softwareExperience}
-              onChange={(e) => setSoftwareExperience(e.target.value)}
+              onChange={setSoftwareExperience}
+              placeholder="e.g. Marg, GoFrugal"
             />
-
-            <label style={styles.inputLabel}>Phone Number</label>
-            <input
-              style={styles.input}
-              placeholder="Your contact number"
+            <InputField
+              label="Phone Number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={setPhone}
+              placeholder="Your contact number"
             />
 
             <label style={styles.inputLabel}>Your Location</label>
             <button onClick={detectLocation} style={styles.gpsBtn}>
               📍 Detect My Location
             </button>
-            {latitude && (
-              <p style={styles.locationSaved}>📍 Location saved</p>
-            )}
+            {latitude && <p style={styles.locationNote}>📍 Location saved</p>}
+
+            <hr style={styles.hr} />
+
+            <label style={styles.inputLabel}>License</label>
+
+            <div style={styles.licenseStatus}>
+              {profile?.license_url ? (
+                <span style={styles.licenseUploaded}>
+                  ✓ License uploaded
+                  {profile.verification_status === 'pending' && ' — awaiting verification'}
+                  {profile.verification_status === 'approved' && ' — verified'}
+                  {profile.verification_status === 'rejected' && ' — rejected, please re-upload'}
+                </span>
+              ) : (
+                <span style={styles.licenseNone}>No license uploaded yet</span>
+              )}
+            </div>
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              ref={cameraInputRef}
+              hidden
+              onChange={(e) => uploadLicense(e.target.files[0])}
+            />
+            <input
+              type="file"
+              accept="image/*"
+              ref={galleryInputRef}
+              hidden
+              onChange={(e) => uploadLicense(e.target.files[0])}
+            />
+
+            <button
+              onClick={() => cameraInputRef.current.click()}
+              style={styles.secondaryBtn}
+              disabled={uploading}
+            >
+              📷 {uploading ? 'Uploading…' : profile?.license_url ? 'Replace License Photo' : 'Take Photo of License'}
+            </button>
+
+            <button
+              onClick={() => galleryInputRef.current.click()}
+              style={styles.secondaryBtn}
+              disabled={uploading}
+            >
+              🖼️ {uploading ? 'Uploading…' : 'Upload from Gallery'}
+            </button>
+
+            <hr style={styles.hr} />
 
             <button onClick={saveProfile} style={styles.primaryBtn}>
               Save Profile
             </button>
 
-            <button onClick={() => setEditing(false)} style={styles.cancelBtn}>
+            <button onClick={() => { setEditing(false); setMessage('') }} style={styles.cancelBtn}>
               Cancel
             </button>
           </div>
         )}
 
-        {message && <p style={styles.message}>{message}</p>}
-
-        <hr style={{ margin: '20px 0', borderColor: '#f1f5f9' }} />
-
-        <h3 style={styles.sectionTitle}>License</h3>
-
-        {licenseUrl ? (
-          <div style={styles.licenseBox}>
-            <img
-              src={licenseUrl}
-              alt="License"
-              style={styles.licenseImage}
-            />
-            <p style={styles.licenseNote}>
-              🔒 Secure preview — expires in 1 hour
-            </p>
-            <button
-              onClick={() => window.open(licenseUrl, '_blank')}
-              style={styles.viewBtn}
-            >
-              View Full Size
-            </button>
-          </div>
-        ) : (
-          <p style={styles.noLicense}>No license uploaded yet</p>
+        {message && (
+          <p style={message.includes('Error') || message.includes('failed') || message.includes('denied')
+            ? styles.errorMsg
+            : styles.successMsg
+          }>
+            {message}
+          </p>
         )}
-
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          ref={cameraInputRef}
-          hidden
-          onChange={(e) => uploadLicense(e.target.files[0])}
-        />
-        <input
-          type="file"
-          accept="image/*"
-          ref={galleryInputRef}
-          hidden
-          onChange={(e) => uploadLicense(e.target.files[0])}
-        />
-
-        <button
-          onClick={() => cameraInputRef.current.click()}
-          style={styles.primaryBtn}
-          disabled={uploading}
-        >
-          📷 {uploading ? 'Uploading…' : 'Take Photo of License'}
-        </button>
-
-        <button
-          onClick={() => galleryInputRef.current.click()}
-          style={styles.secondaryBtn}
-          disabled={uploading}
-        >
-          🖼️ Upload from Gallery
-        </button>
-
-        <hr style={{ margin: '20px 0', borderColor: '#f1f5f9' }} />
-
-        <a href="/jobs" style={styles.link}>Browse Job Listings →</a>
       </div>
     </div>
   )
+}
+
+function Field({ label, value }) {
+  return (
+    <div style={fieldStyles.field}>
+      <span style={fieldStyles.label}>{label}</span>
+      <span style={fieldStyles.value}>{value || '—'}</span>
+    </div>
+  )
+}
+
+function InputField({ label, value, onChange, placeholder, type = 'text' }) {
+  return (
+    <div>
+      <label style={inputStyles.label}>{label}</label>
+      <input
+        type={type}
+        style={inputStyles.input}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  )
+}
+
+const fieldStyles = {
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '10px 0',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  label: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: 500,
+  },
+}
+
+const inputStyles = {
+  label: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#475569',
+    marginTop: 12,
+    marginBottom: 4,
+    display: 'block',
+  },
+  input: {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    fontSize: 14,
+    boxSizing: 'border-box',
+  },
 }
 
 const styles = {
@@ -372,40 +384,13 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
   },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    padding: '10px 0',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  label: {
-    fontSize: 11,
-    color: '#94a3b8',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  value: {
-    fontSize: 15,
-    color: '#0f172a',
-    fontWeight: 500,
-  },
   inputLabel: {
     fontSize: 13,
     fontWeight: 600,
     color: '#475569',
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 4,
     display: 'block',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #cbd5e1',
-    fontSize: 14,
-    boxSizing: 'border-box',
   },
   gpsBtn: {
     width: '100%',
@@ -418,10 +403,26 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
   },
-  locationSaved: {
+  locationNote: {
     fontSize: 13,
     color: '#15803d',
     marginTop: 4,
+  },
+  licenseStatus: {
+    padding: '10px 12px',
+    background: '#f8fafc',
+    borderRadius: 8,
+    border: '1px solid #e2e8f0',
+    marginBottom: 8,
+  },
+  licenseUploaded: {
+    fontSize: 13,
+    color: '#15803d',
+    fontWeight: 500,
+  },
+  licenseNone: {
+    fontSize: 13,
+    color: '#94a3b8',
   },
   primaryBtn: {
     background: '#2563eb',
@@ -429,7 +430,7 @@ const styles = {
     padding: 11,
     border: 'none',
     borderRadius: 8,
-    marginTop: 8,
+    marginTop: 16,
     cursor: 'pointer',
     width: '100%',
     fontSize: 14,
@@ -457,53 +458,29 @@ const styles = {
     width: '100%',
     fontSize: 14,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 600,
-    marginBottom: 12,
+  hr: {
+    margin: '16px 0',
+    borderColor: '#f1f5f9',
   },
-  licenseBox: {
-    borderRadius: 8,
-    overflow: 'hidden',
-    border: '1px solid #e2e8f0',
-    marginBottom: 12,
-  },
-  licenseImage: {
-    width: '100%',
-    display: 'block',
-  },
-  licenseNote: {
-    fontSize: 12,
-    color: '#94a3b8',
-    padding: '6px 10px',
-    background: '#f8fafc',
-    margin: 0,
-  },
-  viewBtn: {
-    width: '100%',
-    padding: 10,
-    background: '#f8fafc',
-    border: 'none',
-    borderTop: '1px solid #e2e8f0',
-    cursor: 'pointer',
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: 600,
-  },
-  noLicense: {
-    fontSize: 14,
-    color: '#94a3b8',
-    marginBottom: 12,
-  },
-  message: {
-    marginTop: 10,
+  successMsg: {
+    marginTop: 12,
     fontSize: 14,
     color: '#059669',
     padding: '8px 12px',
     background: '#f0fdf4',
     borderRadius: 6,
   },
-  link: {
+  errorMsg: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#dc2626',
+    padding: '8px 12px',
+    background: '#fef2f2',
+    borderRadius: 6,
+  },
+  jobsLink: {
+    display: 'block',
+    marginTop: 16,
     color: '#2563eb',
     textDecoration: 'none',
     fontSize: 14,
