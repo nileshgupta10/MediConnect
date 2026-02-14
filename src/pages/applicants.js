@@ -291,6 +291,11 @@ function AppointmentCard({ appointment, onReload }) {
   const pharmacist = appointment.pharmacist_profiles
   const job = appointment.jobs
 
+  const [showReschedule, setShowReschedule] = useState(false)
+  const [newDate, setNewDate] = useState('')
+  const [newTime, setNewTime] = useState('')
+  const [sending, setSending] = useState(false)
+
   const formatDate = (dateStr) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-IN', {
@@ -322,12 +327,47 @@ function AppointmentCard({ appointment, onReload }) {
     return apptDate >= today && apptDate <= tomorrow
   }
 
+  const sendNewSlot = async () => {
+    if (!newDate || !newTime) {
+      alert('Please select both date and time.')
+      return
+    }
+
+    setSending(true)
+
+    const { error } = await supabase
+      .from('appointments')
+      .update({
+        appointment_date: newDate,
+        appointment_time: newTime,
+        status: 'pending',
+        pharmacist_note: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', appointment.id)
+
+    setSending(false)
+
+    if (error) {
+      alert('Error: ' + error.message)
+      return
+    }
+
+    setShowReschedule(false)
+    setNewDate('')
+    setNewTime('')
+    await onReload()
+  }
+
   return (
     <div style={{
       ...styles.card,
       ...(isUpcoming() && appointment.status === 'confirmed'
         ? { border: '2px solid #f59e0b' }
-        : {})
+        : {}),
+      ...(appointment.status === 'reschedule_requested'
+        ? { border: '2px solid #f87171' }
+        : {}),
     }}>
 
       {isUpcoming() && appointment.status === 'confirmed' && (
@@ -336,10 +376,16 @@ function AppointmentCard({ appointment, onReload }) {
         </div>
       )}
 
+      {appointment.status === 'reschedule_requested' && (
+        <div style={styles.rescheduleAlert}>
+          🔄 Pharmacist has requested a reschedule
+        </div>
+      )}
+
       <h3 style={styles.name}>{pharmacist?.name}</h3>
       <p style={styles.detail}><b>Job:</b> {job?.title}</p>
 
-      {/* DATE AND TIME - clearly shown */}
+      {/* CURRENT DATE AND TIME */}
       <div style={styles.dateTimeBox}>
         <div style={styles.dateTimeItem}>
           <span style={styles.dateTimeLabel}>📅 Date</span>
@@ -355,10 +401,12 @@ function AppointmentCard({ appointment, onReload }) {
         </div>
       </div>
 
+      {/* PENDING STATUS */}
       {appointment.status === 'pending' && (
         <div style={styles.awaitingBadge}>⏳ Awaiting Pharmacist Response</div>
       )}
 
+      {/* CONFIRMED STATUS */}
       {appointment.status === 'confirmed' && (
         <>
           <div style={styles.confirmedBadge}>✓ Confirmed</div>
@@ -368,21 +416,76 @@ function AppointmentCard({ appointment, onReload }) {
         </>
       )}
 
+      {/* RESCHEDULE REQUESTED STATUS */}
       {appointment.status === 'reschedule_requested' && (
         <>
           <div style={styles.rescheduleBadge}>🔄 Reschedule Requested</div>
+
           {appointment.pharmacist_note && (
-            <p style={styles.note}><b>Reason:</b> {appointment.pharmacist_note}</p>
+            <div style={styles.noteBox}>
+              <span style={styles.noteLabel}>Reason from pharmacist:</span>
+              <span style={styles.noteText}>{appointment.pharmacist_note}</span>
+            </div>
           )}
+
           <p style={styles.contactInfo}>
             📞 <b>Pharmacist Contact:</b> {pharmacist?.phone || 'Not provided'}
           </p>
+
+          {!showReschedule ? (
+            <button
+              style={styles.newSlotBtn}
+              onClick={() => setShowReschedule(true)}
+            >
+              📅 Offer New Time Slot
+            </button>
+          ) : (
+            <div style={styles.rescheduleForm}>
+              <p style={styles.rescheduleFormTitle}>Select a new date and time:</p>
+
+              <label style={styles.formLabel}>New Date</label>
+              <input
+                type="date"
+                style={styles.input}
+                value={newDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setNewDate(e.target.value)}
+              />
+
+              <label style={styles.formLabel}>New Time</label>
+              <input
+                type="time"
+                style={styles.input}
+                value={newTime}
+                onChange={(e) => setNewTime(e.target.value)}
+              />
+
+              <div style={styles.formActions}>
+                <button
+                  style={styles.confirmBtn}
+                  onClick={sendNewSlot}
+                  disabled={sending}
+                >
+                  {sending ? 'Sending…' : '✓ Send New Slot'}
+                </button>
+                <button
+                  style={styles.cancelBtn}
+                  onClick={() => {
+                    setShowReschedule(false)
+                    setNewDate('')
+                    setNewTime('')
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
   )
 }
-
 const styles = {
   page: {
     minHeight: '100vh',
@@ -643,5 +746,70 @@ dateTimeValue: {
   fontSize: 15,
   color: '#0f172a',
   fontWeight: 600,
+},
+rescheduleAlert: {
+  background: '#fef2f2',
+  border: '1px solid #fecaca',
+  color: '#991b1b',
+  padding: '8px 12px',
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 600,
+  marginBottom: 12,
+},
+noteBox: {
+  background: '#fef9f0',
+  border: '1px solid #fed7aa',
+  borderRadius: 8,
+  padding: '10px 12px',
+  margin: '8px 0',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+},
+noteLabel: {
+  fontSize: 11,
+  color: '#94a3b8',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+},
+noteText: {
+  fontSize: 14,
+  color: '#92400e',
+  fontStyle: 'italic',
+},
+newSlotBtn: {
+  marginTop: 10,
+  width: '100%',
+  padding: '11px 14px',
+  background: '#2563eb',
+  color: 'white',
+  border: 'none',
+  borderRadius: 8,
+  cursor: 'pointer',
+  fontSize: 14,
+  fontWeight: 600,
+},
+rescheduleForm: {
+  marginTop: 12,
+  padding: 14,
+  background: '#f8fafc',
+  borderRadius: 8,
+  border: '1px solid #e2e8f0',
+},
+rescheduleFormTitle: {
+  fontSize: 14,
+  fontWeight: 600,
+  color: '#0f172a',
+  marginBottom: 8,
+},
+formLabel: {
+  display: 'block',
+  fontSize: 13,
+  fontWeight: 600,
+  color: '#475569',
+  marginBottom: 4,
+  marginTop: 10,
 },
 }
