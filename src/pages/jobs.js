@@ -54,10 +54,8 @@ const { data: appts, error: apptError } = await supabase
     appointment_time,
     status,
     pharmacist_note,
-    job_id,
-    store_owner_id,
     jobs (title),
-    store_profiles!appointments_store_owner_id_fkey (
+    store_profiles (
       store_name,
       phone,
       latitude,
@@ -70,7 +68,7 @@ const { data: appts, error: apptError } = await supabase
 console.log('Appointments:', appts)
 console.log('Appointments error:', apptError)
 
-      setAppointments(appts || [])
+setAppointments(appts || [])
     }
 
     // Load all jobs with store location
