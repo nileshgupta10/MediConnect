@@ -291,12 +291,69 @@ function AppointmentCard({ appointment, onReload }) {
   const pharmacist = appointment.pharmacist_profiles
   const job = appointment.jobs
 
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }
+
+  const formatTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':')
+    const date = new Date()
+    date.setHours(parseInt(hours), parseInt(minutes))
+    return date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+  }
+
+  const isUpcoming = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const apptDate = new Date(appointment.appointment_date)
+    apptDate.setHours(0, 0, 0, 0)
+    return apptDate >= today && apptDate <= tomorrow
+  }
+
   return (
-    <div style={styles.card}>
+    <div style={{
+      ...styles.card,
+      ...(isUpcoming() && appointment.status === 'confirmed'
+        ? { border: '2px solid #f59e0b' }
+        : {})
+    }}>
+
+      {isUpcoming() && appointment.status === 'confirmed' && (
+        <div style={styles.reminderBanner}>
+          🔔 Reminder: This appointment is today or tomorrow!
+        </div>
+      )}
+
       <h3 style={styles.name}>{pharmacist?.name}</h3>
       <p style={styles.detail}><b>Job:</b> {job?.title}</p>
-      <p style={styles.detail}><b>Date:</b> {appointment.appointment_date}</p>
-      <p style={styles.detail}><b>Time:</b> {appointment.appointment_time}</p>
+
+      {/* DATE AND TIME - clearly shown */}
+      <div style={styles.dateTimeBox}>
+        <div style={styles.dateTimeItem}>
+          <span style={styles.dateTimeLabel}>📅 Date</span>
+          <span style={styles.dateTimeValue}>
+            {formatDate(appointment.appointment_date)}
+          </span>
+        </div>
+        <div style={styles.dateTimeItem}>
+          <span style={styles.dateTimeLabel}>🕐 Time</span>
+          <span style={styles.dateTimeValue}>
+            {formatTime(appointment.appointment_time)}
+          </span>
+        </div>
+      </div>
 
       {appointment.status === 'pending' && (
         <div style={styles.awaitingBadge}>⏳ Awaiting Pharmacist Response</div>
@@ -306,7 +363,7 @@ function AppointmentCard({ appointment, onReload }) {
         <>
           <div style={styles.confirmedBadge}>✓ Confirmed</div>
           <p style={styles.contactInfo}>
-            📞 <b>Contact:</b> {pharmacist?.phone || 'Not provided'}
+            📞 <b>Pharmacist Contact:</b> {pharmacist?.phone || 'Not provided'}
           </p>
         </>
       )}
@@ -318,7 +375,7 @@ function AppointmentCard({ appointment, onReload }) {
             <p style={styles.note}><b>Reason:</b> {appointment.pharmacist_note}</p>
           )}
           <p style={styles.contactInfo}>
-            📞 <b>Contact:</b> {pharmacist?.phone || 'Not provided'}
+            📞 <b>Pharmacist Contact:</b> {pharmacist?.phone || 'Not provided'}
           </p>
         </>
       )}
@@ -551,4 +608,40 @@ const styles = {
     marginTop: 8,
     fontStyle: 'italic',
   },
+  reminderBanner: {
+  background: '#fef3c7',
+  color: '#92400e',
+  padding: '8px 12px',
+  borderRadius: 6,
+  fontSize: 13,
+  fontWeight: 600,
+  marginBottom: 12,
+},
+dateTimeBox: {
+  background: '#f8fafc',
+  border: '1px solid #e2e8f0',
+  borderRadius: 8,
+  padding: 12,
+  margin: '12px 0',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+},
+dateTimeItem: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 2,
+},
+dateTimeLabel: {
+  fontSize: 11,
+  color: '#94a3b8',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+},
+dateTimeValue: {
+  fontSize: 15,
+  color: '#0f172a',
+  fontWeight: 600,
+},
 }

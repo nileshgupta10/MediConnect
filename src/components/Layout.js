@@ -8,50 +8,77 @@ const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
 export default function Layout({ children }) {
   const [user, setUser] = useState(undefined)
   const [role, setRole] = useState(null)
+  const [upcomingCount, setUpcomingCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
     let mounted = true
 
-    const loadUserAndRole = async () => {
+    const init = async () => {
       const { data } = await supabase.auth.getSession()
       if (!mounted) return
-      
+
       const currentUser = data.session?.user ?? null
       setUser(currentUser)
 
       if (currentUser) {
-        // Check if admin
         if (currentUser.email === ADMIN_EMAIL) {
           setRole('admin')
           return
         }
 
-        // Get role from user_roles table
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', currentUser.id)
           .maybeSingle()
 
-        setRole(roleData?.role || null)
+        const userRole = roleData?.role || null
+        setRole(userRole)
+
+        // Check for upcoming appointments (tomorrow)
+        if (userRole) {
+          await checkUpcomingAppointments(currentUser.id, userRole)
+        }
       }
     }
 
-    loadUserAndRole()
+    init()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return
-      setUser(session?.user ?? null)
-    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!mounted) return
+        setUser(session?.user ?? null)
+      }
+    )
 
     return () => {
       mounted = false
       subscription.unsubscribe()
     }
   }, [])
+
+  const checkUpcomingAppointments = async (userId, userRole) => {
+    // Get tomorrow's date
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0]
+
+    const column = userRole === 'pharmacist' ? 'pharmacist_id' : 'store_owner_id'
+
+    const { data } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq(column, userId)
+      .eq('status', 'confirmed')
+      .gte('appointment_date', today)
+      .lte('appointment_date', tomorrowStr)
+
+    setUpcomingCount(data?.length || 0)
+  }
 
   if (user === undefined) {
     return <div style={{ padding: 40 }}>Loading…</div>
@@ -65,16 +92,32 @@ export default function Layout({ children }) {
         <div style={styles.nav}>
           {user && role === 'pharmacist' && (
             <>
-              <Link href="/pharmacist-profile" style={styles.navLink}>Profile</Link>
-              <Link href="/jobs" style={styles.navLink}>Jobs</Link>
+              <Link href="/pharmacist-profile" style={styles.navLink}>
+                Profile
+              </Link>
+              <Link href="/jobs" style={styles.navLinkWithBadge}>
+                Jobs
+                {upcomingCount > 0 && (
+                  <span style={styles.badge}>{upcomingCount}</span>
+                )}
+              </Link>
             </>
           )}
 
           {user && role === 'store_owner' && (
             <>
-              <Link href="/store-profile" style={styles.navLink}>Profile</Link>
-              <Link href="/post-job" style={styles.navLink}>Post Job</Link>
-              <Link href="/applicants" style={styles.navLink}>Applicants</Link>
+              <Link href="/store-profile" style={styles.navLink}>
+                Profile
+              </Link>
+              <Link href="/post-job" style={styles.navLink}>
+                Post Job
+              </Link>
+              <Link href="/applicants" style={styles.navLinkWithBadge}>
+                Applicants
+                {upcomingCount > 0 && (
+                  <span style={styles.badge}>{upcomingCount}</span>
+                )}
+              </Link>
             </>
           )}
 
@@ -129,6 +172,28 @@ const styles = {
     color: '#475569',
     textDecoration: 'none',
     fontWeight: 500,
+  },
+  navLinkWithBadge: {
+    fontSize: 14,
+    color: '#475569',
+    textDecoration: 'none',
+    fontWeight: 500,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    position: 'relative',
+  },
+  badge: {
+    background: '#ef4444',
+    color: 'white',
+    borderRadius: '50%',
+    width: 18,
+    height: 18,
+    fontSize: 11,
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logout: {
     background: '#ef4444',

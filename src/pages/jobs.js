@@ -14,16 +14,14 @@ export default function JobsPage() {
   const [userLocation, setUserLocation] = useState(null)
   const router = useRouter()
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   const load = async () => {
+    setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
 
     if (user) {
-      // Get user's location from pharmacist profile
       const { data: profile } = await supabase
         .from('pharmacist_profiles')
         .select('latitude, longitude')
@@ -31,13 +29,9 @@ export default function JobsPage() {
         .maybeSingle()
 
       if (profile?.latitude && profile?.longitude) {
-        setUserLocation({
-          lat: profile.latitude,
-          lng: profile.longitude,
-        })
+        setUserLocation({ lat: profile.latitude, lng: profile.longitude })
       }
 
-      // Load applications
       const { data: apps } = await supabase
         .from('job_applications')
         .select('job_id, status')
@@ -45,49 +39,52 @@ export default function JobsPage() {
 
       setApplications(apps || [])
 
-      // Load appointments
-const { data: appts, error: apptError } = await supabase
-  .from('appointments')
-  .select(`
-    id,
-    appointment_date,
-    appointment_time,
-    status,
-    pharmacist_note,
-    jobs!appointments_job_id_fkey (title),
-    store_profiles (
-      store_name,
-      phone,
-      latitude,
-      longitude
-    )
-  `)
-  .eq('pharmacist_id', user.id)
-  .order('created_at', { ascending: false })
+      const { data: appts, error: apptError } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          appointment_time,
+          status,
+          pharmacist_note,
+          jobs!appointments_job_id_fkey (title),
+          store_profiles (
+            store_name,
+            phone,
+            latitude,
+            longitude
+          )
+        `)
+        .eq('pharmacist_id', user.id)
+        .order('appointment_date', { ascending: true })
 
-console.log('Appointments:', appts)
-console.log('Appointments error:', apptError)
-
-setAppointments(appts || [])
+      if (apptError) console.error('Appointments error:', apptError)
+      setAppointments(appts || [])
     }
 
-    // Load all jobs with store location
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('jobs')
       .select(`
-        *,
+        id,
+        title,
+        location,
+        shift,
+        required_experience,
+        num_openings,
+        preferred_software,
+        description,
+        created_at,
         store_profiles (latitude, longitude)
       `)
       .order('created_at', { ascending: false })
 
+    if (error) console.error('Jobs error:', error)
     setJobs(data || [])
-    setFilteredJobs(data || [])
     setLoading(false)
   }
 
-  // Calculate distance between two points
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371 // Earth's radius in km
+    const R = 6371
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLon = ((lon2 - lon1) * Math.PI) / 180
     const a =
@@ -96,76 +93,51 @@ setAppointments(appts || [])
         Math.cos((lat2 * Math.PI) / 180) *
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-    return R * c
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 
-  // Filter and sort jobs by distance
   useEffect(() => {
-    if (!userLocation || !jobs.length) {
-      setFilteredJobs(jobs)
-      return
-    }
+    if (!jobs.length) { setFilteredJobs([]); return }
+    if (!userLocation) { setFilteredJobs(jobs); return }
 
-    // Add distance to each job
     const jobsWithDistance = jobs.map(job => {
       if (!job.store_profiles?.latitude || !job.store_profiles?.longitude) {
-        return { ...job, distance: 999999 } // Put jobs without location at end
+        return { ...job, distance: null }
       }
-
       const distance = calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        job.store_profiles.latitude,
-        job.store_profiles.longitude
+        userLocation.lat, userLocation.lng,
+        job.store_profiles.latitude, job.store_profiles.longitude
       )
-
       return { ...job, distance }
     })
 
-    // Filter by max distance
-    const filtered = jobsWithDistance.filter(job => job.distance <= maxDistance)
+    const withLocation = jobsWithDistance
+      .filter(j => j.distance !== null && j.distance <= maxDistance)
+      .sort((a, b) => a.distance - b.distance)
 
-    // Sort by distance (closest first)
-    filtered.sort((a, b) => a.distance - b.distance)
-
-    setFilteredJobs(filtered)
+    const withoutLocation = jobsWithDistance.filter(j => j.distance === null)
+    setFilteredJobs([...withLocation, ...withoutLocation])
   }, [maxDistance, jobs, userLocation])
 
   const applyForJob = async (jobId) => {
-    if (!user) {
-      router.push('/simple-login')
-      return
-    }
+    if (!user) { router.push('/simple-login'); return }
 
-    // Check if already applied
     const alreadyApplied = applications.some(app => app.job_id === jobId)
-    if (alreadyApplied) {
-      alert('You have already applied for this job!')
-      return
-    }
+    if (alreadyApplied) { alert('You have already applied for this job!'); return }
 
     const { error } = await supabase
       .from('job_applications')
-      .insert({
-        job_id: jobId,
-        pharmacist_id: user.id,
-        status: 'pending',
-      })
+      .insert({ job_id: jobId, pharmacist_id: user.id, status: 'pending' })
 
     if (error) {
-      console.error('Apply error:', error)
       if (error.code === '23505') {
         alert('You have already applied for this job!')
       } else {
-        alert('Error applying: ' + error.message)
+        alert('Error: ' + error.message)
       }
       return
     }
 
-    alert('Application submitted successfully!')
-    
-    // Reload to update UI
     await load()
   }
 
@@ -181,27 +153,42 @@ setAppointments(appts || [])
       })
       .eq('id', appointmentId)
 
-    if (error) {
-      alert(error.message)
-      return
-    }
-
-    alert(action === 'confirm' ? 'Appointment confirmed!' : 'Reschedule request sent!')
+    if (error) { alert(error.message); return }
     await load()
   }
 
-  const hasApplied = (jobId) => {
-    return applications.some(app => app.job_id === jobId)
+  const isUpcoming = (dateStr) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const apptDate = new Date(dateStr)
+    apptDate.setHours(0, 0, 0, 0)
+    return apptDate >= today && apptDate <= tomorrow
   }
 
-  const getJobDistance = (job) => {
-    if (job.distance && job.distance < 999999) {
-      return job.distance.toFixed(1)
-    }
-    return null
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
   }
 
-  if (loading) return <p style={{ padding: 40 }}>Loading jobs…</p>
+  const formatTime = (timeStr) => {
+    const [hours, minutes] = timeStr.split(':')
+    const date = new Date()
+    date.setHours(parseInt(hours), parseInt(minutes))
+    return date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+  }
+
+  if (loading) return <p style={{ padding: 40 }}>Loading…</p>
 
   return (
     <div style={styles.page}>
@@ -217,7 +204,10 @@ setAppointments(appts || [])
             style={activeTab === 'appointments' ? styles.activeTab : styles.tab}
             onClick={() => setActiveTab('appointments')}
           >
-            Appointments ({appointments.length})
+            Appointments
+            {appointments.length > 0 && (
+              <span style={styles.tabCount}>{appointments.length}</span>
+            )}
           </button>
         </div>
       )}
@@ -238,10 +228,11 @@ setAppointments(appts || [])
                 step="5"
                 value={maxDistance}
                 onChange={(e) => setMaxDistance(Number(e.target.value))}
-                style={styles.slider}
+                style={{ width: '100%' }}
               />
               <p style={styles.filterResult}>
-                Showing {filteredJobs.length} of {jobs.length} jobs (sorted by distance)
+                Showing {filteredJobs.length} of {jobs.length} jobs
+                {userLocation && ' — sorted by distance'}
               </p>
             </div>
           )}
@@ -252,32 +243,35 @@ setAppointments(appts || [])
             </div>
           )}
 
-          {filteredJobs.length === 0 && <p>No jobs found in your area.</p>}
+          {jobs.length === 0 && <p>No jobs posted yet.</p>}
+          {jobs.length > 0 && filteredJobs.length === 0 && (
+            <p>No jobs found within {maxDistance} km. Try increasing the range.</p>
+          )}
 
           {filteredJobs.map((job) => {
-            const applied = hasApplied(job.id)
-            const distance = getJobDistance(job)
-            
+            const applied = applications.some(app => app.job_id === job.id)
             return (
               <div key={job.id} style={styles.card}>
                 <div style={styles.cardHeader}>
                   <h3 style={{ margin: 0 }}>{job.title}</h3>
-                  {distance && (
-                    <span style={styles.distanceBadge}>📍 {distance} km away</span>
+                  {job.distance !== null && job.distance !== undefined && (
+                    <span style={styles.distanceBadge}>
+                      📍 {job.distance.toFixed(1)} km
+                    </span>
                   )}
                 </div>
                 <p style={styles.location}>📍 {job.location}</p>
-                {job.shift && <p><b>Shift:</b> {job.shift}</p>}
-                {job.required_experience && <p><b>Experience:</b> {job.required_experience}</p>}
-                {job.num_openings && <p><b>Openings:</b> {job.num_openings}</p>}
-                {job.preferred_software && <p><b>Preferred Software:</b> {job.preferred_software}</p>}
-                {job.description && <p>{job.description}</p>}
+                {job.shift && <p style={styles.detail}><b>Shift:</b> {job.shift}</p>}
+                {job.required_experience && <p style={styles.detail}><b>Experience:</b> {job.required_experience}</p>}
+                {job.num_openings && <p style={styles.detail}><b>Openings:</b> {job.num_openings}</p>}
+                {job.preferred_software && <p style={styles.detail}><b>Software:</b> {job.preferred_software}</p>}
+                {job.description && <p style={styles.detail}>{job.description}</p>}
 
                 {applied ? (
                   <div style={styles.appliedBadge}>✓ Applied</div>
                 ) : (
                   <button
-                    style={styles.btn}
+                    style={styles.applyBtn}
                     onClick={() => applyForJob(job.id)}
                   >
                     {user ? 'Apply Now' : 'Login to Apply'}
@@ -293,13 +287,18 @@ setAppointments(appts || [])
         <>
           <h1 style={styles.heading}>My Appointments</h1>
 
-          {appointments.length === 0 && <p>No appointments yet.</p>}
+          {appointments.length === 0 && (
+            <div style={styles.empty}>No appointments yet.</div>
+          )}
 
           {appointments.map((appt) => (
-            <AppointmentCard 
-              key={appt.id} 
-              appointment={appt} 
+            <AppointmentCard
+              key={appt.id}
+              appointment={appt}
               onAction={handleAppointmentAction}
+              isUpcoming={isUpcoming(appt.appointment_date)}
+              formatDate={formatDate}
+              formatTime={formatTime}
             />
           ))}
         </>
@@ -308,7 +307,7 @@ setAppointments(appts || [])
   )
 }
 
-function AppointmentCard({ appointment, onAction }) {
+function AppointmentCard({ appointment, onAction, isUpcoming, formatDate, formatTime }) {
   const [note, setNote] = useState('')
   const [showNote, setShowNote] = useState(false)
 
@@ -316,7 +315,7 @@ function AppointmentCard({ appointment, onAction }) {
   const job = appointment.jobs
 
   const openMaps = () => {
-    if (store.latitude && store.longitude) {
+    if (store?.latitude && store?.longitude) {
       window.open(
         `https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`,
         '_blank'
@@ -325,16 +324,40 @@ function AppointmentCard({ appointment, onAction }) {
   }
 
   return (
-    <div style={styles.appointmentCard}>
-      <h3>{job.title}</h3>
-      <p><b>Store:</b> {store.store_name}</p>
-      <p><b>Date:</b> {appointment.appointment_date}</p>
-      <p><b>Time:</b> {appointment.appointment_time}</p>
-      
+    <div style={{
+      ...styles.appointmentCard,
+      ...(isUpcoming && appointment.status === 'confirmed' ? styles.upcomingCard : {})
+    }}>
+
+      {isUpcoming && appointment.status === 'confirmed' && (
+        <div style={styles.reminderBanner}>
+          🔔 Reminder: This appointment is today or tomorrow!
+        </div>
+      )}
+
+      <h3 style={styles.apptTitle}>{job?.title}</h3>
+      <p style={styles.detail}><b>Store:</b> {store?.store_name}</p>
+
+      {/* DATE AND TIME - clearly shown */}
+      <div style={styles.dateTimeBox}>
+        <div style={styles.dateTimeItem}>
+          <span style={styles.dateTimeLabel}>📅 Date</span>
+          <span style={styles.dateTimeValue}>
+            {formatDate(appointment.appointment_date)}
+          </span>
+        </div>
+        <div style={styles.dateTimeItem}>
+          <span style={styles.dateTimeLabel}>🕐 Time</span>
+          <span style={styles.dateTimeValue}>
+            {formatTime(appointment.appointment_time)}
+          </span>
+        </div>
+      </div>
+
       {appointment.status === 'pending' && (
         <>
           <div style={styles.statusBadge}>⏳ Awaiting Your Response</div>
-          
+
           <button
             style={styles.confirmBtn}
             onClick={() => onAction(appointment.id, 'confirm')}
@@ -375,7 +398,9 @@ function AppointmentCard({ appointment, onAction }) {
       {appointment.status === 'confirmed' && (
         <>
           <div style={styles.confirmedBadge}>✓ Confirmed</div>
-          <p><b>Store Contact:</b> {store.phone}</p>
+          <p style={styles.contactInfo}>
+            📞 <b>Store Contact:</b> {store?.phone || 'Not provided'}
+          </p>
           <button style={styles.mapsBtn} onClick={openMaps}>
             📍 Get Directions
           </button>
@@ -384,11 +409,11 @@ function AppointmentCard({ appointment, onAction }) {
 
       {appointment.status === 'reschedule_requested' && (
         <>
-          <div style={styles.rescheduleBadge}>🔄 Reschedule Requested</div>
+          <div style={styles.rescheduledBadge}>🔄 Reschedule Requested</div>
           {appointment.pharmacist_note && (
             <p style={styles.note}><b>Your note:</b> {appointment.pharmacist_note}</p>
           )}
-          <p style={styles.waiting}>Waiting for store owner response...</p>
+          <p style={styles.waiting}>Waiting for store owner to respond…</p>
         </>
       )}
     </div>
@@ -400,7 +425,7 @@ const styles = {
     padding: 24,
     maxWidth: 800,
     margin: '0 auto',
-    fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
   },
   tabs: {
     display: 'flex',
@@ -417,6 +442,9 @@ const styles = {
     fontSize: 15,
     fontWeight: 500,
     color: '#64748b',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
   },
   activeTab: {
     padding: '10px 20px',
@@ -427,11 +455,23 @@ const styles = {
     fontSize: 15,
     fontWeight: 600,
     color: '#2563eb',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
   },
-  heading: {
-    fontSize: 26,
-    marginBottom: 20,
+  tabCount: {
+    background: '#2563eb',
+    color: 'white',
+    borderRadius: '50%',
+    width: 20,
+    height: 20,
+    fontSize: 11,
+    fontWeight: 700,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  heading: { fontSize: 26, marginBottom: 20 },
   filterBox: {
     background: '#f8fafc',
     padding: 16,
@@ -441,13 +481,8 @@ const styles = {
   },
   filterLabel: {
     display: 'block',
-    fontSize: 15,
-    marginBottom: 10,
-    color: '#0f172a',
-  },
-  slider: {
-    width: '100%',
-    height: 8,
+    fontSize: 14,
+    marginBottom: 8,
   },
   filterResult: {
     fontSize: 13,
@@ -466,32 +501,37 @@ const styles = {
     background: '#fff',
     padding: 20,
     borderRadius: 12,
-    boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-    marginBottom: 18,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+    marginBottom: 16,
   },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 8,
     gap: 10,
   },
   distanceBadge: {
     background: '#dbeafe',
     color: '#1e40af',
-    padding: '6px 12px',
+    padding: '4px 10px',
     borderRadius: 12,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 600,
     whiteSpace: 'nowrap',
   },
   location: {
     color: '#64748b',
     fontSize: 14,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  btn: {
-    marginTop: 10,
+  detail: {
+    fontSize: 14,
+    color: '#475569',
+    margin: '4px 0',
+  },
+  applyBtn: {
+    marginTop: 12,
     padding: '10px 16px',
     border: 'none',
     borderRadius: 8,
@@ -499,23 +539,77 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontWeight: 600,
+    fontSize: 14,
   },
   appliedBadge: {
-    marginTop: 10,
+    marginTop: 12,
     padding: '8px 14px',
-    background: '#10b981',
-    color: 'white',
+    background: '#d1fae5',
+    color: '#065f46',
     borderRadius: 6,
     display: 'inline-block',
     fontSize: 14,
     fontWeight: 600,
   },
+  empty: {
+    background: '#fff',
+    padding: 16,
+    borderRadius: 10,
+    fontSize: 14,
+    color: '#64748b',
+  },
   appointmentCard: {
     background: '#fff',
     padding: 20,
     borderRadius: 12,
-    boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
-    marginBottom: 18,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+    marginBottom: 16,
+    border: '1px solid #e5e7eb',
+  },
+  upcomingCard: {
+    border: '2px solid #f59e0b',
+    boxShadow: '0 4px 12px rgba(245,158,11,0.15)',
+  },
+  reminderBanner: {
+    background: '#fef3c7',
+    color: '#92400e',
+    padding: '8px 12px',
+    borderRadius: 6,
+    fontSize: 13,
+    fontWeight: 600,
+    marginBottom: 12,
+  },
+  apptTitle: {
+    fontSize: 17,
+    fontWeight: 600,
+    margin: '0 0 8px 0',
+  },
+  dateTimeBox: {
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    margin: '12px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  dateTimeItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  dateTimeLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  dateTimeValue: {
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: 600,
   },
   statusBadge: {
     background: '#fef3c7',
@@ -523,9 +617,8 @@ const styles = {
     padding: '6px 12px',
     borderRadius: 6,
     display: 'inline-block',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
-    marginTop: 10,
     marginBottom: 10,
   },
   confirmedBadge: {
@@ -534,24 +627,22 @@ const styles = {
     padding: '6px 12px',
     borderRadius: 6,
     display: 'inline-block',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
-    marginTop: 10,
+    marginTop: 4,
     marginBottom: 10,
   },
-  rescheduleBadge: {
+  rescheduledBadge: {
     background: '#fecaca',
     color: '#991b1b',
     padding: '6px 12px',
     borderRadius: 6,
     display: 'inline-block',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 600,
-    marginTop: 10,
     marginBottom: 10,
   },
   confirmBtn: {
-    marginTop: 10,
     marginRight: 8,
     padding: '10px 16px',
     border: 'none',
@@ -560,9 +651,9 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontWeight: 600,
+    fontSize: 14,
   },
   rescheduleBtn: {
-    marginTop: 10,
     padding: '10px 16px',
     border: 'none',
     borderRadius: 8,
@@ -570,6 +661,7 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontWeight: 600,
+    fontSize: 14,
   },
   mapsBtn: {
     marginTop: 10,
@@ -580,6 +672,7 @@ const styles = {
     color: '#fff',
     cursor: 'pointer',
     fontWeight: 600,
+    fontSize: 14,
   },
   noteInput: {
     width: '100%',
@@ -589,6 +682,7 @@ const styles = {
     minHeight: 60,
     fontSize: 14,
     fontFamily: 'inherit',
+    boxSizing: 'border-box',
   },
   submitBtn: {
     marginTop: 8,
@@ -598,14 +692,24 @@ const styles = {
     background: '#2563eb',
     color: '#fff',
     cursor: 'pointer',
+    fontWeight: 600,
+  },
+  contactInfo: {
+    fontSize: 14,
+    color: '#0f172a',
+    padding: '8px 12px',
+    background: '#f0fdf4',
+    borderRadius: 6,
+    marginBottom: 8,
   },
   note: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#475569',
     marginTop: 8,
+    fontStyle: 'italic',
   },
   waiting: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
     fontStyle: 'italic',
     marginTop: 8,
