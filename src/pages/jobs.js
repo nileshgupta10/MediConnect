@@ -46,15 +46,29 @@ export default function JobsPage() {
       setApplications(apps || [])
 
       // Load appointments
-      const { data: appts } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          jobs (title, location),
-          store_profiles (store_name, phone, latitude, longitude)
-        `)
-        .eq('pharmacist_id', user.id)
-        .order('created_at', { ascending: false })
+const { data: appts, error: apptError } = await supabase
+  .from('appointments')
+  .select(`
+    id,
+    appointment_date,
+    appointment_time,
+    status,
+    pharmacist_note,
+    job_id,
+    store_owner_id,
+    jobs (title),
+    store_profiles!appointments_store_owner_id_fkey (
+      store_name,
+      phone,
+      latitude,
+      longitude
+    )
+  `)
+  .eq('pharmacist_id', user.id)
+  .order('created_at', { ascending: false })
+
+console.log('Appointments:', appts)
+console.log('Appointments error:', apptError)
 
       setAppointments(appts || [])
     }
