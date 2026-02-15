@@ -9,6 +9,7 @@ export default function PharmacistProfile() {
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [mapsLoaded, setMapsLoaded] = useState(false)
 
   const [name, setName] = useState('')
   const [yearsExperience, setYearsExperience] = useState('')
@@ -16,9 +17,61 @@ export default function PharmacistProfile() {
   const [phone, setPhone] = useState('')
   const [latitude, setLatitude] = useState(null)
   const [longitude, setLongitude] = useState(null)
+  const [address, setAddress] = useState('')
+  const [addressInput, setAddressInput] = useState('')
+  const [locating, setLocating] = useState(false)
 
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
+
+  // Load Google Maps SDK once
+  useEffect(() => {
+    if (window.google) { setMapsLoaded(true); return }
+    const existing = document.querySelector('#google-maps-script')
+    if (existing) { setMapsLoaded(true); return }
+
+    const script = document.createElement('script')
+    script.id = 'google-maps-script'
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.async = true
+    script.defer = true
+    script.onload = () => setMapsLoaded(true)
+    document.head.appendChild(script)
+  }, [])
+
+  // Init autocomplete when editing starts and maps loaded
+  useEffect(() => {
+    if (!editing || !mapsLoaded) return
+    if (!window.google?.maps?.places) return
+
+    const input = document.getElementById('pharmacist-address-input')
+    if (!input) return
+
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'in' },
+      fields: ['formatted_address', 'geometry'],
+    })
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace()
+      if (!place.geometry) {
+        setMessage('Please select an address from the dropdown.')
+        return
+      }
+      const addr = place.formatted_address
+      const lat = place.geometry.location.lat()
+      const lng = place.geometry.location.lng()
+      setAddress(addr)
+      setAddressInput(addr)
+      setLatitude(lat)
+      setLongitude(lng)
+      setMessage('Location selected.')
+    })
+
+    return () => {
+      window.google.maps.event.removeListener(listener)
+    }
+  }, [editing, mapsLoaded])
 
   useEffect(() => { load() }, [])
 
@@ -28,7 +81,7 @@ export default function PharmacistProfile() {
 
     const { data, error } = await supabase
       .from('pharmacist_profiles')
-      .select('user_id, name, years_experience, software_experience, phone, latitude, longitude, license_url, is_verified, verification_status')
+      .select('user_id, name, years_experience, software_experience, phone, latitude, longitude, address, license_url, is_verified, verification_status')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -40,9 +93,45 @@ export default function PharmacistProfile() {
       setPhone(data.phone || '')
       setLatitude(data.latitude ?? null)
       setLongitude(data.longitude ?? null)
+      setAddress(data.address || '')
+      setAddressInput(data.address || '')
     }
 
     setLoading(false)
+  }
+
+  const detectLocation = () => {
+    setLocating(true)
+    setMessage('Detecting location…')
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const newLat = pos.coords.latitude
+        const newLng = pos.coords.longitude
+        setLatitude(newLat)
+        setLongitude(newLng)
+
+        try {
+          const res = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${newLat},${newLng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+          )
+          const data = await res.json()
+          if (data.results?.[0]) {
+            const addr = data.results[0].formatted_address
+            setAddress(addr)
+            setAddressInput(addr)
+            setMessage('Location detected: ' + addr)
+          }
+        } catch {
+          setMessage('Location detected but could not get address.')
+        }
+        setLocating(false)
+      },
+      () => {
+        setMessage('GPS denied. Please type your address below.')
+        setLocating(false)
+      }
+    )
   }
 
   const saveProfile = async () => {
@@ -63,27 +152,15 @@ export default function PharmacistProfile() {
         phone: phone.trim(),
         latitude,
         longitude,
+        address,
       })
 
     setSaving(false)
-
     if (error) { setMessage('Error: ' + error.message); return }
 
     await load()
     setMessage('Profile saved.')
     setEditing(false)
-  }
-
-  const detectLocation = () => {
-    setMessage('Detecting…')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude)
-        setLongitude(pos.coords.longitude)
-        setMessage('Location saved.')
-      },
-      () => setMessage('Location permission denied.')
-    )
   }
 
   const uploadLicense = async (file) => {
@@ -139,12 +216,11 @@ export default function PharmacistProfile() {
             <Field label="Experience" value={yearsExperience ? yearsExperience + ' years' : null} />
             <Field label="Software" value={softwareExperience} />
             <Field label="Phone" value={phone} />
-            <Field label="Location" value={latitude ? '📍 Saved' : null} />
+            <Field label="Location" value={address || (latitude ? '📍 Saved' : null)} />
 
             <button onClick={() => setEditing(true)} style={styles.primaryBtn}>
               Edit Profile
             </button>
-
             <a href="/jobs" style={styles.jobsLink}>Browse Jobs →</a>
           </div>
         ) : (
@@ -155,10 +231,36 @@ export default function PharmacistProfile() {
             <InputField label="Phone Number" value={phone} onChange={setPhone} placeholder="Your contact number" />
 
             <label style={styles.inputLabel}>Your Location</label>
-            <button onClick={detectLocation} style={styles.gpsBtn}>
-              📍 Detect My Location
+
+            <button style={styles.gpsBtn} onClick={detectLocation} disabled={locating}>
+              {locating ? '⏳ Detecting…' : '📍 Use My Current Location (GPS)'}
             </button>
-            {latitude && <p style={styles.locationNote}>📍 Location saved</p>}
+
+            <div style={styles.divider}>
+              <span style={styles.dividerText}>OR type your address below</span>
+            </div>
+
+            <input
+              id="pharmacist-address-input"
+              style={styles.addressInput}
+              placeholder="Start typing your address…"
+              value={addressInput}
+              onChange={(e) => {
+                setAddressInput(e.target.value)
+                if (latitude) {
+                  setLatitude(null)
+                  setLongitude(null)
+                  setAddress('')
+                }
+              }}
+            />
+            <p style={styles.hint}>
+              {mapsLoaded ? '💡 Select from the dropdown suggestions' : '⏳ Loading address search…'}
+            </p>
+
+            {address && latitude && (
+              <div style={styles.addressPreview}>✓ {address}</div>
+            )}
 
             <hr style={styles.hr} />
 
@@ -271,7 +373,11 @@ const styles = {
   editMode: { display: 'flex', flexDirection: 'column', gap: 4 },
   inputLabel: { fontSize: 13, fontWeight: 600, color: '#475569', marginTop: 12, marginBottom: 4, display: 'block' },
   gpsBtn: { width: '100%', padding: 10, background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
-  locationNote: { fontSize: 13, color: '#15803d', marginTop: 4 },
+  divider: { display: 'flex', alignItems: 'center', margin: '10px 0' },
+  dividerText: { width: '100%', textAlign: 'center', fontSize: 12, color: '#94a3b8', borderTop: '1px solid #e2e8f0', paddingTop: 10 },
+  addressInput: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' },
+  hint: { fontSize: 12, color: '#94a3b8', marginTop: 4, marginBottom: 4 },
+  addressPreview: { background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 12px', borderRadius: 8, fontSize: 13, color: '#15803d', marginTop: 4 },
   licenseStatus: { padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 8 },
   licenseUploaded: { fontSize: 13, color: '#15803d', fontWeight: 500 },
   licenseNone: { fontSize: 13, color: '#94a3b8' },
