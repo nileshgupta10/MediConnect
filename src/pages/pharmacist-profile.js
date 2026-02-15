@@ -8,6 +8,7 @@ export default function PharmacistProfile() {
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const [name, setName] = useState('')
   const [yearsExperience, setYearsExperience] = useState('')
@@ -23,7 +24,7 @@ export default function PharmacistProfile() {
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
 
     const { data, error } = await supabase
       .from('pharmacist_profiles')
@@ -31,13 +32,7 @@ export default function PharmacistProfile() {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (error) {
-      console.error('Load error:', error)
-      setLoading(false)
-      return
-    }
-
-    if (data) {
+    if (!error && data) {
       setProfile(data)
       setName(data.name || '')
       setYearsExperience(data.years_experience || '')
@@ -51,30 +46,28 @@ export default function PharmacistProfile() {
   }
 
   const saveProfile = async () => {
-    if (!name) {
-      setMessage('Please enter your name.')
-      return
-    }
+    if (!name.trim()) { setMessage('Please enter your name.'); return }
 
+    setSaving(true)
     setMessage('Saving…')
+
     const { data: { user } } = await supabase.auth.getUser()
 
     const { error } = await supabase
       .from('pharmacist_profiles')
       .upsert({
         user_id: user.id,
-        name,
+        name: name.trim(),
         years_experience: yearsExperience,
-        software_experience: softwareExperience,
-        phone,
+        software_experience: softwareExperience.trim(),
+        phone: phone.trim(),
         latitude,
         longitude,
       })
 
-    if (error) {
-      setMessage('Error: ' + error.message)
-      return
-    }
+    setSaving(false)
+
+    if (error) { setMessage('Error: ' + error.message); return }
 
     await load()
     setMessage('Profile saved.')
@@ -107,10 +100,7 @@ export default function PharmacistProfile() {
         .from('licenses')
         .upload(path, compressed, { upsert: true })
 
-      if (uploadError) {
-        setMessage('Upload failed: ' + uploadError.message)
-        return
-      }
+      if (uploadError) { setMessage('Upload failed: ' + uploadError.message); return }
 
       const { error: updateError } = await supabase
         .from('pharmacist_profiles')
@@ -121,10 +111,7 @@ export default function PharmacistProfile() {
         })
         .eq('user_id', user.id)
 
-      if (updateError) {
-        setMessage('Error saving: ' + updateError.message)
-        return
-      }
+      if (updateError) { setMessage('Error saving: ' + updateError.message); return }
 
       await load()
       setMessage('License uploaded. Pending verification.')
@@ -162,31 +149,10 @@ export default function PharmacistProfile() {
           </div>
         ) : (
           <div style={styles.editMode}>
-            <InputField
-              label="Full Name *"
-              value={name}
-              onChange={setName}
-              placeholder="Your full name"
-            />
-            <InputField
-              label="Years of Experience"
-              value={yearsExperience}
-              onChange={setYearsExperience}
-              placeholder="e.g. 3"
-              type="number"
-            />
-            <InputField
-              label="Software Experience"
-              value={softwareExperience}
-              onChange={setSoftwareExperience}
-              placeholder="e.g. Marg, GoFrugal"
-            />
-            <InputField
-              label="Phone Number"
-              value={phone}
-              onChange={setPhone}
-              placeholder="Your contact number"
-            />
+            <InputField label="Full Name *" value={name} onChange={setName} placeholder="Your full name" />
+            <InputField label="Years of Experience" value={yearsExperience} onChange={setYearsExperience} placeholder="e.g. 3" type="number" />
+            <InputField label="Software Experience" value={softwareExperience} onChange={setSoftwareExperience} placeholder="e.g. Marg, GoFrugal" />
+            <InputField label="Phone Number" value={phone} onChange={setPhone} placeholder="Your contact number" />
 
             <label style={styles.inputLabel}>Your Location</label>
             <button onClick={detectLocation} style={styles.gpsBtn}>
@@ -197,7 +163,6 @@ export default function PharmacistProfile() {
             <hr style={styles.hr} />
 
             <label style={styles.inputLabel}>License</label>
-
             <div style={styles.licenseStatus}>
               {profile?.license_url ? (
                 <span style={styles.licenseUploaded}>
@@ -212,18 +177,13 @@ export default function PharmacistProfile() {
             </div>
 
             <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              ref={cameraInputRef}
-              hidden
+              type="file" accept="image/*" capture="environment"
+              ref={cameraInputRef} hidden
               onChange={(e) => uploadLicense(e.target.files[0])}
             />
             <input
-              type="file"
-              accept="image/*"
-              ref={galleryInputRef}
-              hidden
+              type="file" accept="image/*"
+              ref={galleryInputRef} hidden
               onChange={(e) => uploadLicense(e.target.files[0])}
             />
 
@@ -245,8 +205,8 @@ export default function PharmacistProfile() {
 
             <hr style={styles.hr} />
 
-            <button onClick={saveProfile} style={styles.primaryBtn}>
-              Save Profile
+            <button onClick={saveProfile} style={styles.primaryBtn} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Profile'}
             </button>
 
             <button onClick={() => { setEditing(false); setMessage('') }} style={styles.cancelBtn}>
@@ -257,9 +217,7 @@ export default function PharmacistProfile() {
 
         {message && (
           <p style={message.includes('Error') || message.includes('failed') || message.includes('denied')
-            ? styles.errorMsg
-            : styles.successMsg
-          }>
+            ? styles.errorMsg : styles.successMsg}>
             {message}
           </p>
         )}
@@ -293,197 +251,35 @@ function InputField({ label, value, onChange, placeholder, type = 'text' }) {
 }
 
 const fieldStyles = {
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    padding: '10px 0',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  label: {
-    fontSize: 11,
-    color: '#94a3b8',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  value: {
-    fontSize: 15,
-    color: '#0f172a',
-    fontWeight: 500,
-  },
+  field: { display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 0', borderBottom: '1px solid #f1f5f9' },
+  label: { fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 15, color: '#0f172a', fontWeight: 500 },
 }
 
 const inputStyles = {
-  label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#475569',
-    marginTop: 12,
-    marginBottom: 4,
-    display: 'block',
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #cbd5e1',
-    fontSize: 14,
-    boxSizing: 'border-box',
-  },
+  label: { fontSize: 13, fontWeight: 600, color: '#475569', marginTop: 12, marginBottom: 4, display: 'block' },
+  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' },
 }
 
 const styles = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    background: '#f8fafc',
-    padding: 20,
-  },
-  card: {
-    background: 'white',
-    padding: 24,
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 440,
-    height: 'fit-content',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 700,
-    marginBottom: 12,
-  },
-  verifiedBadge: {
-    display: 'inline-block',
-    background: '#d1fae5',
-    color: '#065f46',
-    padding: '4px 12px',
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 600,
-    marginBottom: 16,
-  },
-  pendingBadge: {
-    display: 'inline-block',
-    background: '#fef3c7',
-    color: '#92400e',
-    padding: '4px 12px',
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 600,
-    marginBottom: 16,
-  },
-  viewMode: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  editMode: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#475569',
-    marginTop: 12,
-    marginBottom: 4,
-    display: 'block',
-  },
-  gpsBtn: {
-    width: '100%',
-    padding: 10,
-    background: '#0f172a',
-    color: 'white',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  locationNote: {
-    fontSize: 13,
-    color: '#15803d',
-    marginTop: 4,
-  },
-  licenseStatus: {
-    padding: '10px 12px',
-    background: '#f8fafc',
-    borderRadius: 8,
-    border: '1px solid #e2e8f0',
-    marginBottom: 8,
-  },
-  licenseUploaded: {
-    fontSize: 13,
-    color: '#15803d',
-    fontWeight: 500,
-  },
-  licenseNone: {
-    fontSize: 13,
-    color: '#94a3b8',
-  },
-  primaryBtn: {
-    background: '#2563eb',
-    color: 'white',
-    padding: 11,
-    border: 'none',
-    borderRadius: 8,
-    marginTop: 16,
-    cursor: 'pointer',
-    width: '100%',
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  secondaryBtn: {
-    background: '#f1f5f9',
-    color: '#0f172a',
-    padding: 11,
-    border: 'none',
-    borderRadius: 8,
-    marginTop: 6,
-    cursor: 'pointer',
-    width: '100%',
-    fontSize: 14,
-  },
-  cancelBtn: {
-    background: '#f1f5f9',
-    color: '#475569',
-    padding: 11,
-    border: 'none',
-    borderRadius: 8,
-    marginTop: 6,
-    cursor: 'pointer',
-    width: '100%',
-    fontSize: 14,
-  },
-  hr: {
-    margin: '16px 0',
-    borderColor: '#f1f5f9',
-  },
-  successMsg: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#059669',
-    padding: '8px 12px',
-    background: '#f0fdf4',
-    borderRadius: 6,
-  },
-  errorMsg: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#dc2626',
-    padding: '8px 12px',
-    background: '#fef2f2',
-    borderRadius: 6,
-  },
-  jobsLink: {
-    display: 'block',
-    marginTop: 16,
-    color: '#2563eb',
-    textDecoration: 'none',
-    fontSize: 14,
-    fontWeight: 500,
-  },
+  page: { minHeight: '100vh', display: 'flex', justifyContent: 'center', background: '#f8fafc', padding: 20 },
+  card: { background: 'white', padding: 24, borderRadius: 12, width: '100%', maxWidth: 440, height: 'fit-content', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' },
+  title: { fontSize: 24, fontWeight: 700, marginBottom: 12 },
+  verifiedBadge: { display: 'inline-block', background: '#d1fae5', color: '#065f46', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 16 },
+  pendingBadge: { display: 'inline-block', background: '#fef3c7', color: '#92400e', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600, marginBottom: 16 },
+  viewMode: { display: 'flex', flexDirection: 'column' },
+  editMode: { display: 'flex', flexDirection: 'column', gap: 4 },
+  inputLabel: { fontSize: 13, fontWeight: 600, color: '#475569', marginTop: 12, marginBottom: 4, display: 'block' },
+  gpsBtn: { width: '100%', padding: 10, background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+  locationNote: { fontSize: 13, color: '#15803d', marginTop: 4 },
+  licenseStatus: { padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 8 },
+  licenseUploaded: { fontSize: 13, color: '#15803d', fontWeight: 500 },
+  licenseNone: { fontSize: 13, color: '#94a3b8' },
+  primaryBtn: { background: '#2563eb', color: 'white', padding: 11, border: 'none', borderRadius: 8, marginTop: 16, cursor: 'pointer', width: '100%', fontSize: 14, fontWeight: 600 },
+  secondaryBtn: { background: '#f1f5f9', color: '#0f172a', padding: 11, border: 'none', borderRadius: 8, marginTop: 6, cursor: 'pointer', width: '100%', fontSize: 14 },
+  cancelBtn: { background: '#f1f5f9', color: '#475569', padding: 11, border: 'none', borderRadius: 8, marginTop: 6, cursor: 'pointer', width: '100%', fontSize: 14 },
+  hr: { margin: '16px 0', borderColor: '#f1f5f9' },
+  successMsg: { marginTop: 12, fontSize: 14, color: '#059669', padding: '8px 12px', background: '#f0fdf4', borderRadius: 6 },
+  errorMsg: { marginTop: 12, fontSize: 14, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', borderRadius: 6 },
+  jobsLink: { display: 'block', marginTop: 16, color: '#2563eb', textDecoration: 'none', fontSize: 14, fontWeight: 500 },
 }

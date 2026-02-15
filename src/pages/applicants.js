@@ -11,62 +11,44 @@ export default function ApplicantsPage() {
 
   const loadData = async () => {
     setLoading(true)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    // Get store owner's job IDs only
     const { data: jobs } = await supabase
       .from('jobs')
       .select('id')
       .eq('store_owner_id', user.id)
 
-    if (!jobs || jobs.length === 0) {
-      setLoading(false)
-      return
-    }
+    if (!jobs || jobs.length === 0) { setLoading(false); return }
 
     const jobIds = jobs.map(j => j.id)
 
-    // Fetch applications with only needed columns
-    const { data: applications } = await supabase
-      .from('job_applications')
-      .select(`
-        id,
-        job_id,
-        status,
-        jobs (title),
-        pharmacist_profiles (
-          user_id,
-          name,
-          years_experience,
-          software_experience,
-          is_verified,
-          license_url,
-          phone
-        )
-      `)
-      .in('job_id', jobIds)
-      .order('created_at', { ascending: false })
+    const [appsRes, apptsRes] = await Promise.all([
+      supabase
+        .from('job_applications')
+        .select(`
+          id, job_id, status,
+          jobs (title),
+          pharmacist_profiles (
+            user_id, name, years_experience,
+            software_experience, is_verified, license_url, phone
+          )
+        `)
+        .in('job_id', jobIds)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('appointments')
+        .select(`
+          id, appointment_date, appointment_time, status, pharmacist_note,
+          jobs (title),
+          pharmacist_profiles (name, phone)
+        `)
+        .eq('store_owner_id', user.id)
+        .order('appointment_date', { ascending: true }),
+    ])
 
-    setApplicants(applications || [])
-
-    // Fetch appointments with only needed columns
-    const { data: appts } = await supabase
-      .from('appointments')
-      .select(`
-        id,
-        appointment_date,
-        appointment_time,
-        status,
-        pharmacist_note,
-        jobs (title),
-        pharmacist_profiles (name, phone)
-      `)
-      .eq('store_owner_id', user.id)
-      .order('created_at', { ascending: false })
-
-    setAppointments(appts || [])
+    setApplicants(appsRes.data || [])
+    setAppointments(apptsRes.data || [])
     setLoading(false)
   }
 
@@ -102,11 +84,7 @@ export default function ApplicantsPage() {
       {activeTab === 'applicants' && (
         <>
           <h1 style={styles.heading}>Job Applicants</h1>
-
-          {applicants.length === 0 && (
-            <div style={styles.empty}>No applications yet.</div>
-          )}
-
+          {applicants.length === 0 && <div style={styles.empty}>No applications yet.</div>}
           {applicants.map((app) => {
             const p = app.pharmacist_profiles
             if (!p) return null
@@ -126,17 +104,9 @@ export default function ApplicantsPage() {
       {activeTab === 'appointments' && (
         <>
           <h1 style={styles.heading}>Appointments</h1>
-
-          {appointments.length === 0 && (
-            <div style={styles.empty}>No appointments yet.</div>
-          )}
-
+          {appointments.length === 0 && <div style={styles.empty}>No appointments yet.</div>}
           {appointments.map((appt) => (
-            <AppointmentCard
-              key={appt.id}
-              appointment={appt}
-              onReload={loadData}
-            />
+            <AppointmentCard key={appt.id} appointment={appt} onReload={loadData} />
           ))}
         </>
       )}
@@ -149,13 +119,10 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [loadingLicense, setLoadingLicense] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
 
   const viewLicense = async () => {
-    if (!pharmacist.license_url) {
-      alert('No license uploaded by this pharmacist.')
-      return
-    }
-
+    if (!pharmacist.license_url) { alert('No license uploaded by this pharmacist.'); return }
     setLoadingLicense(true)
 
     const cleanPath = pharmacist.license_url.includes('supabase.co')
@@ -167,21 +134,14 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
       .createSignedUrl(cleanPath, 3600)
 
     setLoadingLicense(false)
-
-    if (error || !data?.signedUrl) {
-      alert('Could not load license. Please try again.')
-      return
-    }
-
+    if (error || !data?.signedUrl) { alert('Could not load license. Please try again.'); return }
     window.open(data.signedUrl, '_blank')
   }
 
   const scheduleAppointment = async () => {
-    if (!date || !time) {
-      alert('Please select both date and time.')
-      return
-    }
+    if (!date || !time) { alert('Please select both date and time.'); return }
 
+    setScheduling(true)
     const { data: { user } } = await supabase.auth.getUser()
 
     const { error } = await supabase
@@ -196,13 +156,14 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
         status: 'pending',
       })
 
-    if (error) { alert(error.message); return }
+    if (error) { alert(error.message); setScheduling(false); return }
 
     await supabase
       .from('job_applications')
       .update({ status: 'appointment_scheduled' })
       .eq('id', application.id)
 
+    setScheduling(false)
     setShowSchedule(false)
     await onReload()
   }
@@ -222,30 +183,19 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
 
       <div style={styles.actions}>
         {pharmacist.license_url && (
-          <button
-            style={styles.licenseBtn}
-            onClick={viewLicense}
-            disabled={loadingLicense}
-          >
+          <button style={styles.licenseBtn} onClick={viewLicense} disabled={loadingLicense}>
             {loadingLicense ? 'Loading…' : '📄 View License'}
           </button>
         )}
-
         {application.status === 'pending' && (
-          <button
-            style={styles.interestedBtn}
-            onClick={() => onInterested(application.id)}
-          >
+          <button style={styles.interestedBtn} onClick={() => onInterested(application.id)}>
             ✓ Mark Interested
           </button>
         )}
       </div>
 
       {application.status === 'interested' && !showSchedule && (
-        <button
-          style={styles.scheduleBtn}
-          onClick={() => setShowSchedule(true)}
-        >
+        <button style={styles.scheduleBtn} onClick={() => setShowSchedule(true)}>
           📅 Schedule Appointment
         </button>
       )}
@@ -254,24 +204,18 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
         <div style={styles.scheduleForm}>
           <label style={styles.formLabel}>Select Date</label>
           <input
-            type="date"
-            style={styles.input}
-            value={date}
+            type="date" style={styles.input} value={date}
             min={new Date().toISOString().split('T')[0]}
             onChange={(e) => setDate(e.target.value)}
           />
-
           <label style={styles.formLabel}>Select Time</label>
           <input
-            type="time"
-            style={styles.input}
-            value={time}
+            type="time" style={styles.input} value={time}
             onChange={(e) => setTime(e.target.value)}
           />
-
           <div style={styles.formActions}>
-            <button style={styles.confirmBtn} onClick={scheduleAppointment}>
-              Send Appointment
+            <button style={styles.confirmBtn} onClick={scheduleAppointment} disabled={scheduling}>
+              {scheduling ? 'Sending…' : 'Send Appointment'}
             </button>
             <button style={styles.cancelBtn} onClick={() => setShowSchedule(false)}>
               Cancel
@@ -290,49 +234,31 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
 function AppointmentCard({ appointment, onReload }) {
   const pharmacist = appointment.pharmacist_profiles
   const job = appointment.jobs
-
   const [showReschedule, setShowReschedule] = useState(false)
   const [newDate, setNewDate] = useState('')
   const [newTime, setNewTime] = useState('')
   const [sending, setSending] = useState(false)
 
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-IN', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+  })
 
   const formatTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':')
-    const date = new Date()
-    date.setHours(parseInt(hours), parseInt(minutes))
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    })
+    const [h, m] = timeStr.split(':')
+    const d = new Date()
+    d.setHours(parseInt(h), parseInt(m))
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
   }
 
   const isUpcoming = () => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const apptDate = new Date(appointment.appointment_date)
-    apptDate.setHours(0, 0, 0, 0)
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+    const apptDate = new Date(appointment.appointment_date); apptDate.setHours(0, 0, 0, 0)
     return apptDate >= today && apptDate <= tomorrow
   }
 
   const sendNewSlot = async () => {
-    if (!newDate || !newTime) {
-      alert('Please select both date and time.')
-      return
-    }
-
+    if (!newDate || !newTime) { alert('Please select both date and time.'); return }
     setSending(true)
 
     const { error } = await supabase
@@ -347,11 +273,7 @@ function AppointmentCard({ appointment, onReload }) {
       .eq('id', appointment.id)
 
     setSending(false)
-
-    if (error) {
-      alert('Error: ' + error.message)
-      return
-    }
+    if (error) { alert('Error: ' + error.message); return }
 
     setShowReschedule(false)
     setNewDate('')
@@ -362,51 +284,34 @@ function AppointmentCard({ appointment, onReload }) {
   return (
     <div style={{
       ...styles.card,
-      ...(isUpcoming() && appointment.status === 'confirmed'
-        ? { border: '2px solid #f59e0b' }
-        : {}),
-      ...(appointment.status === 'reschedule_requested'
-        ? { border: '2px solid #f87171' }
-        : {}),
+      ...(isUpcoming() && appointment.status === 'confirmed' ? { border: '2px solid #f59e0b' } : {}),
+      ...(appointment.status === 'reschedule_requested' ? { border: '2px solid #f87171' } : {}),
     }}>
-
       {isUpcoming() && appointment.status === 'confirmed' && (
-        <div style={styles.reminderBanner}>
-          🔔 Reminder: This appointment is today or tomorrow!
-        </div>
+        <div style={styles.reminderBanner}>🔔 Reminder: This appointment is today or tomorrow!</div>
       )}
-
       {appointment.status === 'reschedule_requested' && (
-        <div style={styles.rescheduleAlert}>
-          🔄 Pharmacist has requested a reschedule
-        </div>
+        <div style={styles.rescheduleAlert}>🔄 Pharmacist has requested a reschedule</div>
       )}
 
       <h3 style={styles.name}>{pharmacist?.name}</h3>
       <p style={styles.detail}><b>Job:</b> {job?.title}</p>
 
-      {/* CURRENT DATE AND TIME */}
       <div style={styles.dateTimeBox}>
         <div style={styles.dateTimeItem}>
           <span style={styles.dateTimeLabel}>📅 Date</span>
-          <span style={styles.dateTimeValue}>
-            {formatDate(appointment.appointment_date)}
-          </span>
+          <span style={styles.dateTimeValue}>{formatDate(appointment.appointment_date)}</span>
         </div>
         <div style={styles.dateTimeItem}>
           <span style={styles.dateTimeLabel}>🕐 Time</span>
-          <span style={styles.dateTimeValue}>
-            {formatTime(appointment.appointment_time)}
-          </span>
+          <span style={styles.dateTimeValue}>{formatTime(appointment.appointment_time)}</span>
         </div>
       </div>
 
-      {/* PENDING STATUS */}
       {appointment.status === 'pending' && (
         <div style={styles.awaitingBadge}>⏳ Awaiting Pharmacist Response</div>
       )}
 
-      {/* CONFIRMED STATUS */}
       {appointment.status === 'confirmed' && (
         <>
           <div style={styles.confirmedBadge}>✓ Confirmed</div>
@@ -416,65 +321,44 @@ function AppointmentCard({ appointment, onReload }) {
         </>
       )}
 
-      {/* RESCHEDULE REQUESTED STATUS */}
       {appointment.status === 'reschedule_requested' && (
         <>
           <div style={styles.rescheduleBadge}>🔄 Reschedule Requested</div>
-
           {appointment.pharmacist_note && (
             <div style={styles.noteBox}>
               <span style={styles.noteLabel}>Reason from pharmacist:</span>
               <span style={styles.noteText}>{appointment.pharmacist_note}</span>
             </div>
           )}
-
           <p style={styles.contactInfo}>
             📞 <b>Pharmacist Contact:</b> {pharmacist?.phone || 'Not provided'}
           </p>
 
           {!showReschedule ? (
-            <button
-              style={styles.newSlotBtn}
-              onClick={() => setShowReschedule(true)}
-            >
+            <button style={styles.newSlotBtn} onClick={() => setShowReschedule(true)}>
               📅 Offer New Time Slot
             </button>
           ) : (
             <div style={styles.rescheduleForm}>
               <p style={styles.rescheduleFormTitle}>Select a new date and time:</p>
-
               <label style={styles.formLabel}>New Date</label>
               <input
-                type="date"
-                style={styles.input}
-                value={newDate}
+                type="date" style={styles.input} value={newDate}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setNewDate(e.target.value)}
               />
-
               <label style={styles.formLabel}>New Time</label>
               <input
-                type="time"
-                style={styles.input}
-                value={newTime}
+                type="time" style={styles.input} value={newTime}
                 onChange={(e) => setNewTime(e.target.value)}
               />
-
               <div style={styles.formActions}>
-                <button
-                  style={styles.confirmBtn}
-                  onClick={sendNewSlot}
-                  disabled={sending}
-                >
+                <button style={styles.confirmBtn} onClick={sendNewSlot} disabled={sending}>
                   {sending ? 'Sending…' : '✓ Send New Slot'}
                 </button>
                 <button
                   style={styles.cancelBtn}
-                  onClick={() => {
-                    setShowReschedule(false)
-                    setNewDate('')
-                    setNewTime('')
-                  }}
+                  onClick={() => { setShowReschedule(false); setNewDate(''); setNewTime('') }}
                 >
                   Cancel
                 </button>
@@ -486,330 +370,45 @@ function AppointmentCard({ appointment, onReload }) {
     </div>
   )
 }
+
 const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f8fafc',
-    padding: 16,
-    maxWidth: 800,
-    margin: '0 auto',
-  },
-  tabs: {
-    display: 'flex',
-    gap: 10,
-    marginBottom: 20,
-    borderBottom: '2px solid #e5e7eb',
-  },
-  tab: {
-    padding: '10px 20px',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '3px solid transparent',
-    cursor: 'pointer',
-    fontSize: 15,
-    fontWeight: 500,
-    color: '#64748b',
-  },
-  activeTab: {
-    padding: '10px 20px',
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '3px solid #2563eb',
-    cursor: 'pointer',
-    fontSize: 15,
-    fontWeight: 600,
-    color: '#2563eb',
-  },
-  heading: {
-    fontSize: 22,
-    marginBottom: 14,
-  },
-  empty: {
-    background: '#fff',
-    padding: 16,
-    borderRadius: 10,
-    fontSize: 14,
-    color: '#64748b',
-  },
-  card: {
-    background: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 14,
-    boxShadow: '0 4px 10px rgba(0,0,0,0.06)',
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: 600,
-    margin: 0,
-  },
-  detail: {
-    fontSize: 14,
-    color: '#475569',
-    margin: '4px 0',
-  },
-  verifiedBadge: {
-    background: '#d1fae5',
-    color: '#065f46',
-    padding: '3px 10px',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  pendingBadge: {
-    background: '#fef3c7',
-    color: '#92400e',
-    padding: '3px 10px',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 600,
-  },
-  actions: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 12,
-    flexWrap: 'wrap',
-  },
-  licenseBtn: {
-    padding: '8px 14px',
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#0f172a',
-  },
-  interestedBtn: {
-    padding: '8px 14px',
-    background: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
-  },
-  scheduleBtn: {
-    marginTop: 10,
-    padding: '10px 14px',
-    background: '#2563eb',
-    color: 'white',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 14,
-    fontWeight: 600,
-    width: '100%',
-  },
-  scheduleForm: {
-    marginTop: 12,
-    padding: 14,
-    background: '#f8fafc',
-    borderRadius: 8,
-    border: '1px solid #e2e8f0',
-  },
-  formLabel: {
-    display: 'block',
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#475569',
-    marginBottom: 4,
-    marginTop: 8,
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #cbd5e1',
-    fontSize: 14,
-    boxSizing: 'border-box',
-  },
-  formActions: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 12,
-  },
-  confirmBtn: {
-    flex: 1,
-    padding: '10px 14px',
-    background: '#2563eb',
-    color: 'white',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  cancelBtn: {
-    flex: 1,
-    padding: '10px 14px',
-    background: '#f1f5f9',
-    color: '#475569',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 14,
-  },
-  scheduledBadge: {
-    marginTop: 10,
-    padding: '8px 12px',
-    background: '#dbeafe',
-    color: '#1e40af',
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    display: 'inline-block',
-  },
-  awaitingBadge: {
-    marginTop: 10,
-    padding: '8px 12px',
-    background: '#fef3c7',
-    color: '#92400e',
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    display: 'inline-block',
-  },
-  confirmedBadge: {
-    marginTop: 10,
-    padding: '8px 12px',
-    background: '#d1fae5',
-    color: '#065f46',
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    display: 'inline-block',
-  },
-  rescheduleBadge: {
-    marginTop: 10,
-    padding: '8px 12px',
-    background: '#fecaca',
-    color: '#991b1b',
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    display: 'inline-block',
-  },
-  contactInfo: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#0f172a',
-    padding: '8px 12px',
-    background: '#f0fdf4',
-    borderRadius: 6,
-  },
-  note: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  reminderBanner: {
-  background: '#fef3c7',
-  color: '#92400e',
-  padding: '8px 12px',
-  borderRadius: 6,
-  fontSize: 13,
-  fontWeight: 600,
-  marginBottom: 12,
-},
-dateTimeBox: {
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  borderRadius: 8,
-  padding: 12,
-  margin: '12px 0',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 8,
-},
-dateTimeItem: {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 2,
-},
-dateTimeLabel: {
-  fontSize: 11,
-  color: '#94a3b8',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-},
-dateTimeValue: {
-  fontSize: 15,
-  color: '#0f172a',
-  fontWeight: 600,
-},
-rescheduleAlert: {
-  background: '#fef2f2',
-  border: '1px solid #fecaca',
-  color: '#991b1b',
-  padding: '8px 12px',
-  borderRadius: 6,
-  fontSize: 13,
-  fontWeight: 600,
-  marginBottom: 12,
-},
-noteBox: {
-  background: '#fef9f0',
-  border: '1px solid #fed7aa',
-  borderRadius: 8,
-  padding: '10px 12px',
-  margin: '8px 0',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 4,
-},
-noteLabel: {
-  fontSize: 11,
-  color: '#94a3b8',
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: 0.5,
-},
-noteText: {
-  fontSize: 14,
-  color: '#92400e',
-  fontStyle: 'italic',
-},
-newSlotBtn: {
-  marginTop: 10,
-  width: '100%',
-  padding: '11px 14px',
-  background: '#2563eb',
-  color: 'white',
-  border: 'none',
-  borderRadius: 8,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 600,
-},
-rescheduleForm: {
-  marginTop: 12,
-  padding: 14,
-  background: '#f8fafc',
-  borderRadius: 8,
-  border: '1px solid #e2e8f0',
-},
-rescheduleFormTitle: {
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#0f172a',
-  marginBottom: 8,
-},
-formLabel: {
-  display: 'block',
-  fontSize: 13,
-  fontWeight: 600,
-  color: '#475569',
-  marginBottom: 4,
-  marginTop: 10,
-},
+  page: { minHeight: '100vh', background: '#f8fafc', padding: 16, maxWidth: 800, margin: '0 auto' },
+  tabs: { display: 'flex', gap: 10, marginBottom: 20, borderBottom: '2px solid #e5e7eb' },
+  tab: { padding: '10px 20px', background: 'transparent', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 15, fontWeight: 500, color: '#64748b' },
+  activeTab: { padding: '10px 20px', background: 'transparent', border: 'none', borderBottom: '3px solid #2563eb', cursor: 'pointer', fontSize: 15, fontWeight: 600, color: '#2563eb' },
+  heading: { fontSize: 22, marginBottom: 14 },
+  empty: { background: '#fff', padding: 16, borderRadius: 10, fontSize: 14, color: '#64748b' },
+  card: { background: 'white', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: '0 4px 10px rgba(0,0,0,0.06)', border: '1px solid #e5e7eb' },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  name: { fontSize: 17, fontWeight: 600, margin: 0 },
+  detail: { fontSize: 14, color: '#475569', margin: '4px 0' },
+  verifiedBadge: { background: '#d1fae5', color: '#065f46', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
+  pendingBadge: { background: '#fef3c7', color: '#92400e', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
+  actions: { display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  licenseBtn: { padding: '8px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  interestedBtn: { padding: '8px 14px', background: '#10b981', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  scheduleBtn: { marginTop: 10, padding: '10px 14px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600, width: '100%' },
+  scheduleForm: { marginTop: 12, padding: 14, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' },
+  rescheduleForm: { marginTop: 12, padding: 14, background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' },
+  rescheduleFormTitle: { fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 8 },
+  formLabel: { display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 4, marginTop: 8 },
+  input: { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' },
+  formActions: { display: 'flex', gap: 8, marginTop: 12 },
+  confirmBtn: { flex: 1, padding: '10px 14px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 },
+  cancelBtn: { flex: 1, padding: '10px 14px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 },
+  scheduledBadge: { marginTop: 10, padding: '8px 12px', background: '#dbeafe', color: '#1e40af', borderRadius: 6, fontSize: 13, fontWeight: 600, display: 'inline-block' },
+  awaitingBadge: { marginTop: 10, padding: '8px 12px', background: '#fef3c7', color: '#92400e', borderRadius: 6, fontSize: 13, fontWeight: 600, display: 'inline-block' },
+  confirmedBadge: { marginTop: 10, padding: '8px 12px', background: '#d1fae5', color: '#065f46', borderRadius: 6, fontSize: 13, fontWeight: 600, display: 'inline-block' },
+  rescheduleBadge: { marginTop: 10, padding: '8px 12px', background: '#fecaca', color: '#991b1b', borderRadius: 6, fontSize: 13, fontWeight: 600, display: 'inline-block' },
+  contactInfo: { marginTop: 10, fontSize: 14, color: '#0f172a', padding: '8px 12px', background: '#f0fdf4', borderRadius: 6 },
+  reminderBanner: { background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, marginBottom: 12 },
+  rescheduleAlert: { background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '8px 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, marginBottom: 12 },
+  dateTimeBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, margin: '12px 0', display: 'flex', flexDirection: 'column', gap: 8 },
+  dateTimeItem: { display: 'flex', flexDirection: 'column', gap: 2 },
+  dateTimeLabel: { fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
+  dateTimeValue: { fontSize: 15, color: '#0f172a', fontWeight: 600 },
+  noteBox: { background: '#fef9f0', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 12px', margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 4 },
+  noteLabel: { fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 },
+  noteText: { fontSize: 14, color: '#92400e', fontStyle: 'italic' },
+  newSlotBtn: { marginTop: 10, width: '100%', padding: '11px 14px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 },
 }
