@@ -7,7 +7,8 @@ export default function StoreProfile() {
   const [editing, setEditing] = useState(false)
   const [message, setMessage] = useState('')
   const [locating, setLocating] = useState(false)
-  const [searching, setSearching] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [mapsLoaded, setMapsLoaded] = useState(false)
 
   const [storeName, setStoreName] = useState('')
   const [phone, setPhone] = useState('')
@@ -16,78 +17,86 @@ export default function StoreProfile() {
   const [longitude, setLongitude] = useState(null)
   const [address, setAddress] = useState('')
   const [addressInput, setAddressInput] = useState('')
-  const [suggestions, setSuggestions] = useState([])
 
+  // Load Google Maps SDK once
   useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+    if (window.google) { setMapsLoaded(true); return }
 
-      const { data } = await supabase
-        .from('store_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
+    const existing = document.querySelector('#google-maps-script')
+    if (existing) { setMapsLoaded(true); return }
 
-      if (data) {
-        setProfile(data)
-        setStoreName(data.store_name || '')
-        setPhone(data.phone || '')
-        setStoreTimings(data.store_timings || '')
-        setLatitude(data.latitude ?? null)
-        setLongitude(data.longitude ?? null)
-        setAddress(data.address || '')
-        setAddressInput(data.address || '')
-      }
-
-      setLoading(false)
-    }
-    load()
+    const script = document.createElement('script')
+    script.id = 'google-maps-script'
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.async = true
+    script.defer = true
+    script.onload = () => setMapsLoaded(true)
+    document.head.appendChild(script)
   }, [])
 
-  // Search address using Google Geocoding
-  const searchAddress = async () => {
-    if (!addressInput || addressInput.length < 3) return
+  // Init autocomplete when editing starts and maps is loaded
+  useEffect(() => {
+    if (!editing || !mapsLoaded) return
+    if (!window.google?.maps?.places) return
 
-    setSearching(true)
-    setSuggestions([])
+    const input = document.getElementById('address-input')
+    if (!input) return
 
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(addressInput)}&region=in&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
-      )
-      const data = await response.json()
-      console.log('Geocoding response:', data)
+    const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'in' },
+      fields: ['formatted_address', 'geometry'],
+    })
 
-      if (data.results && data.results.length > 0) {
-        setSuggestions(data.results.slice(0, 4))
-      } else {
-        setMessage('No results found. Try a more specific address.')
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace()
+      if (!place.geometry) {
+        setMessage('Please select an address from the dropdown.')
+        return
       }
-    } catch (e) {
-      console.error('Geocoding error:', e)
-      setMessage('Error searching address. Please try GPS instead.')
+
+      const addr = place.formatted_address
+      const lat = place.geometry.location.lat()
+      const lng = place.geometry.location.lng()
+
+      setAddress(addr)
+      setAddressInput(addr)
+      setLatitude(lat)
+      setLongitude(lng)
+      setMessage('Location selected.')
+    })
+
+    return () => {
+      window.google.maps.event.removeListener(listener)
+    }
+  }, [editing, mapsLoaded])
+
+  useEffect(() => { load() }, [])
+
+  const load = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setLoading(false); return }
+
+    const { data } = await supabase
+      .from('store_profiles')
+      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, is_verified, verification_status')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (data) {
+      setProfile(data)
+      setStoreName(data.store_name || '')
+      setPhone(data.phone || '')
+      setStoreTimings(data.store_timings || '')
+      setLatitude(data.latitude ?? null)
+      setLongitude(data.longitude ?? null)
+      setAddress(data.address || '')
+      setAddressInput(data.address || '')
     }
 
-    setSearching(false)
+    setLoading(false)
   }
 
-  // Select a suggestion
-  const selectSuggestion = (result) => {
-    const addr = result.formatted_address
-    const lat = result.geometry.location.lat
-    const lng = result.geometry.location.lng
-
-    setAddress(addr)
-    setAddressInput(addr)
-    setLatitude(lat)
-    setLongitude(lng)
-    setSuggestions([])
-    setMessage('Location selected: ' + addr)
-  }
-
-  // GPS detection
-  const detectLocation = async () => {
+  const detectLocation = () => {
     setLocating(true)
     setMessage('Detecting location…')
 
@@ -99,60 +108,63 @@ export default function StoreProfile() {
         setLongitude(newLng)
 
         try {
-          const response = await fetch(
+          const res = await fetch(
             `https://maps.googleapis.com/maps/api/geocode/json?latlng=${newLat},${newLng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
           )
-          const data = await response.json()
-          if (data.results && data.results[0]) {
+          const data = await res.json()
+          if (data.results?.[0]) {
             const addr = data.results[0].formatted_address
             setAddress(addr)
             setAddressInput(addr)
             setMessage('Location detected: ' + addr)
           }
-        } catch (e) {
+        } catch {
           setMessage('Location detected but could not get address.')
         }
-
         setLocating(false)
       },
       () => {
-        setMessage('GPS denied. Please search your address manually.')
+        setMessage('GPS denied. Please type your address below.')
         setLocating(false)
       }
     )
   }
 
   const saveProfile = async () => {
-    if (!storeName) {
+    if (!storeName.trim()) {
       setMessage('Please enter your store name.')
       return
     }
-
     if (!latitude || !longitude) {
       setMessage('Please set your store location using GPS or address search.')
       return
     }
 
-    setMessage('Saving profile…')
+    setSaving(true)
+    setMessage('Saving…')
+
     const { data: { user } } = await supabase.auth.getUser()
 
     const { error } = await supabase
       .from('store_profiles')
       .upsert({
         user_id: user.id,
-        store_name: storeName,
-        phone,
-        store_timings: storeTimings,
+        store_name: storeName.trim(),
+        phone: phone.trim(),
+        store_timings: storeTimings.trim(),
         latitude,
         longitude,
         address,
       })
+
+    setSaving(false)
 
     if (error) {
       setMessage('Error: ' + error.message)
       return
     }
 
+    await load()
     setMessage('Profile saved successfully.')
     setEditing(false)
   }
@@ -164,40 +176,23 @@ export default function StoreProfile() {
       <div style={styles.card}>
         <h1 style={styles.title}>Store Profile</h1>
 
-        <p style={profile?.is_verified ? styles.verified : styles.pending}>
+        <div style={profile?.is_verified ? styles.verifiedBadge : styles.pendingBadge}>
           {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
-        </p>
+        </div>
 
         {!editing ? (
           <div style={styles.viewMode}>
-            <div style={styles.field}>
-              <span style={styles.label}>Store Name</span>
-              <span style={styles.value}>{storeName || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Contact</span>
-              <span style={styles.value}>{phone || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Timings</span>
-              <span style={styles.value}>{storeTimings || '—'}</span>
-            </div>
-            <div style={styles.field}>
-              <span style={styles.label}>Location</span>
-              <span style={styles.value}>
-                {address || (latitude ? '📍 Location saved' : '—')}
-              </span>
-            </div>
+            <Field label="Store Name" value={storeName} />
+            <Field label="Contact" value={phone} />
+            <Field label="Timings" value={storeTimings} />
+            <Field label="Location" value={address || (latitude ? 'Location saved' : null)} />
 
             {latitude && longitude && (
               <button
                 style={styles.mapsBtn}
-                onClick={() =>
-                  window.open(
-                    `https://www.google.com/maps?q=${latitude},${longitude}`,
-                    '_blank'
-                  )
-                }
+                onClick={() => window.open(
+                  `https://www.google.com/maps?q=${latitude},${longitude}`, '_blank'
+                )}
               >
                 📍 View Store on Google Maps
               </button>
@@ -209,7 +204,7 @@ export default function StoreProfile() {
           </div>
         ) : (
           <div style={styles.editMode}>
-            <label style={styles.inputLabel}>Store Name *</label>
+            <InputLabel text="Store Name *" />
             <input
               style={styles.input}
               placeholder="Your pharmacy store name"
@@ -217,7 +212,7 @@ export default function StoreProfile() {
               onChange={(e) => setStoreName(e.target.value)}
             />
 
-            <label style={styles.inputLabel}>Phone Number</label>
+            <InputLabel text="Phone Number" />
             <input
               style={styles.input}
               placeholder="Contact number"
@@ -225,7 +220,7 @@ export default function StoreProfile() {
               onChange={(e) => setPhone(e.target.value)}
             />
 
-            <label style={styles.inputLabel}>Store Timings</label>
+            <InputLabel text="Store Timings" />
             <input
               style={styles.input}
               placeholder="e.g. 9 AM - 9 PM"
@@ -233,9 +228,8 @@ export default function StoreProfile() {
               onChange={(e) => setStoreTimings(e.target.value)}
             />
 
-            <label style={styles.inputLabel}>Store Location *</label>
+            <InputLabel text="Store Location *" />
 
-            {/* GPS Button */}
             <button
               style={styles.gpsBtn}
               onClick={detectLocation}
@@ -245,67 +239,63 @@ export default function StoreProfile() {
             </button>
 
             <div style={styles.divider}>
-              <span style={styles.dividerText}>OR search your address</span>
+              <span style={styles.dividerText}>OR type your address below</span>
             </div>
 
-            {/* Address Search */}
-            <div style={styles.searchRow}>
-              <input
-                style={styles.searchInput}
-                placeholder="Type area, street or landmark..."
-                value={addressInput}
-                onChange={(e) => {
-                  setAddressInput(e.target.value)
-                  setSuggestions([])
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') searchAddress()
-                }}
-              />
-              <button
-                style={styles.searchBtn}
-                onClick={searchAddress}
-                disabled={searching}
-              >
-                {searching ? '…' : 'Search'}
-              </button>
-            </div>
+            <input
+              id="address-input"
+              style={styles.input}
+              placeholder="Start typing your store address…"
+              value={addressInput}
+              onChange={(e) => {
+                setAddressInput(e.target.value)
+                if (latitude) {
+                  setLatitude(null)
+                  setLongitude(null)
+                  setAddress('')
+                }
+              }}
+            />
 
-            {/* Suggestions */}
-            {suggestions.length > 0 && (
-              <div style={styles.suggestions}>
-                {suggestions.map((s, i) => (
-                  <div
-                    key={i}
-                    style={styles.suggestion}
-                    onClick={() => selectSuggestion(s)}
-                  >
-                    📍 {s.formatted_address}
-                  </div>
-                ))}
-              </div>
-            )}
+            <p style={styles.hint}>
+              {mapsLoaded
+                ? '💡 Select from the dropdown suggestions'
+                : '⏳ Loading address search…'}
+            </p>
 
-            {/* Selected address preview */}
             {address && latitude && (
               <div style={styles.addressPreview}>
-                ✓ Selected: {address}
+                ✓ {address}
               </div>
             )}
 
-            <button onClick={saveProfile} style={styles.saveBtn}>
-              Save Profile
+            <button
+              onClick={saveProfile}
+              style={styles.saveBtn}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : 'Save Profile'}
             </button>
 
-            <button onClick={() => setEditing(false)} style={styles.cancelBtn}>
+            <button
+              onClick={() => { setEditing(false); setMessage('') }}
+              style={styles.cancelBtn}
+            >
               Cancel
             </button>
           </div>
         )}
 
-        {message && <p style={styles.message}>{message}</p>}
+        {message && (
+          <p style={message.startsWith('Error') || message.startsWith('Please')
+            ? styles.errorMsg
+            : styles.successMsg
+          }>
+            {message}
+          </p>
+        )}
 
-        <hr style={{ margin: '20px 0' }} />
+        <hr style={{ margin: '20px 0', borderColor: '#f1f5f9' }} />
 
         <div style={styles.links}>
           <a href="/post-job" style={styles.link}>Post a Job →</a>
@@ -314,6 +304,49 @@ export default function StoreProfile() {
       </div>
     </div>
   )
+}
+
+function Field({ label, value }) {
+  return (
+    <div style={s.field}>
+      <span style={s.label}>{label}</span>
+      <span style={s.value}>{value || '—'}</span>
+    </div>
+  )
+}
+
+function InputLabel({ text }) {
+  return <label style={s.inputLabel}>{text}</label>
+}
+
+const s = {
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '10px 0',
+    borderBottom: '1px solid #f1f5f9',
+  },
+  label: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  value: {
+    fontSize: 15,
+    color: '#0f172a',
+    fontWeight: 500,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#475569',
+    marginTop: 12,
+    marginBottom: 4,
+    display: 'block',
+  },
 }
 
 const styles = {
@@ -338,14 +371,24 @@ const styles = {
     fontWeight: 700,
     marginBottom: 8,
   },
-  verified: {
-    color: 'green',
-    fontWeight: 'bold',
+  verifiedBadge: {
+    display: 'inline-block',
+    background: '#d1fae5',
+    color: '#065f46',
+    padding: '4px 12px',
+    borderRadius: 20,
+    fontSize: 13,
+    fontWeight: 600,
     marginBottom: 16,
   },
-  pending: {
-    color: '#b45309',
-    fontWeight: 'bold',
+  pendingBadge: {
+    display: 'inline-block',
+    background: '#fef3c7',
+    color: '#92400e',
+    padding: '4px 12px',
+    borderRadius: 20,
+    fontSize: 13,
+    fontWeight: 600,
     marginBottom: 16,
   },
   viewMode: {
@@ -353,37 +396,10 @@ const styles = {
     flexDirection: 'column',
     gap: 4,
   },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-    padding: '10px 0',
-    borderBottom: '1px solid #f1f5f9',
-  },
-  label: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  value: {
-    fontSize: 15,
-    color: '#0f172a',
-    fontWeight: 500,
-  },
   editMode: {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#475569',
-    marginTop: 12,
-    marginBottom: 4,
-    display: 'block',
   },
   input: {
     width: '100%',
@@ -395,7 +411,7 @@ const styles = {
   },
   gpsBtn: {
     width: '100%',
-    padding: '12px',
+    padding: 12,
     background: '#0f172a',
     color: 'white',
     border: 'none',
@@ -418,40 +434,11 @@ const styles = {
     borderTop: '1px solid #e2e8f0',
     paddingTop: 10,
   },
-  searchRow: {
-    display: 'flex',
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #cbd5e1',
-    fontSize: 14,
-  },
-  searchBtn: {
-    padding: '10px 16px',
-    background: '#2563eb',
-    color: 'white',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  suggestions: {
-    border: '1px solid #e2e8f0',
-    borderRadius: 8,
-    overflow: 'hidden',
+  hint: {
+    fontSize: 12,
+    color: '#94a3b8',
     marginTop: 4,
-  },
-  suggestion: {
-    padding: '10px 12px',
-    fontSize: 13,
-    cursor: 'pointer',
-    borderBottom: '1px solid #f1f5f9',
-    color: '#0f172a',
-    background: '#fff',
+    marginBottom: 4,
   },
   addressPreview: {
     background: '#f0fdf4',
@@ -510,12 +497,20 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
   },
-  message: {
+  successMsg: {
     marginTop: 12,
     fontSize: 14,
     color: '#059669',
     padding: '8px 12px',
     background: '#f0fdf4',
+    borderRadius: 6,
+  },
+  errorMsg: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#dc2626',
+    padding: '8px 12px',
+    background: '#fef2f2',
     borderRadius: 6,
   },
   links: {
