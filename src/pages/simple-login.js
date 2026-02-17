@@ -22,11 +22,9 @@ export default function SimpleLogin() {
 
   return (
     <div style={s.page}>
-
-      {/* LEFT — Login panel */}
+      {/* LEFT */}
       <div style={s.left}>
         <div style={s.leftInner}>
-
           <div style={s.logoRow}>
             <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.logo} />
             <span style={s.brandName}>MediClan</span>
@@ -70,35 +68,22 @@ export default function SimpleLogin() {
             ))}
           </div>
 
-          <p style={s.footerNote}>
-            By signing in you agree to our terms of service and privacy policy.
-          </p>
+          <p style={s.footerNote}>By signing in you agree to our terms of service and privacy policy.</p>
         </div>
       </div>
 
-      {/* RIGHT — Image panel, hidden on mobile */}
+      {/* RIGHT */}
       <div style={s.right} className="login-right">
         <img src={LOGIN_IMG} alt="Pharmacy" style={s.rightImg} />
         <div style={s.rightOverlay} />
         <div style={s.rightContent}>
           <div style={s.quoteBox}>
-            <div style={s.quoteText}>
-              "MediClan helped me find a job 2km from home in just 3 days."
-            </div>
+            <div style={s.quoteText}>"MediClan helped me find a job 2km from home in just 3 days."</div>
             <div style={s.quoteAuthor}>— Priya S., B.Pharm, Pune</div>
           </div>
-          <div style={s.statsRow}>
-            {[
-              { n: '2000+', l: 'Pharmacists' },
-              { n: '500+',  l: 'Stores' },
-              { n: '98%',   l: 'Match Rate' },
-            ].map((st, i) => (
-              <div key={i} style={s.statItem}>
-                <span style={s.statNum}>{st.n}</span>
-                <span style={s.statLbl}>{st.l}</span>
-                {i < 2 && <div style={s.statDiv} />}
-              </div>
-            ))}
+          <div style={s.taglineBox}>
+            <div style={s.taglineBig}>Relations,</div>
+            <div style={s.taglineBig}>over the counter.</div>
           </div>
         </div>
       </div>
@@ -108,57 +93,29 @@ export default function SimpleLogin() {
 
 const s = {
   page: { display: 'flex', minHeight: '100vh', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
-
-  left: {
-    flex: '0 0 420px', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', padding: '40px 32px',
-    background: '#fff', overflowY: 'auto',
-  },
+  left: { flex: '0 0 420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', background: '#fff', overflowY: 'auto' },
   leftInner: { width: '100%', maxWidth: 360 },
   logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 },
   logo: { width: 42, height: 42, objectFit: 'contain' },
   brandName: { fontSize: 22, fontWeight: 900, color: '#0f3460' },
   title: { fontSize: 28, fontWeight: 900, color: '#0f3460', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#64748b', marginBottom: 28, lineHeight: 1.6 },
-
-  googleBtn: {
-    width: '100%', padding: '13px 20px',
-    background: '#fff', border: '2px solid #e2e8f0',
-    borderRadius: 12, fontSize: 15, fontWeight: 700,
-    cursor: 'pointer', display: 'flex',
-    alignItems: 'center', justifyContent: 'center',
-    gap: 12, color: '#1a1a2e',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-  },
+  googleBtn: { width: '100%', padding: '13px 20px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#1a1a2e', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
   error: { marginTop: 12, fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: '8px 12px', borderRadius: 8 },
-
   divider: { margin: '24px 0 16px' },
   dividerText: { display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', borderTop: '1px solid #f1f5f9', paddingTop: 14 },
-
   features: { display: 'flex', flexDirection: 'column', gap: 11, marginBottom: 24 },
   featureRow: { display: 'flex', alignItems: 'flex-start', gap: 11 },
   fIcon: { fontSize: 17, flexShrink: 0, marginTop: 1 },
   fText: { fontSize: 14, color: '#334155', lineHeight: 1.5 },
-
   footerNote: { fontSize: 11, color: '#94a3b8', textAlign: 'center', lineHeight: 1.6 },
-
-  right: {
-    flex: 1, position: 'relative',
-    display: 'none', minHeight: '100vh',
-  },
+  right: { flex: 1, position: 'relative', display: 'none', minHeight: '100vh' },
   rightImg: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
   rightOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(15,52,96,0.88) 0%, rgba(14,144,144,0.72) 100%)' },
-  rightContent: {
-    position: 'relative', zIndex: 1,
-    height: '100%', display: 'flex', flexDirection: 'column',
-    justifyContent: 'flex-end', padding: 48,
-  },
-  quoteBox: { marginBottom: 40 },
+  rightContent: { position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 48, gap: 32 },
+  quoteBox: { },
   quoteText: { fontSize: 20, fontWeight: 700, color: 'white', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 10 },
   quoteAuthor: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
-  statsRow: { display: 'flex', alignItems: 'center', gap: 0 },
-  statItem: { display: 'flex', flexDirection: 'column', gap: 4, flex: 1, position: 'relative' },
-  statNum: { fontSize: 28, fontWeight: 900, color: 'white' },
-  statLbl: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 },
-  statDiv: { position: 'absolute', right: 0, top: '10%', height: '80%', width: 1, background: 'rgba(255,255,255,0.2)' },
+  taglineBox: { borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 24 },
+  taglineBig: { fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1.2 },
 }
