@@ -1,154 +1,56 @@
-/* ================================
-   MediClan Global Design System
-   ================================ */
-
-/* ---------- CSS Reset ---------- */
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* ---------- Root Variables ---------- */
-:root {
-  /* Core Brand */
-  --mc-blue: #0f172a;       /* Deep trust blue */
-  --mc-teal: #0ea5a4;       /* Primary action */
-  --mc-amber: #f59e0b;     /* Warm accent (use sparingly) */
+html { scroll-behavior: smooth; }
 
-  /* Neutrals */
-  --mc-bg: #f8fafc;        /* Warm off-white */
-  --mc-text: #1f2937;      /* Charcoal text */
-  --mc-muted: #64748b;     /* Muted labels */
-
-  /* Borders & Focus */
-  --mc-border: #e2e8f0;
-  --mc-focus: rgba(14, 165, 164, 0.35);
-}
-
-/* ---------- Base Body ---------- */
-html,
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont;
-  background-color: var(--mc-bg);
-  color: var(--mc-text);
-  line-height: 1.6;
-}
-
-/* ---------- Headings ---------- */
-h1, h2, h3, h4 {
-  color: var(--mc-blue);
-  font-weight: 500;
-  margin-bottom: 0.6rem;
-}
-
-h1 { font-size: 1.8rem; }
-h2 { font-size: 1.4rem; }
-h3 { font-size: 1.1rem; }
-
-/* ---------- Paragraphs ---------- */
-p {
-  margin-bottom: 1rem;
-  color: var(--mc-text);
-}
-
-/* ---------- Links ---------- */
-a {
-  color: var(--mc-teal);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-/* ---------- Buttons (GLOBAL) ---------- */
-button {
-  font-family: inherit;
-  font-size: 0.95rem;
-  padding: 0.6rem 1.1rem;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-/* Primary Button */
-button.primary {
-  background-color: var(--mc-teal);
-  color: #ffffff;
-}
-
-button.primary:hover {
-  background-color: #08918f;
-}
-
-/* Secondary Button */
-button.secondary {
+  font-family: 'Nunito', 'Segoe UI', sans-serif;
   background: #ffffff;
-  color: var(--mc-blue);
-  border-color: var(--mc-border);
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
 }
 
-button.secondary:hover {
-  background: #f1f5f9;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-/* Danger / Logout Button (optional use) */
-button.danger {
-  background: #ffffff;
-  color: #b91c1c;
-  border-color: #fecaca;
+.animate-fadeInUp   { animation: fadeInUp 0.7s ease both; }
+.animate-fadeIn     { animation: fadeIn 0.6s ease both; }
+.animate-float      { animation: floatUp 4s ease-in-out infinite; }
+.animate-slideLeft  { animation: slideInLeft 0.7s ease both; }
+.animate-slideRight { animation: slideInRight 0.7s ease both; }
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+.delay-6 { animation-delay: 0.6s; }
+
+@media (min-width: 768px) {
+  .login-right { display: flex !important; }
 }
 
-button.danger:hover {
-  background: #fee2e2;
-}
-
-/* Disabled State */
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ---------- Forms ---------- */
-label {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--mc-muted);
-  margin-bottom: 0.3rem;
-}
-
-input,
-select,
-textarea {
-  width: 100%;
-  padding: 0.6rem;
-  border-radius: 6px;
-  border: 1px solid var(--mc-border);
-  font-family: inherit;
-  font-size: 0.95rem;
-  margin-bottom: 1.2rem;
-  background-color: #ffffff;
-}
-
-/* Focus State (IMPORTANT FOR TRUST) */
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--mc-teal);
-  box-shadow: 0 0 0 2px var(--mc-focus);
-}
-
-/* ---------- Containers ---------- */
-.mc-page {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 2.2rem 1.2rem;
-}
-
-/* ---------- Subtle Accent ---------- */
-.mc-accent {
-  color: var(--mc-amber);
-}
+a { text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
