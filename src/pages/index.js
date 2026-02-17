@@ -109,7 +109,7 @@ const styles = {
   heroInner: { maxWidth: 900, margin: '0 auto' },
   brandBlock: { marginBottom: 28 },
   logoRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 },
-  logo: { width: 48, height: 48, objectFit: 'contain' },
+  logo: { width: 80, height: 80, objectFit: 'contain' },
   brandName: { fontSize: 36, fontWeight: 800, letterSpacing: 0.4, margin: 0 },
   tagline: { fontSize: 14, color: '#64748b' },
   mainTitle: { fontSize: 36, fontWeight: 800, lineHeight: 1.25, marginBottom: 20 },
