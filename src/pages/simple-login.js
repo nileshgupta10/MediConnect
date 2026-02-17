@@ -10,12 +10,47 @@ export default function SimpleLogin() {
   const handleGoogleLogin = async () => {
     setLoading(true)
     setMessage('')
-    const { error } = await supabase.auth.signInWithOAuth({
+
+    const width = 500
+    const height = 600
+    const left = window.screenX + (window.outerWidth - width) / 2
+    const top = window.screenY + (window.outerHeight - height) / 2
+
+    const popup = window.open(
+      '',
+      'google-signin',
+      `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    )
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/role-select` },
+      options: {
+        redirectTo: `${window.location.origin}/role-select`,
+        skipBrowserRedirect: true,
+      },
     })
+
     if (error) {
       setMessage('Login failed: ' + error.message)
+      setLoading(false)
+      popup?.close()
+      return
+    }
+
+    if (data?.url && popup) {
+      popup.location.href = data.url
+
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed)
+          setLoading(false)
+          // Check if user is now logged in
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) window.location.href = '/role-select'
+          })
+        }
+      }, 500)
+    } else {
       setLoading(false)
     }
   }
@@ -35,7 +70,7 @@ export default function SimpleLogin() {
 
           <button style={s.googleBtn} onClick={handleGoogleLogin} disabled={loading}>
             {loading ? (
-              <span style={{ color: '#64748b' }}>Signing in…</span>
+              <span style={{ color: '#64748b' }}>Opening sign in…</span>
             ) : (
               <>
                 <svg width="20" height="20" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
@@ -48,6 +83,14 @@ export default function SimpleLogin() {
               </>
             )}
           </button>
+
+          {loading && (
+            <div style={s.popupNote}>
+              🔐 A sign-in window has opened — please complete sign in there.
+              <br />
+              <button style={s.cancelLink} onClick={() => setLoading(false)}>Cancel</button>
+            </div>
+          )}
 
           {message && <p style={s.error}>{message}</p>}
 
@@ -101,6 +144,8 @@ const s = {
   title: { fontSize: 28, fontWeight: 900, color: '#0f3460', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#64748b', marginBottom: 28, lineHeight: 1.6 },
   googleBtn: { width: '100%', padding: '13px 20px', background: '#fff', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#1a1a2e', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' },
+  popupNote: { marginTop: 12, fontSize: 13, color: '#475569', background: '#f0fdfd', border: '1px solid #99f6e4', padding: '10px 14px', borderRadius: 10, lineHeight: 1.6, textAlign: 'center' },
+  cancelLink: { background: 'none', border: 'none', color: '#0e9090', cursor: 'pointer', fontWeight: 700, fontSize: 13, marginTop: 6, fontFamily: 'inherit' },
   error: { marginTop: 12, fontSize: 13, color: '#dc2626', background: '#fef2f2', padding: '8px 12px', borderRadius: 8 },
   divider: { margin: '24px 0 16px' },
   dividerText: { display: 'block', textAlign: 'center', fontSize: 11, fontWeight: 800, color: '#94a3b8', letterSpacing: 1.2, textTransform: 'uppercase', borderTop: '1px solid #f1f5f9', paddingTop: 14 },
@@ -113,7 +158,7 @@ const s = {
   rightImg: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
   rightOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(15,52,96,0.88) 0%, rgba(14,144,144,0.72) 100%)' },
   rightContent: { position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: 48, gap: 32 },
-  quoteBox: { },
+  quoteBox: {},
   quoteText: { fontSize: 20, fontWeight: 700, color: 'white', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 10 },
   quoteAuthor: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
   taglineBox: { borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 24 },

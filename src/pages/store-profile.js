@@ -18,6 +18,7 @@ export default function StoreProfile() {
   const [longitude, setLongitude] = useState(null)
   const [address, setAddress] = useState('')
   const [addressInput, setAddressInput] = useState('')
+  const [ownerFirstName, setOwnerFirstName] = useState('')
 
   useEffect(() => {
     if (window.google) { setMapsLoaded(true); return }
@@ -58,11 +59,17 @@ export default function StoreProfile() {
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
+
+    // Get Google display name for greeting
+    const fullName = user.user_metadata?.full_name || ''
+    setOwnerFirstName(fullName.split(' ')[0] || '')
+
     const { data } = await supabase
       .from('store_profiles')
       .select('user_id, store_name, phone, store_timings, latitude, longitude, address, is_verified, verification_status')
       .eq('user_id', user.id)
       .maybeSingle()
+
     if (data) {
       setProfile(data)
       setStoreName(data.store_name || '')
@@ -114,19 +121,31 @@ export default function StoreProfile() {
     await load(); setMessage('Profile saved.'); setEditing(false)
   }
 
+  // Banner greeting logic
+  const getBannerGreeting = () => {
+    if (storeName) return `Welcome, ${storeName}! 🏪`
+    if (ownerFirstName) return `Welcome, ${ownerFirstName}! 👋`
+    return 'My Store Profile 🏪'
+  }
+
+  const getBannerSub = () => {
+    if (!storeName) return 'Set up your pharmacy store on MediClan'
+    if (profile?.is_verified) return '✓ Your store is verified and live'
+    return 'Verification pending — we\'ll review shortly'
+  }
+
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
     <div style={s.page}>
-      {/* Banner */}
       <div style={s.banner}>
         <img src={BANNER_IMG} alt="" style={s.bannerImg} />
         <div style={s.bannerOverlay} />
         <div style={s.bannerContent}>
           <div style={s.bannerIcon}>🏪</div>
           <div>
-            <h2 style={s.bannerTitle}>My Store Profile</h2>
-            <p style={s.bannerSub}>Your verified pharmacy on MediClan</p>
+            <h2 style={s.bannerTitle}>{getBannerGreeting()}</h2>
+            <p style={s.bannerSub}>{getBannerSub()}</p>
           </div>
         </div>
       </div>
@@ -143,12 +162,8 @@ export default function StoreProfile() {
               <Field label="Contact" value={phone} />
               <Field label="Timings" value={storeTimings} />
               <Field label="Location" value={address || (latitude ? 'Location saved' : null)} />
-
               {latitude && longitude && (
-                <button
-                  style={s.mapsBtn}
-                  onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, '_blank')}
-                >
+                <button style={s.mapsBtn} onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, '_blank')}>
                   📍 View Store on Google Maps
                 </button>
               )}
@@ -171,8 +186,7 @@ export default function StoreProfile() {
               </button>
               <div style={s.divider}><span style={s.dividerText}>OR type address below</span></div>
               <input
-                id="address-input"
-                style={s.input}
+                id="address-input" style={s.input}
                 placeholder="Start typing your store address…"
                 value={addressInput}
                 onChange={e => {
@@ -232,9 +246,9 @@ const s = {
   bannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
   bannerOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,52,96,0.85) 0%, rgba(14,144,144,0.65) 100%)' },
   bannerContent: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '0 32px' },
-  bannerIcon: { fontSize: 40 },
-  bannerTitle: { color: 'white', fontSize: 22, fontWeight: 900, margin: 0 },
-  bannerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 3 },
+  bannerIcon: { fontSize: 44 },
+  bannerTitle: { color: 'white', fontSize: 24, fontWeight: 900, margin: 0 },
+  bannerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 4 },
   cardWrap: { display: 'flex', justifyContent: 'center', padding: '0 16px 40px' },
   card: { background: 'white', padding: 28, borderRadius: 20, maxWidth: 460, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.1)', marginTop: -28, position: 'relative', zIndex: 1 },
   verifiedBadge: { display: 'inline-block', background: '#d1fae5', color: '#065f46', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, marginBottom: 16 },

@@ -3,11 +3,17 @@ import { supabase } from '../lib/supabase'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
 
+const isPast = (dateStr) => {
+  const today = new Date(); today.setHours(0,0,0,0)
+  return new Date(dateStr) < today
+}
+
 export default function ApplicantsPage() {
   const [loading, setLoading] = useState(true)
   const [applicants, setApplicants] = useState([])
   const [appointments, setAppointments] = useState([])
   const [activeTab, setActiveTab] = useState('applicants')
+  const [apptTab, setApptTab] = useState('upcoming')
   const [storeName, setStoreName] = useState('')
 
   useEffect(() => { loadData() }, [])
@@ -18,8 +24,8 @@ export default function ApplicantsPage() {
     if (!user) { setLoading(false); return }
 
     const { data: storeData } = await supabase
-      .from('store_profiles').select('id, store_name').eq('user_id', user.id).maybeSingle()
-    if (storeData?.store_name) setStoreName(storeData.store_name.split(' ')[0])
+      .from('store_profiles').select('store_name').eq('user_id', user.id).maybeSingle()
+    if (storeData?.store_name) setStoreName(storeData.store_name)
 
     const { data: jobs } = await supabase.from('jobs').select('id').eq('store_owner_id', user.id)
     if (!jobs?.length) { setLoading(false); return }
@@ -49,27 +55,35 @@ export default function ApplicantsPage() {
     await loadData()
   }
 
+  const upcomingAppts = appointments
+    .filter(a => !isPast(a.appointment_date))
+    .sort((a, b) => new Date(a.appointment_date) - new Date(b.appointment_date))
+
+  const pastAppts = appointments
+    .filter(a => isPast(a.appointment_date))
+    .sort((a, b) => new Date(b.appointment_date) - new Date(a.appointment_date))
+
   if (loading) return <p style={{ padding: 20, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
     <div style={s.page}>
-      {/* Banner */}
       <div style={s.banner}>
         <img src={BANNER_IMG} alt="" style={s.bannerImg} />
         <div style={s.bannerOverlay} />
         <div style={s.bannerContent}>
           <div>
             <h2 style={s.bannerTitle}>
-              {storeName ? `${storeName}'s Dashboard 🏪` : 'My Dashboard 🏪'}
+              {storeName ? `Welcome, ${storeName}! 🏪` : 'My Dashboard 🏪'}
             </h2>
             <p style={s.bannerSub}>
-              {applicants.length} applicant{applicants.length !== 1 ? 's' : ''} · {appointments.length} appointment{appointments.length !== 1 ? 's' : ''}
+              {applicants.length} applicant{applicants.length !== 1 ? 's' : ''} · {upcomingAppts.length} upcoming appointment{upcomingAppts.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
       </div>
 
       <div style={s.body}>
+        {/* Main tabs */}
         <div style={s.tabs}>
           <button style={activeTab === 'applicants' ? s.activeTab : s.tab} onClick={() => setActiveTab('applicants')}>
             👥 Applicants <span style={s.tabCount}>{applicants.length}</span>
@@ -79,6 +93,7 @@ export default function ApplicantsPage() {
           </button>
         </div>
 
+        {/* APPLICANTS */}
         {activeTab === 'applicants' && (
           <>
             {applicants.length === 0 && <div style={s.empty}>No applications yet. Post a job to get started! 💼</div>}
@@ -90,10 +105,32 @@ export default function ApplicantsPage() {
           </>
         )}
 
+        {/* APPOINTMENTS */}
         {activeTab === 'appointments' && (
           <>
-            {appointments.length === 0 && <div style={s.empty}>No appointments yet. Mark applicants as interested to schedule! 📅</div>}
-            {appointments.map(appt => <AppointmentCard key={appt.id} appointment={appt} onReload={loadData} />)}
+            {/* Sub-tabs */}
+            <div style={s.subTabs}>
+              <button style={apptTab === 'upcoming' ? s.activeSubTab : s.subTab} onClick={() => setApptTab('upcoming')}>
+                🔜 Upcoming <span style={s.tabCount}>{upcomingAppts.length}</span>
+              </button>
+              <button style={apptTab === 'past' ? s.activeSubTab : s.subTab} onClick={() => setApptTab('past')}>
+                🕐 Past <span style={s.tabCount}>{pastAppts.length}</span>
+              </button>
+            </div>
+
+            {apptTab === 'upcoming' && (
+              <>
+                {upcomingAppts.length === 0 && <div style={s.empty}>No upcoming appointments. Mark applicants as interested to schedule! 📅</div>}
+                {upcomingAppts.map(appt => <AppointmentCard key={appt.id} appointment={appt} onReload={loadData} isPast={false} />)}
+              </>
+            )}
+
+            {apptTab === 'past' && (
+              <>
+                {pastAppts.length === 0 && <div style={s.empty}>No past appointments yet.</div>}
+                {pastAppts.map(appt => <AppointmentCard key={appt.id} appointment={appt} onReload={loadData} isPast={true} />)}
+              </>
+            )}
           </>
         )}
       </div>
@@ -176,7 +213,7 @@ function ApplicantCard({ application, pharmacist, onInterested, onReload }) {
   )
 }
 
-function AppointmentCard({ appointment, onReload }) {
+function AppointmentCard({ appointment, onReload, isPast }) {
   const pharmacist = appointment.pharmacist_profiles
   const job = appointment.jobs
   const [showReschedule, setShowReschedule] = useState(false)
@@ -187,11 +224,11 @@ function AppointmentCard({ appointment, onReload }) {
   const formatDate = (d) => new Date(d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
   const formatTime = (t) => { const [h,m] = t.split(':'); const d = new Date(); d.setHours(+h,+m); return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) }
 
-  const isUpcoming = () => {
+  const isToday = () => {
     const today = new Date(); today.setHours(0,0,0,0)
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1)
     const d = new Date(appointment.appointment_date); d.setHours(0,0,0,0)
-    return d >= today && d <= tomorrow
+    return d >= today && d < tomorrow
   }
 
   const sendNewSlot = async () => {
@@ -208,42 +245,61 @@ function AppointmentCard({ appointment, onReload }) {
   }
 
   return (
-    <div style={{ ...s.card, ...(isUpcoming() && appointment.status === 'confirmed' ? { border: '2px solid #f59e0b' } : {}), ...(appointment.status === 'reschedule_requested' ? { border: '2px solid #f87171' } : {}) }}>
-      {isUpcoming() && appointment.status === 'confirmed' && <div style={s.reminderBanner}>🔔 This appointment is today or tomorrow!</div>}
-      {appointment.status === 'reschedule_requested' && <div style={s.reschedAlert}>🔄 Pharmacist requested a reschedule</div>}
-      <h3 style={s.name}>{pharmacist?.name}</h3>
+    <div style={{
+      ...s.card,
+      ...(isPast ? s.pastCard : {}),
+      ...(isToday() && !isPast ? { border: '2px solid #f59e0b' } : {}),
+      ...(appointment.status === 'reschedule_requested' && !isPast ? { border: '2px solid #f87171' } : {}),
+    }}>
+      {isPast && <div style={s.pastBanner}>🕐 Past Appointment</div>}
+      {isToday() && !isPast && <div style={s.todayBanner}>🔔 This appointment is TODAY!</div>}
+      {appointment.status === 'reschedule_requested' && !isPast && <div style={s.reschedAlert}>🔄 Pharmacist requested a reschedule</div>}
+
+      <h3 style={{ ...s.name, ...(isPast ? { color: '#94a3b8' } : {}) }}>{pharmacist?.name}</h3>
       <p style={s.detail}><b>Job:</b> {job?.title}</p>
-      <div style={s.dtBox}>
-        <div style={s.dtItem}><span style={s.dtLabel}>📅 DATE</span><span style={s.dtVal}>{formatDate(appointment.appointment_date)}</span></div>
-        <div style={s.dtItem}><span style={s.dtLabel}>🕐 TIME</span><span style={s.dtVal}>{formatTime(appointment.appointment_time)}</span></div>
+
+      <div style={{ ...s.dtBox, ...(isPast ? { background: '#f8fafc', borderColor: '#e2e8f0' } : {}) }}>
+        <div style={s.dtItem}><span style={s.dtLabel}>📅 DATE</span><span style={{ ...s.dtVal, ...(isPast ? { color: '#94a3b8' } : {}) }}>{formatDate(appointment.appointment_date)}</span></div>
+        <div style={s.dtItem}><span style={s.dtLabel}>🕐 TIME</span><span style={{ ...s.dtVal, ...(isPast ? { color: '#94a3b8' } : {}) }}>{formatTime(appointment.appointment_time)}</span></div>
       </div>
-      {appointment.status === 'pending' && <div style={s.awaitingBadge}>⏳ Awaiting Pharmacist Response</div>}
-      {appointment.status === 'confirmed' && (
+
+      {!isPast && (
         <>
-          <div style={s.confirmedBadge}>✓ Confirmed</div>
-          <p style={s.contactInfo}>📞 <b>Pharmacist:</b> {pharmacist?.phone || 'Not provided'}</p>
-        </>
-      )}
-      {appointment.status === 'reschedule_requested' && (
-        <>
-          <div style={s.reschedBadge}>🔄 Reschedule Requested</div>
-          {appointment.pharmacist_note && <div style={s.noteBox}><span style={s.dtLabel}>REASON</span><span style={{ fontSize: 14, color: '#92400e', fontStyle: 'italic' }}>{appointment.pharmacist_note}</span></div>}
-          <p style={s.contactInfo}>📞 <b>Pharmacist:</b> {pharmacist?.phone || 'Not provided'}</p>
-          {!showReschedule ? (
-            <button style={s.scheduleBtn} onClick={() => setShowReschedule(true)}>📅 Offer New Time Slot</button>
-          ) : (
-            <div style={s.schedForm}>
-              <label style={s.formLabel}>New Date</label>
-              <input type="date" style={s.input} value={newDate} min={new Date().toISOString().split('T')[0]} onChange={e => setNewDate(e.target.value)} />
-              <label style={s.formLabel}>New Time</label>
-              <input type="time" style={s.input} value={newTime} onChange={e => setNewTime(e.target.value)} />
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <button style={s.confirmBtn} onClick={sendNewSlot} disabled={sending}>{sending ? 'Sending…' : '✓ Send New Slot'}</button>
-                <button style={s.cancelBtn} onClick={() => { setShowReschedule(false); setNewDate(''); setNewTime('') }}>Cancel</button>
-              </div>
-            </div>
+          {appointment.status === 'pending' && <div style={s.awaitingBadge}>⏳ Awaiting Pharmacist Response</div>}
+          {appointment.status === 'confirmed' && (
+            <>
+              <div style={s.confirmedBadge}>✓ Confirmed</div>
+              <p style={s.contactInfo}>📞 <b>Pharmacist:</b> {pharmacist?.phone || 'Not provided'}</p>
+            </>
+          )}
+          {appointment.status === 'reschedule_requested' && (
+            <>
+              <div style={s.reschedBadge}>🔄 Reschedule Requested</div>
+              {appointment.pharmacist_note && <div style={s.noteBox}><span style={s.dtLabel}>REASON</span><span style={{ fontSize: 14, color: '#92400e', fontStyle: 'italic' }}>{appointment.pharmacist_note}</span></div>}
+              <p style={s.contactInfo}>📞 <b>Pharmacist:</b> {pharmacist?.phone || 'Not provided'}</p>
+              {!showReschedule ? (
+                <button style={s.scheduleBtn} onClick={() => setShowReschedule(true)}>📅 Offer New Time Slot</button>
+              ) : (
+                <div style={s.schedForm}>
+                  <label style={s.formLabel}>New Date</label>
+                  <input type="date" style={s.input} value={newDate} min={new Date().toISOString().split('T')[0]} onChange={e => setNewDate(e.target.value)} />
+                  <label style={s.formLabel}>New Time</label>
+                  <input type="time" style={s.input} value={newTime} onChange={e => setNewTime(e.target.value)} />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <button style={s.confirmBtn} onClick={sendNewSlot} disabled={sending}>{sending ? 'Sending…' : '✓ Send New Slot'}</button>
+                    <button style={s.cancelBtn} onClick={() => { setShowReschedule(false); setNewDate(''); setNewTime('') }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
+      )}
+
+      {isPast && (
+        <div style={s.pastStatus}>
+          Status: <b>{appointment.status === 'confirmed' ? '✓ Was Confirmed' : appointment.status}</b>
+        </div>
       )}
     </div>
   )
@@ -261,9 +317,13 @@ const s = {
   tabs: { display: 'flex', gap: 8, marginBottom: 20, borderBottom: '2px solid #e2e8f0' },
   tab: { padding: '10px 18px', background: 'transparent', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 },
   activeTab: { padding: '10px 18px', background: 'transparent', border: 'none', borderBottom: '3px solid #0e9090', cursor: 'pointer', fontSize: 14, fontWeight: 800, color: '#0e9090', display: 'flex', alignItems: 'center', gap: 6 },
-  tabCount: { background: '#e2e8f0', color: '#475569', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 },
+  subTabs: { display: 'flex', gap: 8, marginBottom: 16 },
+  subTab: { padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: 50, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 },
+  activeSubTab: { padding: '8px 16px', background: '#0e9090', border: 'none', borderRadius: 50, cursor: 'pointer', fontSize: 13, fontWeight: 800, color: 'white', display: 'flex', alignItems: 'center', gap: 6 },
+  tabCount: { background: 'rgba(0,0,0,0.08)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 },
   empty: { background: 'white', padding: 24, borderRadius: 14, fontSize: 15, color: '#64748b', textAlign: 'center', border: '1px solid #e2e8f0' },
   card: { background: 'white', borderRadius: 16, padding: 18, marginBottom: 14, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0' },
+  pastCard: { background: '#f8fafc', boxShadow: 'none', border: '1px solid #e2e8f0', opacity: 0.8 },
   cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   name: { fontSize: 17, fontWeight: 800, color: '#0f3460', margin: 0 },
   detail: { fontSize: 14, color: '#475569', margin: '3px 0' },
@@ -283,11 +343,13 @@ const s = {
   confirmedBadge: { marginTop: 10, padding: '8px 12px', background: '#d1fae5', color: '#065f46', borderRadius: 8, fontSize: 13, fontWeight: 700, display: 'inline-block', marginBottom: 8 },
   reschedBadge: { marginTop: 10, padding: '8px 12px', background: '#fecaca', color: '#991b1b', borderRadius: 8, fontSize: 13, fontWeight: 700, display: 'inline-block' },
   contactInfo: { fontSize: 14, color: '#0f172a', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, marginTop: 8, marginBottom: 4 },
-  reminderBanner: { background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 12 },
+  todayBanner: { background: '#fef3c7', color: '#92400e', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 12 },
+  pastBanner: { background: '#f1f5f9', color: '#64748b', padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, marginBottom: 10, display: 'inline-block' },
   reschedAlert: { background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 700, marginBottom: 12 },
-  dtBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, margin: '10px 0', display: 'flex', flexDirection: 'column', gap: 8 },
+  dtBox: { background: '#f0fdfd', border: '1px solid #99f6e4', borderRadius: 10, padding: 12, margin: '10px 0', display: 'flex', flexDirection: 'column', gap: 8 },
   dtItem: { display: 'flex', flexDirection: 'column', gap: 2 },
   dtLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8 },
   dtVal: { fontSize: 15, color: '#0f172a', fontWeight: 700 },
   noteBox: { background: '#fef9f0', border: '1px solid #fed7aa', borderRadius: 8, padding: '10px 12px', margin: '8px 0', display: 'flex', flexDirection: 'column', gap: 4 },
+  pastStatus: { fontSize: 13, color: '#94a3b8', marginTop: 8, fontWeight: 600 },
 }
