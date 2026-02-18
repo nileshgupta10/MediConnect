@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80'
 const TABS = ['active', 'held', 'expired', 'closed']
+const MAX_ACTIVE_JOBS = 2
 
 export default function PostJob() {
   const router = useRouter()
@@ -42,17 +43,37 @@ export default function PostJob() {
     setJobs(data || [])
   }
 
-  const submitJob = async () => {
-    if (!title.trim() || !shift || !numOpenings || !requiredExperience) {
-      setMessage('Please fill in all required fields.'); return
-    }
-    const openings = parseInt(numOpenings)
-    if (isNaN(openings) || openings < 1) { setMessage('Openings must be at least 1.'); return }
+  const getActiveCount = () => {
+    return jobs.filter(j => 
+      j.status === 'active' && 
+      !j.disabled_by_admin && 
+      new Date(j.expires_at) > new Date()
+    ).length
+  }
 
-    setPosting(true); setMessage('')
+  const submitJob = async () => {
+    if (getActiveCount() >= MAX_ACTIVE_JOBS) {
+      setMessage(`You can only have ${MAX_ACTIVE_JOBS} active job posts at a time. Please hold, close, or delete an existing job before posting a new one.`)
+      return
+    }
+
+    if (!title.trim() || !shift || !numOpenings || !requiredExperience) {
+      setMessage('Please fill in all required fields.')
+      return
+    }
+
+    const openings = parseInt(numOpenings)
+    if (isNaN(openings) || openings < 1) {
+      setMessage('Openings must be at least 1.')
+      return
+    }
+
+    setPosting(true)
+    setMessage('')
 
     const { data: storeProfile } = await supabase.from('store_profiles').select('store_name').eq('user_id', user.id).maybeSingle()
-    const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 30)
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30)
 
     const { error } = await supabase.from('jobs').insert({
       title: title.trim(), shift, num_openings: openings,
@@ -65,7 +86,9 @@ export default function PostJob() {
     })
 
     setPosting(false)
+
     if (error) { setMessage('Error: ' + error.message); return }
+
     setMessage('Job posted successfully! ✓')
     setTitle(''); setShift(''); setNumOpenings(''); setRequiredExperience(''); setPreferredSoftware(''); setDescription('')
     await loadJobs(user.id)
@@ -74,6 +97,7 @@ export default function PostJob() {
   const updateJobStatus = async (jobId, newStatus) => {
     const updates = { status: newStatus }
     if (newStatus === 'closed') updates.closed_at = new Date().toISOString()
+
     const { error } = await supabase.from('jobs').update(updates).eq('id', jobId).eq('store_owner_id', user.id)
     if (error) { alert(error.message); return }
     await loadJobs(user.id)
@@ -102,6 +126,9 @@ export default function PostJob() {
     return job.status === tab
   }).length
 
+  const activeCount = getActiveCount()
+  const canPost = activeCount < MAX_ACTIVE_JOBS
+
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
@@ -116,7 +143,7 @@ export default function PostJob() {
               {storeName ? `${storeName}'s Jobs 💼` : 'Post a Job 💼'}
             </h2>
             <p style={s.bannerSub}>
-              {jobs.filter(j => j.status === 'active' && !j.disabled_by_admin && new Date(j.expires_at) > new Date()).length} active job{jobs.length !== 1 ? 's' : ''} posted
+              {activeCount} of {MAX_ACTIVE_JOBS} active job slots used
             </p>
           </div>
         </div>
@@ -127,11 +154,17 @@ export default function PostJob() {
         <div style={s.card}>
           <h2 style={s.cardTitle}>Post a New Job</h2>
 
+          {!canPost && (
+            <div style={s.limitWarning}>
+              ⚠️ You have reached the maximum of {MAX_ACTIVE_JOBS} active job posts. Please hold, close, or delete an existing job before posting a new one.
+            </div>
+          )}
+
           <label style={s.label}>Job Title *</label>
-          <input style={s.input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Full-time Pharmacist" maxLength={100} />
+          <input style={s.input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Full-time Pharmacist" maxLength={100} disabled={!canPost} />
 
           <label style={s.label}>Shift *</label>
-          <select style={s.select} value={shift} onChange={e => setShift(e.target.value)}>
+          <select style={s.select} value={shift} onChange={e => setShift(e.target.value)} disabled={!canPost}>
             <option value="">Select Shift</option>
             <option>Morning</option>
             <option>Night</option>
@@ -139,10 +172,10 @@ export default function PostJob() {
           </select>
 
           <label style={s.label}>Number of Openings *</label>
-          <input type="number" style={s.input} value={numOpenings} onChange={e => setNumOpenings(e.target.value)} placeholder="e.g. 2" min="1" max="99" />
+          <input type="number" style={s.input} value={numOpenings} onChange={e => setNumOpenings(e.target.value)} placeholder="e.g. 2" min="1" max="99" disabled={!canPost} />
 
           <label style={s.label}>Required Experience *</label>
-          <select style={s.select} value={requiredExperience} onChange={e => setRequiredExperience(e.target.value)}>
+          <select style={s.select} value={requiredExperience} onChange={e => setRequiredExperience(e.target.value)} disabled={!canPost}>
             <option value="">Select Experience</option>
             <option>Fresher</option>
             <option>1-5 years</option>
@@ -150,17 +183,17 @@ export default function PostJob() {
           </select>
 
           <label style={s.label}>Preferred Software (Optional)</label>
-          <input style={s.input} value={preferredSoftware} onChange={e => setPreferredSoftware(e.target.value)} placeholder="e.g. PharmERP, Marg, GoFrugal" maxLength={200} />
+          <input style={s.input} value={preferredSoftware} onChange={e => setPreferredSoftware(e.target.value)} placeholder="e.g. PharmERP, Marg, GoFrugal" maxLength={200} disabled={!canPost} />
 
           <label style={s.label}>Job Description (Optional)</label>
-          <textarea style={s.textarea} value={description} onChange={e => setDescription(e.target.value)} placeholder="Additional details…" maxLength={1000} />
+          <textarea style={s.textarea} value={description} onChange={e => setDescription(e.target.value)} placeholder="Additional details…" maxLength={1000} disabled={!canPost} />
 
-          <button style={s.primaryBtn} onClick={submitJob} disabled={posting}>
-            {posting ? 'Posting…' : '+ Post Job'}
+          <button style={s.primaryBtn} onClick={submitJob} disabled={posting || !canPost}>
+            {posting ? 'Posting…' : !canPost ? `Max ${MAX_ACTIVE_JOBS} Active Jobs Reached` : '+ Post Job'}
           </button>
 
           {message && (
-            <p style={message.startsWith('Error') || message.startsWith('Please') || message.startsWith('Openings') ? s.errorMsg : s.successMsg}>
+            <p style={message.startsWith('Error') || message.startsWith('Please') || message.startsWith('Openings') || message.startsWith('You can only') ? s.errorMsg : s.successMsg}>
               {message}
             </p>
           )}
@@ -214,13 +247,13 @@ export default function PostJob() {
                       <>
                         <button style={s.holdBtn} onClick={() => updateJobStatus(job.id, 'held')}>⏸ Hold</button>
                         <button style={s.closeBtn} onClick={() => updateJobStatus(job.id, 'closed')}>✓ Close</button>
-                        <button style={s.deleteBtn} onClick={() => deleteJob(job.id)}>🗑</button>
+                        <button style={s.deleteBtn} onClick={() => deleteJob(job.id)}>🗑 Delete</button>
                       </>
                     )}
                     {job.status === 'held' && (
                       <>
-                        <button style={s.activeBtn} onClick={() => updateJobStatus(job.id, 'active')}>▶ Re-enable</button>
-                        <button style={s.deleteBtn} onClick={() => deleteJob(job.id)}>🗑</button>
+                        <button style={s.activateBtn} onClick={() => updateJobStatus(job.id, 'active')}>▶ Re-enable</button>
+                        <button style={s.deleteBtn} onClick={() => deleteJob(job.id)}>🗑 Delete</button>
                       </>
                     )}
                     {(job.status === 'expired' || isExpired) && (
@@ -239,7 +272,12 @@ export default function PostJob() {
 
 const getStatusStyle = (status) => {
   const base = { padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }
-  const map = { active: { background: '#d1fae5', color: '#065f46' }, held: { background: '#fef3c7', color: '#92400e' }, closed: { background: '#e0e7ff', color: '#3730a3' }, expired: { background: '#fee2e2', color: '#991b1b' } }
+  const map = {
+    active: { background: '#d1fae5', color: '#065f46' },
+    held: { background: '#fef3c7', color: '#92400e' },
+    closed: { background: '#e0e7ff', color: '#3730a3' },
+    expired: { background: '#fee2e2', color: '#991b1b' }
+  }
   return { ...base, ...(map[status] || { background: '#e5e7eb', color: '#374151' }) }
 }
 
@@ -254,6 +292,7 @@ const s = {
   body: { maxWidth: 600, margin: '0 auto', padding: '20px 16px 40px' },
   card: { background: 'white', padding: 24, borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', marginBottom: 24, border: '1px solid #e2e8f0' },
   cardTitle: { fontSize: 18, fontWeight: 900, color: '#0f3460', marginBottom: 16 },
+  limitWarning: { background: '#fef3c7', border: '1px solid #fcd34d', color: '#92400e', padding: '10px 14px', borderRadius: 10, fontSize: 14, fontWeight: 600, marginBottom: 16, lineHeight: 1.6 },
   label: { display: 'block', marginTop: 14, marginBottom: 6, fontSize: 13, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' },
   select: { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: 14, background: 'white', boxSizing: 'border-box', fontFamily: 'inherit' },
@@ -274,7 +313,7 @@ const s = {
   detail: { fontSize: 13, color: '#475569', margin: '3px 0' },
   jobActions: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' },
   holdBtn: { padding: '6px 10px', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 },
-  activeBtn: { padding: '6px 10px', background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 },
+  activateBtn: { padding: '6px 10px', background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 },
   closeBtn: { padding: '6px 10px', background: '#e0e7ff', color: '#3730a3', border: '1px solid #a5b4fc', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 },
   deleteBtn: { padding: '6px 10px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 },
   disabledBanner: { background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 },
