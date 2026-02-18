@@ -1,258 +1,316 @@
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabase'
 
-const TEAL  = '#0e9090'
-const AMBER = '#f59e0b'
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
 
-const HERO_IMG  = 'https://images.unsplash.com/photo-1576602976047-174e57a47881?w=1400&q=80'
-const PHARM_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=800&q=80'
-const STORE_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=800&q=80'
+export default function RoleSelect() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [user, setUser] = useState(null)
 
-const steps = [
-  { n: '01', icon: '👤', title: 'Sign Up',        desc: 'Quick Google login. Choose your role — pharmacist or store owner.' },
-  { n: '02', icon: '📋', title: 'Build Profile',  desc: 'Upload your license, set your location, describe your experience.' },
-  { n: '03', icon: '🔍', title: 'Browse & Apply', desc: 'See jobs sorted by distance. Apply with one tap.' },
-  { n: '04', icon: '🤝', title: 'Meet & Hire',    desc: 'Confirm appointments directly. No middlemen involved.' },
-]
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Not logged in → redirect to login
+      if (!user) { 
+        router.replace('/simple-login')
+        return 
+      }
 
-const features = [
-  { icon: '📍', title: 'Find Jobs Near You',      desc: 'Distance-sorted listings show the closest openings first. No applying to jobs 50km away.' },
-  { icon: '✅', title: 'Verified Professionals',  desc: 'Every pharmacist is license-verified. Every store is admin-approved. No fake profiles.' },
-  { icon: '📅', title: 'Direct Appointments',     desc: 'Store owners schedule interviews directly. Pharmacists confirm with one tap.' },
-  { icon: '🔒', title: 'Privacy Protected',       desc: 'Phone numbers only shared after appointment is confirmed.' },
-  { icon: '⚡', title: 'Hire in Days, Not Weeks', desc: 'Streamlined process from application to interview in under 48 hours.' },
-  { icon: '🏅', title: 'Quality Assured',         desc: 'Admin manually reviews every store and pharmacist before they go live.' },
-]
+      // Admin → redirect to admin panel
+      if (user.email === ADMIN_EMAIL) { 
+        router.replace('/admin')
+        return 
+      }
 
-export default function HomePage() {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => { setTimeout(() => setVisible(true), 50) }, [])
+      // Check if user already has a role
+      const { data: existing } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      // Has role → redirect to their profile
+      if (existing?.role === 'pharmacist') { 
+        router.replace('/pharmacist-profile')
+        return 
+      }
+      if (existing?.role === 'store_owner') { 
+        router.replace('/store-profile')
+        return 
+      }
+
+      // No role yet → show role selection
+      setUser(user)
+      setLoading(false)
+    }
+    init()
+  }, [router])
+
+  const selectRole = async (role) => {
+    setSaving(true)
+    await supabase.from('user_roles').upsert({ 
+      user_id: user.id, 
+      role 
+    })
+
+    if (role === 'pharmacist') {
+      router.replace('/pharmacist-profile')
+    } else {
+      router.replace('/store-profile')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={s.loadPage}>
+        <div style={s.loadSpinner}>⏳</div>
+        <p style={s.loadText}>Setting up your account…</p>
+      </div>
+    )
+  }
 
   return (
     <div style={s.page}>
+      {/* Background gradient */}
+      <div style={s.bgGradient} />
 
-      {/* ── HERO ── */}
-      <section style={s.hero}>
-        <div style={s.heroBg}>
-          <img src={HERO_IMG} alt="" style={s.heroBgImg} />
-          <div style={s.heroOverlay} />
+      {/* Content */}
+      <div style={s.content}>
+        {/* Logo */}
+        <div style={s.logoSection}>
+          <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.logo} />
+          <h1 style={s.brandName}>MediClan</h1>
+          <p style={s.tagline}>Relations, over the counter.</p>
         </div>
-        <div style={s.heroContent}>
-          <div className={visible ? 'animate-slideLeft' : ''} style={s.heroLeft}>
-            <div style={s.logoPill}>
-              <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.heroLogo} />
-              <span style={s.heroLogoText}>MediClan</span>
+
+        {/* Welcome */}
+        <div style={s.welcomeBox}>
+          <h2 style={s.welcomeTitle}>
+            Welcome{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name.split(' ')[0]}` : ''}! 👋
+          </h2>
+          <p style={s.welcomeSub}>
+            Just one quick step to get started — are you looking for work or looking to hire?
+          </p>
+        </div>
+
+        {/* Role cards */}
+        <div style={s.cards}>
+          <button
+            style={s.roleCard}
+            onClick={() => selectRole('pharmacist')}
+            disabled={saving}
+          >
+            <div style={s.roleIconWrap}>
+              <span style={s.roleIcon}>💊</span>
             </div>
-            <h1 style={s.heroTitle}>
-              India's friendliest<br />
-              <span style={s.heroAccent}>pharmacy jobs</span><br />
-              platform
-            </h1>
-            <p style={s.heroSub}>
-              Connecting verified pharmacists with trusted stores — across every city, every street.
+            <h3 style={s.roleTitle}>I'm a Pharmacist</h3>
+            <p style={s.roleDesc}>
+              Looking for pharmacy jobs near me
             </p>
-            <div style={s.heroButtons}>
-              <Link href="/role-select">
-                <button style={s.heroBtn}>Find Jobs Near Me →</button>
-              </Link>
-              <Link href="/role-select">
-                <button style={s.heroBtn2}>Post a Job Opening</button>
-              </Link>
-            </div>
-            <p style={s.heroTagline}>"Relations, over the counter."</p>
-          </div>
-        </div>
-      </section>
+            <div style={s.roleArrow}>Get Started →</div>
+          </button>
 
-      {/* ── HOW IT WORKS ── */}
-      <section style={s.section}>
-        <div style={s.container}>
-          <div style={s.sectionLabel}>Simple Process</div>
-          <h2 style={s.sectionTitle}>How MediClan Works</h2>
-          <p style={s.sectionSub}>From signup to hired — in just a few steps</p>
-          <div style={s.stepsRow}>
-            {steps.map((step, i) => (
-              <div key={i} className={`animate-fadeInUp delay-${i + 1}`} style={s.stepCard}>
-                <div style={s.stepNumber}>{step.n}</div>
-                <div style={s.stepIcon}>{step.icon}</div>
-                <h3 style={s.stepTitle}>{step.title}</h3>
-                <p style={s.stepDesc}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOR PHARMACISTS ── */}
-      <section style={s.section}>
-        <div style={s.container}>
-          <div style={s.splitInner}>
-            <div style={s.splitImg} className="animate-slideLeft">
-              <img src={PHARM_IMG} alt="Pharmacist" style={s.splitImgEl} loading="lazy" />
-              <div style={s.splitBadge}>
-                <span style={{ fontSize: 22 }}>💊</span>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 14 }}>For Pharmacists</div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Find work near home</div>
-                </div>
-              </div>
+          <button
+            style={{ ...s.roleCard, ...s.roleCardAlt }}
+            onClick={() => selectRole('store_owner')}
+            disabled={saving}
+          >
+            <div style={{ ...s.roleIconWrap, background: '#fef3c7' }}>
+              <span style={s.roleIcon}>🏪</span>
             </div>
-            <div style={s.splitText} className="animate-slideRight">
-              <div style={s.sectionLabel}>Pharmacists</div>
-              <h2 style={s.splitTitle}>Your next job is around the corner</h2>
-              <p style={s.splitDesc}>
-                Stop sending CVs into the void. MediClan shows you verified openings sorted by distance — your next job could be a 5-minute walk away.
-              </p>
-              <ul style={s.splitList}>
-                {['Distance-sorted job listings', 'One-tap applications', 'Direct appointment scheduling', 'License verification badge'].map((item, i) => (
-                  <li key={i} style={s.splitItem}>
-                    <span style={s.tick}>✓</span> {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/role-select">
-                <button style={s.splitBtn}>Get Started →</button>
-              </Link>
-            </div>
-          </div>
+            <h3 style={s.roleTitle}>I'm a Store Owner</h3>
+            <p style={s.roleDesc}>
+              Looking to hire verified pharmacists
+            </p>
+            <div style={{ ...s.roleArrow, color: '#f59e0b' }}>Get Started →</div>
+          </button>
         </div>
-      </section>
 
-      {/* ── FOR STORES ── */}
-      <section style={{ ...s.section, background: '#f0fdfd' }}>
-        <div style={s.container}>
-          <div style={{ ...s.splitInner, flexDirection: 'row-reverse' }}>
-            <div style={s.splitImg} className="animate-slideRight">
-              <img src={STORE_IMG} alt="Pharmacy Store" style={s.splitImgEl} loading="lazy" />
-              <div style={{ ...s.splitBadge, background: AMBER }}>
-                <span style={{ fontSize: 22 }}>🏪</span>
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: 14 }}>For Store Owners</div>
-                  <div style={{ fontSize: 12, opacity: 0.85 }}>Hire with confidence</div>
-                </div>
-              </div>
-            </div>
-            <div style={s.splitText} className="animate-slideLeft">
-              <div style={{ ...s.sectionLabel, color: AMBER, background: '#fef3c7' }}>Store Owners</div>
-              <h2 style={s.splitTitle}>Find verified pharmacists fast</h2>
-              <p style={s.splitDesc}>
-                Post a job in under 2 minutes. Get applications from license-verified pharmacists nearby. Review, shortlist, and schedule — all in one place.
-              </p>
-              <ul style={s.splitList}>
-                {['Post jobs in 2 minutes', 'View license documents', 'Schedule interviews directly', 'Admin-verified applicants only'].map((item, i) => (
-                  <li key={i} style={s.splitItem}>
-                    <span style={{ ...s.tick, background: '#fef3c7', color: AMBER }}>✓</span> {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/role-select">
-                <button style={{ ...s.splitBtn, background: AMBER }}>Get Started →</button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+        {saving && <p style={s.savingText}>Setting up your profile…</p>}
 
-      {/* ── FEATURES ── */}
-      <section style={s.section}>
-        <div style={s.container}>
-          <div style={s.sectionLabel}>Why MediClan</div>
-          <h2 style={s.sectionTitle}>Everything you need, nothing you don't</h2>
-          <div style={s.featuresGrid}>
-            {features.map((f, i) => (
-              <div key={i} className={`animate-fadeInUp delay-${i + 1}`} style={s.featureCard}>
-                <div style={s.featureIcon}>{f.icon}</div>
-                <h3 style={s.featureTitle}>{f.title}</h3>
-                <p style={s.featureDesc}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section style={s.ctaSection}>
-        <div style={s.ctaInner}>
-          <h2 style={s.ctaTitle}>Ready to get started?</h2>
-          <p style={s.ctaSub}>Join India's pharmacy hiring community today. It's free.</p>
-          <Link href="/role-select">
-            <button style={s.ctaBtn}>Join MediClan Today →</button>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={s.footer}>
-        <div style={s.footerInner}>
-          <div style={s.footerBrand}>
-            <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.footerLogo} />
-            <div>
-              <div style={s.footerName}>MediClan</div>
-              <div style={s.footerTag}>Relations, over the counter.</div>
-            </div>
-          </div>
-          <p style={s.footerCopy}>© 2025 MediClan. Built for India's pharmacy community.</p>
-        </div>
-      </footer>
+        {/* Footer note */}
+        <p style={s.footerNote}>
+          Don't worry — you can always update your profile later
+        </p>
+      </div>
     </div>
   )
 }
 
 const s = {
-  page: { fontFamily: "'Nunito', 'Segoe UI', sans-serif", color: '#1a1a2e', overflowX: 'hidden' },
-  hero: { position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
-  heroBg: { position: 'absolute', inset: 0, zIndex: 0 },
-  heroBgImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  heroOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,52,96,0.93) 0%, rgba(14,144,144,0.78) 100%)' },
-  heroContent: { position: 'relative', zIndex: 1, padding: '100px 24px 60px', maxWidth: 1100, margin: '0 auto', width: '100%' },
-  heroLeft: { maxWidth: 600 },
-  logoPill: { display: 'inline-flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)', padding: '12px 24px', borderRadius: 50, marginBottom: 32 },
-  heroLogo: { width: 56, height: 56, objectFit: 'contain' },
-  heroLogoText: { color: 'white', fontWeight: 900, fontSize: 28, letterSpacing: 0.5 },
-  heroTitle: { fontSize: 'clamp(32px, 6vw, 62px)', fontWeight: 900, color: 'white', lineHeight: 1.15, marginBottom: 20 },
-  heroAccent: { color: '#5eead4' },
-  heroSub: { fontSize: 18, color: 'rgba(255,255,255,0.82)', lineHeight: 1.75, marginBottom: 36, maxWidth: 480 },
-  heroButtons: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 28 },
-  heroBtn: { padding: '15px 32px', background: '#0e9090', color: 'white', border: 'none', borderRadius: 50, fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 20px rgba(14,144,144,0.4)' },
-  heroBtn2: { padding: '15px 32px', background: 'rgba(255,255,255,0.12)', color: 'white', border: '2px solid rgba(255,255,255,0.35)', borderRadius: 50, fontSize: 16, fontWeight: 800, cursor: 'pointer' },
-  heroTagline: { color: 'rgba(255,255,255,0.45)', fontSize: 15, fontStyle: 'italic' },
-  section: { padding: '80px 24px', background: '#fff' },
-  container: { maxWidth: 1100, margin: '0 auto' },
-  sectionLabel: { display: 'inline-block', background: '#e0f7f7', color: '#0e9090', padding: '4px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, marginBottom: 12, letterSpacing: 0.8, textTransform: 'uppercase' },
-  sectionTitle: { fontSize: 'clamp(22px, 4vw, 36px)', fontWeight: 900, color: '#0f3460', marginBottom: 8 },
-  sectionSub: { fontSize: 16, color: '#64748b', marginBottom: 44 },
-  stepsRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 },
-  stepCard: { background: '#f8fafc', borderRadius: 20, padding: 28, textAlign: 'center', border: '1px solid #e2e8f0' },
-  stepNumber: { fontSize: 11, fontWeight: 900, color: '#0e9090', letterSpacing: 2, marginBottom: 12 },
-  stepIcon: { fontSize: 36, marginBottom: 12 },
-  stepTitle: { fontSize: 17, fontWeight: 800, color: '#0f3460', marginBottom: 8 },
-  stepDesc: { fontSize: 14, color: '#64748b', lineHeight: 1.65 },
-  splitInner: { display: 'flex', gap: 60, alignItems: 'center', flexWrap: 'wrap' },
-  splitImg: { flex: '1 1 300px', position: 'relative', minWidth: 280 },
-  splitImgEl: { width: '100%', borderRadius: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.1)', objectFit: 'cover', maxHeight: 420, display: 'block' },
-  splitBadge: { position: 'absolute', bottom: -16, left: 24, background: '#0e9090', color: 'white', padding: '12px 18px', borderRadius: 14, display: 'flex', gap: 12, alignItems: 'center', boxShadow: '0 8px 24px rgba(14,144,144,0.3)' },
-  splitText: { flex: '1 1 300px', minWidth: 280 },
-  splitTitle: { fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 900, color: '#0f3460', margin: '12px 0 14px' },
-  splitDesc: { fontSize: 15, color: '#475569', lineHeight: 1.8, marginBottom: 22 },
-  splitList: { listStyle: 'none', marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 10 },
-  splitItem: { fontSize: 14, color: '#334155', display: 'flex', alignItems: 'center', gap: 10 },
-  tick: { background: '#e0f7f7', color: '#0e9090', width: 22, height: 22, borderRadius: 50, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 11, flexShrink: 0 },
-  splitBtn: { padding: '12px 28px', background: '#0e9090', color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer' },
-  featuresGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginTop: 36 },
-  featureCard: { background: '#f8fafc', borderRadius: 20, padding: 26, border: '1px solid #e2e8f0' },
-  featureIcon: { fontSize: 30, marginBottom: 12 },
-  featureTitle: { fontSize: 16, fontWeight: 800, color: '#0f3460', marginBottom: 8 },
-  featureDesc: { fontSize: 14, color: '#64748b', lineHeight: 1.7 },
-  ctaSection: { padding: '80px 24px', background: 'linear-gradient(135deg, #0f3460 0%, #0e9090 100%)', textAlign: 'center' },
-  ctaInner: { maxWidth: 600, margin: '0 auto' },
-  ctaTitle: { fontSize: 'clamp(24px, 4vw, 38px)', fontWeight: 900, color: 'white', marginBottom: 12 },
-  ctaSub: { fontSize: 17, color: 'rgba(255,255,255,0.8)', marginBottom: 32 },
-  ctaBtn: { padding: '15px 36px', background: 'white', color: '#0e9090', border: 'none', borderRadius: 50, fontSize: 16, fontWeight: 900, cursor: 'pointer' },
-  footer: { background: '#0f172a', padding: '36px 24px' },
-  footerInner: { maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' },
-  footerBrand: { display: 'flex', alignItems: 'center', gap: 12 },
-  footerLogo: { width: 40, height: 40, objectFit: 'contain' },
-  footerName: { color: 'white', fontWeight: 900, fontSize: 18 },
-  footerTag: { color: '#64748b', fontSize: 12 },
-  footerCopy: { color: '#475569', fontSize: 13 },
+  loadPage: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: "'Nunito', 'Segoe UI', sans-serif",
+    gap: 16,
+    background: '#f0fdfd',
+  },
+  loadSpinner: { fontSize: 48 },
+  loadText: { fontSize: 17, color: '#64748b', fontWeight: 700 },
+
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: "'Nunito', 'Segoe UI', sans-serif",
+    padding: '20px',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+
+  bgGradient: {
+    position: 'fixed',
+    inset: 0,
+    background: 'linear-gradient(135deg, #0f3460 0%, #0e9090 100%)',
+    zIndex: 0,
+  },
+
+  content: {
+    position: 'relative',
+    zIndex: 1,
+    width: '100%',
+    maxWidth: 520,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 32,
+  },
+
+  logoSection: {
+    textAlign: 'center',
+  },
+
+  logo: {
+    width: 72,
+    height: 72,
+    objectFit: 'contain',
+    marginBottom: 12,
+  },
+
+  brandName: {
+    fontSize: 32,
+    fontWeight: 900,
+    color: 'white',
+    margin: 0,
+    marginBottom: 4,
+  },
+
+  tagline: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.7)',
+    fontStyle: 'italic',
+    margin: 0,
+  },
+
+  welcomeBox: {
+    background: 'white',
+    borderRadius: 20,
+    padding: '28px 32px',
+    textAlign: 'center',
+    width: '100%',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+  },
+
+  welcomeTitle: {
+    fontSize: 26,
+    fontWeight: 900,
+    color: '#0f3460',
+    margin: 0,
+    marginBottom: 10,
+  },
+
+  welcomeSub: {
+    fontSize: 15,
+    color: '#64748b',
+    lineHeight: 1.65,
+    margin: 0,
+  },
+
+  cards: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    width: '100%',
+  },
+
+  roleCard: {
+    background: 'white',
+    border: '2px solid #e2e8f0',
+    borderRadius: 20,
+    padding: '24px 28px',
+    cursor: 'pointer',
+    textAlign: 'left',
+    width: '100%',
+    transition: 'all 0.2s',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+  },
+
+  roleCardAlt: {
+    background: '#fffbeb',
+    border: '2px solid #fde68a',
+  },
+
+  roleIconWrap: {
+    width: 56,
+    height: 56,
+    background: '#e0f7f7',
+    borderRadius: 14,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+
+  roleIcon: { fontSize: 28 },
+
+  roleTitle: {
+    fontSize: 19,
+    fontWeight: 900,
+    color: '#0f3460',
+    margin: 0,
+  },
+
+  roleDesc: {
+    fontSize: 14,
+    color: '#64748b',
+    margin: 0,
+    lineHeight: 1.5,
+  },
+
+  roleArrow: {
+    fontSize: 14,
+    fontWeight: 900,
+    color: '#0e9090',
+    marginTop: 4,
+  },
+
+  savingText: {
+    textAlign: 'center',
+    fontSize: 15,
+    color: 'white',
+    fontWeight: 700,
+    background: 'rgba(255,255,255,0.15)',
+    padding: '10px 20px',
+    borderRadius: 50,
+    backdropFilter: 'blur(8px)',
+  },
+
+  footerNote: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    margin: 0,
+  },
 }
