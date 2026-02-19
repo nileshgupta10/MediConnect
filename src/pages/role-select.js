@@ -134,7 +134,7 @@ export default function RoleSelect() {
 
         {/* Footer note */}
         <p style={s.footerNote}>
-          Don't worry — you can always update your profile later
+          Choose carefully — your role cannot be changed after selection
         </p>
       </div>
     </div>

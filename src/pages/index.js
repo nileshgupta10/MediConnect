@@ -190,17 +190,21 @@ export default function HomePage() {
 
       {/* ── FOOTER ── */}
       <footer style={s.footer}>
-        <div style={s.footerInner}>
-          <div style={s.footerBrand}>
-            <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.footerLogo} />
-            <div>
-              <div style={s.footerName}>MediClan</div>
-              <div style={s.footerTag}>Relations, over the counter.</div>
-            </div>
-          </div>
-          <p style={s.footerCopy}>© 2025 MediClan. Built for India's pharmacy community.</p>
-        </div>
-      </footer>
+  <div style={s.footerInner}>
+    <div style={s.footerBrand}>
+      <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.footerLogo} />
+      <div>
+        <div style={s.footerName}>MediClan</div>
+        <div style={s.footerTag}>Relations, over the counter.</div>
+      </div>
+    </div>
+    <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+      <a href="/privacy-policy" style={{ color: '#94a3b8', textDecoration: 'none' }}>Privacy Policy</a>
+      <a href="/terms-of-service" style={{ color: '#94a3b8', textDecoration: 'none' }}>Terms of Service</a>
+    </div>
+    <p style={s.footerCopy}>© 2025 MediClan. Built for India's pharmacy community.</p>
+  </div>
+</footer>
     </div>
   )
 }

@@ -14,7 +14,7 @@ export default function SimpleLogin() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/role-select`,
+        redirectTo: `https://mediclan.in/role-select`,
       },
     })
 
