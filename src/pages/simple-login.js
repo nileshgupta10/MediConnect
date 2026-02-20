@@ -8,21 +8,15 @@ export default function SimpleLogin() {
   const [message, setMessage] = useState('')
 
   const handleGoogleLogin = async () => {
-  setLoading(true)
-  setMessage('')
+    setLoading(true)
+    setMessage('')
 
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'https://mediclan.in/role-select',
-    },
-  })
-
-  if (error) {
-    setMessage('Login failed: ' + error.message)
-    setLoading(false)
-  }
-}
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://mediclan.in/role-select',
+      },
+    })
 
     if (error) {
       setMessage('Login failed: ' + error.message)
@@ -99,7 +93,7 @@ export default function SimpleLogin() {
       </div>
     </div>
   )
-
+}
 
 const s = {
   page: { display: 'flex', minHeight: '100vh', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
