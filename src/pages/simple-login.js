@@ -8,21 +8,24 @@ export default function SimpleLogin() {
   const [message, setMessage] = useState('')
 
   const handleGoogleLogin = async () => {
-    setLoading(true)
-    setMessage('')
+  setLoading(true)
+  setMessage('')
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'https://mediclan.in/role-select',
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'https://mediclan.in/role-select',
+      queryParams: {
+        prompt: 'select_account',
       },
-    })
+    },
+  })
 
-    if (error) {
-      setMessage('Login failed: ' + error.message)
-      setLoading(false)
-    }
+  if (error) {
+    setMessage('Login failed: ' + error.message)
+    setLoading(false)
   }
+}
 
   return (
     <div style={s.page}>
