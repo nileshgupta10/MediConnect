@@ -151,19 +151,7 @@ export default function StoreProfile() {
           </div>
         </div>
       </div>
-      {/* Top Nav */}
-<div style={s.topNav}>
-  <div style={s.navInner}>
-    <a href="/store-profile" style={s.navLink}>🏪 Profile</a>
-    <a href="/post-job" style={s.navLink}>💼 Post Job</a>
-    <a href="/applicants" style={s.navLink}>👥 Applicants</a>
-    <a href="/goods-returns" style={s.navLink}>📦 Returns</a>
-    <button style={s.logoutBtn} onClick={async () => {
-      await supabase.auth.signOut()
-      router.push('/')
-    }}>🚪 Logout</button>
-  </div>
-</div>
+      
 
       <div style={s.cardWrap}>
         <div style={s.card}>
@@ -285,8 +273,4 @@ const s = {
   link: { color: '#0e9090', textDecoration: 'none', fontSize: 14, fontWeight: 700 },
   successMsg: { marginTop: 12, fontSize: 13, color: '#059669', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, fontWeight: 600 },
   errorMsg: { marginTop: 12, fontSize: 13, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', borderRadius: 8, fontWeight: 600 },
-topNav: { background: 'white', borderBottom: '2px solid #e2e8f0', padding: '12px 0' },
-navInner: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
-navLink: { fontSize: 14, fontWeight: 700, color: '#64748b', textDecoration: 'none', padding: '8px 12px', borderRadius: 8, transition: 'all 0.2s' },
-logoutBtn: { marginLeft: 'auto', padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
 }

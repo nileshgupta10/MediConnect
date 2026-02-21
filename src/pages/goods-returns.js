@@ -163,7 +163,7 @@ export default function GoodsReturns() {
     setSaving(false)
     if (updateError) { setMessage('Error: ' + updateError.message); return }
 
-    setMessage('Receipt recorded successfully!')
+    setMessage('Receipt saved successfully!')
     setShowReceiptModal(false)
     setSelectedReturn(null)
     await loadData(user.id)
@@ -313,7 +313,7 @@ export default function GoodsReturns() {
                 {ret.amount && <p style={s.amount}>Amount: ₹{parseFloat(ret.amount).toFixed(2)}</p>}
 
                 <div style={s.actions}>
-                  <button style={s.receiptBtn} onClick={() => openReceiptModal(ret)}>📝 Record Receipt</button>
+                  <button style={s.receiptBtn} onClick={() => openReceiptModal(ret)}>📝 Receipt / Inward</button>
                   <button style={s.deleteBtn} onClick={() => deleteReturn(ret.id)}>🗑 Delete</button>
                 </div>
               </div>
