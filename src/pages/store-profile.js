@@ -214,6 +214,12 @@ export default function StoreProfile() {
           <div style={s.links}>
             <a href="/post-job" style={s.link}>Post a Job →</a>
             <a href="/applicants" style={s.link}>View Applicants →</a>
+            <hr style={s.hr} />
+<div style={s.links}>
+  <a href="/post-job" style={s.link}>Post a Job →</a>
+  <a href="/applicants" style={s.link}>View Applicants →</a>
+  <a href="/goods-returns" style={s.link}>Goods Returns →</a>
+</div>
           </div>
         </div>
       </div>
