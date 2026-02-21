@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import StoreLayout from '../components/StoreLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
 
@@ -137,6 +138,7 @@ export default function StoreProfile() {
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <StoreLayout>
     <div style={s.page}>
       <div style={s.banner}>
         <img src={BANNER_IMG} alt="" style={s.bannerImg} />
@@ -149,6 +151,19 @@ export default function StoreProfile() {
           </div>
         </div>
       </div>
+      {/* Top Nav */}
+<div style={s.topNav}>
+  <div style={s.navInner}>
+    <a href="/store-profile" style={s.navLink}>🏪 Profile</a>
+    <a href="/post-job" style={s.navLink}>💼 Post Job</a>
+    <a href="/applicants" style={s.navLink}>👥 Applicants</a>
+    <a href="/goods-returns" style={s.navLink}>📦 Returns</a>
+    <button style={s.logoutBtn} onClick={async () => {
+      await supabase.auth.signOut()
+      router.push('/')
+    }}>🚪 Logout</button>
+  </div>
+</div>
 
       <div style={s.cardWrap}>
         <div style={s.card}>
@@ -210,20 +225,15 @@ export default function StoreProfile() {
             </p>
           )}
 
-          <hr style={s.hr} />
+          
           <div style={s.links}>
-            <a href="/post-job" style={s.link}>Post a Job →</a>
-            <a href="/applicants" style={s.link}>View Applicants →</a>
-            <hr style={s.hr} />
-<div style={s.links}>
-  <a href="/post-job" style={s.link}>Post a Job →</a>
-  <a href="/applicants" style={s.link}>View Applicants →</a>
-  <a href="/goods-returns" style={s.link}>Goods Returns →</a>
-</div>
+            
+
           </div>
         </div>
       </div>
     </div>
+    </StoreLayout>
   )
 }
 
@@ -275,4 +285,8 @@ const s = {
   link: { color: '#0e9090', textDecoration: 'none', fontSize: 14, fontWeight: 700 },
   successMsg: { marginTop: 12, fontSize: 13, color: '#059669', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, fontWeight: 600 },
   errorMsg: { marginTop: 12, fontSize: 13, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', borderRadius: 8, fontWeight: 600 },
+topNav: { background: 'white', borderBottom: '2px solid #e2e8f0', padding: '12px 0' },
+navInner: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' },
+navLink: { fontSize: 14, fontWeight: 700, color: '#64748b', textDecoration: 'none', padding: '8px 12px', borderRadius: 8, transition: 'all 0.2s' },
+logoutBtn: { marginLeft: 'auto', padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import StoreLayout from '../components/StoreLayout'
+
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80'
 const TABS = ['active', 'held', 'expired', 'closed']
@@ -132,6 +134,7 @@ export default function PostJob() {
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <StoreLayout>
     <div style={s.page}>
       {/* Banner */}
       <div style={s.banner}>
@@ -267,6 +270,7 @@ export default function PostJob() {
         </div>
       </div>
     </div>
+    </StoreLayout>
   )
 }
 

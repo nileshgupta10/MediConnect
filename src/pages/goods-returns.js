@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import StoreLayout from '../components/StoreLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
 
@@ -195,6 +196,7 @@ export default function GoodsReturns() {
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <StoreLayout>
     <div style={s.page}>
       {/* Banner */}
       <div style={s.banner}>
@@ -431,6 +433,7 @@ export default function GoodsReturns() {
         </div>
       )}
     </div>
+    </StoreLayout>
   )
 }
 

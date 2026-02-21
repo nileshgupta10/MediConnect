@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import StoreLayout from '../components/StoreLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
 
@@ -9,6 +10,7 @@ const isPast = (dateStr) => {
 }
 
 export default function ApplicantsPage() {
+  
   const [loading, setLoading] = useState(true)
   const [applicants, setApplicants] = useState([])
   const [appointments, setAppointments] = useState([])
@@ -66,6 +68,7 @@ export default function ApplicantsPage() {
   if (loading) return <p style={{ padding: 20, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <StoreLayout>
     <div style={s.page}>
       <div style={s.banner}>
         <img src={BANNER_IMG} alt="" style={s.bannerImg} />
@@ -135,6 +138,7 @@ export default function ApplicantsPage() {
         )}
       </div>
     </div>
+    </StoreLayout>
   )
 }
 
