@@ -17,7 +17,7 @@ export default function GoodsReturns() {
   const [completedReturns, setCompletedReturns] = useState([])
   
   // Form states - New Return
-  const [returnDate, setReturnDate] = useState('')
+  const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0])
   const [supplierId, setSupplierId] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
   const [invoiceNumber, setInvoiceNumber] = useState('')
