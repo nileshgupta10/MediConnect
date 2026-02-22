@@ -25,9 +25,6 @@ export default function StoreLayout({ children }) {
             <a href="/post-job" style={router.pathname === '/post-job' ? s.activeLink : s.link}>
               💼 Jobs
             </a>
-            <a href="/applicants" style={router.pathname === '/applicants' ? s.activeLink : s.link}>
-              👥 Applicants
-            </a>
             <a href="/goods-returns" style={router.pathname === '/goods-returns' ? s.activeLink : s.link}>
               📦 Returns
             </a>
@@ -59,3 +56,20 @@ const s = {
   logoutBtn: { padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' },
   content: { minHeight: 'calc(100vh - 60px)' },
 }
+```
+
+---
+
+## Quick Summary of Navigation Structure:
+
+**Top Nav (Always Visible):**
+```
+MediClan Logo | Profile | Jobs | Returns | .................... Logout
+```
+
+**Jobs Page Content:**
+```
+[Banner]
+👥 View Applicants & Appointments → [clickable link]
+[Post Job Form]
+[My Jobs Tabs]

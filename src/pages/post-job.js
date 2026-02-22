@@ -151,6 +151,12 @@ export default function PostJob() {
           </div>
         </div>
       </div>
+      {/* Quick Link to Applicants */}
+<div style={s.quickLinks}>
+  <a href="/applicants" style={s.quickLink}>
+    👥 View Applicants & Appointments →
+  </a>
+</div>
 
       <div style={s.body}>
         {/* Post form */}
@@ -323,4 +329,21 @@ const s = {
   disabledBanner: { background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 },
   expireBanner: { background: '#fef3c7', color: '#92400e', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 },
   expiredBanner: { background: '#fee2e2', color: '#991b1b', padding: '6px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 },
+quickLinks: { 
+  background: 'white', 
+  padding: '12px 16px', 
+  borderRadius: 12, 
+  marginBottom: 16, 
+  border: '1px solid #e2e8f0',
+  display: 'inline-block'
+},
+quickLink: { 
+  fontSize: 15, 
+  fontWeight: 800, 
+  color: '#0e9090', 
+  textDecoration: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8
+},
 }
