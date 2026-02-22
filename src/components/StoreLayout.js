@@ -11,7 +11,6 @@ export default function StoreLayout({ children }) {
 
   return (
     <div style={s.layout}>
-      {/* Top Navigation */}
       <nav style={s.nav}>
         <div style={s.navInner}>
           <div style={s.brand}>
@@ -35,7 +34,6 @@ export default function StoreLayout({ children }) {
         </div>
       </nav>
       
-      {/* Page Content */}
       <div style={s.content}>
         {children}
       </div>
@@ -56,20 +54,3 @@ const s = {
   logoutBtn: { padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' },
   content: { minHeight: 'calc(100vh - 60px)' },
 }
-```
-
----
-
-## Quick Summary of Navigation Structure:
-
-**Top Nav (Always Visible):**
-```
-MediClan Logo | Profile | Jobs | Returns | .................... Logout
-```
-
-**Jobs Page Content:**
-```
-[Banner]
-👥 View Applicants & Appointments → [clickable link]
-[Post Job Form]
-[My Jobs Tabs]
