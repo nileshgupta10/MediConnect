@@ -129,18 +129,7 @@ export default function Layout({ children }) {
             <Link href="/admin" style={styles.navLink}>Admin</Link>
           )}
 
-          {user && (
-            <button
-              style={styles.logout}
-              onClick={async () => {
-                try { sessionStorage.removeItem(CACHE_KEY) } catch {}
-                await supabase.auth.signOut()
-                router.replace('/')
-              }}
-            >
-              Logout
-            </button>
-          )}
+          
         </div>
       </header>
 
@@ -156,5 +145,5 @@ const styles = {
   navLink: { fontSize: 14, color: '#475569', textDecoration: 'none', fontWeight: 500 },
   navLinkBadge: { fontSize: 14, color: '#475569', textDecoration: 'none', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 },
   badge: { background: '#ef4444', color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  logout: { background: '#ef4444', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 14 },
+  
 }

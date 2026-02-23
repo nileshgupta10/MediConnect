@@ -16,7 +16,7 @@ export default function GoodsReturns() {
   const [pendingReturns, setPendingReturns] = useState([])
   const [completedReturns, setCompletedReturns] = useState([])
   
-  // Form states - New Return
+  // Form states - New Return (DEFAULT DATE TO TODAY)
   const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0])
   const [supplierId, setSupplierId] = useState('')
   const [invoiceDate, setInvoiceDate] = useState('')
@@ -115,8 +115,9 @@ export default function GoodsReturns() {
     setSaving(false)
     if (error) { setMessage('Error: ' + error.message); return }
     setMessage('Return request created successfully!')
-    // Reset form
-    setReturnDate(''); setSupplierId(''); setInvoiceDate(''); setInvoiceNumber('')
+    // Reset form (keep today's date)
+    setReturnDate(new Date().toISOString().split('T')[0])
+    setSupplierId(''); setInvoiceDate(''); setInvoiceNumber('')
     setGivenThrough(''); setReturnType(''); setDetails(''); setAmount('')
     await loadData(user.id)
     setActiveTab('pending')
@@ -197,150 +198,103 @@ export default function GoodsReturns() {
 
   return (
     <StoreLayout>
-    <div style={s.page}>
-      {/* Banner */}
-      <div style={s.banner}>
-        <img src={BANNER_IMG} alt="" style={s.bannerImg} />
-        <div style={s.bannerOverlay} />
-        <div style={s.bannerContent}>
-          <div style={s.bannerIcon}>📦</div>
-          <div>
-            <h2 style={s.bannerTitle}>Goods Returns Management</h2>
-            <p style={s.bannerSub}>
-              {pendingReturns.length} pending · {completedReturns.length} completed
-            </p>
+      <div style={s.page}>
+        {/* Banner */}
+        <div style={s.banner}>
+          <img src={BANNER_IMG} alt="" style={s.bannerImg} />
+          <div style={s.bannerOverlay} />
+          <div style={s.bannerContent}>
+            <div style={s.bannerIcon}>📦</div>
+            <div>
+              <h2 style={s.bannerTitle}>Goods Returns Management</h2>
+              <p style={s.bannerSub}>
+                {pendingReturns.length} pending · {completedReturns.length} completed
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div style={s.body}>
-        {/* Tabs */}
-        <div style={s.tabs}>
-          <button style={activeTab === 'new' ? s.activeTab : s.tab} onClick={() => setActiveTab('new')}>
-            ➕ New Return
-          </button>
-          <button style={activeTab === 'pending' ? s.activeTab : s.tab} onClick={() => setActiveTab('pending')}>
-            ⏳ Pending <span style={s.tabCount}>{pendingReturns.length}</span>
-          </button>
-          <button style={activeTab === 'completed' ? s.activeTab : s.tab} onClick={() => setActiveTab('completed')}>
-            ✓ Completed <span style={s.tabCount}>{completedReturns.length}</span>
-          </button>
-        </div>
-
-        {/* NEW RETURN TAB */}
-        {activeTab === 'new' && (
-          <div style={s.card}>
-            <h3 style={s.cardTitle}>Create New Return Request</h3>
-
-            <label style={s.label}>Return Date *</label>
-            <input type="date" style={s.input} value={returnDate} onChange={e => setReturnDate(e.target.value)} />
-
-            <label style={s.label}>Supplier / Party *</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <select style={{ ...s.input, flex: 1 }} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
-                <option value="">Select Supplier</option>
-                {suppliers.map(sup => (
-                  <option key={sup.id} value={sup.id}>{sup.name}</option>
-                ))}
-              </select>
-              <button style={s.addBtn} onClick={() => setShowAddSupplier(true)}>+ Add New</button>
-            </div>
-
-            <label style={s.label}>Invoice Date</label>
-            <input type="date" style={s.input} value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
-
-            <label style={s.label}>Invoice Number</label>
-            <input style={s.input} value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-12345" />
-
-            <label style={s.label}>Given Through (Optional)</label>
-            <input style={s.input} value={givenThrough} onChange={e => setGivenThrough(e.target.value)} placeholder="e.g. Person name, courier" />
-
-            <label style={s.label}>Return Type *</label>
-            <select style={s.input} value={returnType} onChange={e => setReturnType(e.target.value)}>
-              <option value="">Select Type</option>
-              <option value="expiry">📅 Expiry Return</option>
-              <option value="goods_return">📦 Goods Return (Non-moving)</option>
-              <option value="wrong_received_exchange">🔄 Wrong Received - Exchange</option>
-            </select>
-
-            <label style={s.label}>Details *</label>
-            <textarea style={s.textarea} value={details} onChange={e => setDetails(e.target.value)} placeholder="Enter details in points:&#10;• Item 1: Description&#10;• Item 2: Description" />
-
-            <label style={s.label}>Amount (Optional)</label>
-            <input type="number" step="0.01" style={s.input} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Leave empty for exchange" />
-
-            <button style={s.primaryBtn} onClick={submitReturn} disabled={saving}>
-              {saving ? 'Saving…' : 'Submit Return Request'}
+        <div style={s.body}>
+          {/* Tabs */}
+          <div style={s.tabs}>
+            <button style={activeTab === 'new' ? s.activeTab : s.tab} onClick={() => setActiveTab('new')}>
+              ➕ New Return
             </button>
-
-            {message && <p style={message.startsWith('Error') ? s.errorMsg : s.successMsg}>{message}</p>}
+            <button style={activeTab === 'pending' ? s.activeTab : s.tab} onClick={() => setActiveTab('pending')}>
+              ⏳ Pending <span style={s.tabCount}>{pendingReturns.length}</span>
+            </button>
+            <button style={activeTab === 'completed' ? s.activeTab : s.tab} onClick={() => setActiveTab('completed')}>
+              ✓ Completed <span style={s.tabCount}>{completedReturns.length}</span>
+            </button>
           </div>
-        )}
 
-        {/* PENDING TAB */}
-        {activeTab === 'pending' && (
-          <>
-            <div style={s.filterBox}>
-              <label style={s.filterLabel}>Filter by Supplier:</label>
-              <select style={s.filterSelect} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
-                <option value="">All Suppliers</option>
-                {suppliers.map(sup => (
-                  <option key={sup.id} value={sup.id}>{sup.name}</option>
-                ))}
-              </select>
-            </div>
+          {/* NEW RETURN TAB */}
+          {activeTab === 'new' && (
+            <div style={s.card}>
+              <h3 style={s.cardTitle}>Create New Return Request</h3>
 
-            {filteredPending.length === 0 && <div style={s.empty}>No pending returns</div>}
+              <label style={s.label}>Return Date *</label>
+              <input type="date" style={s.input} value={returnDate} onChange={e => setReturnDate(e.target.value)} />
 
-            {filteredPending.map(ret => (
-              <div key={ret.id} style={s.returnCard}>
-                <div style={s.returnHeader}>
-                  <div>
-                    <h4 style={s.returnSupplier}>{ret.suppliers?.name}</h4>
-                    <p style={s.returnDate}>Return Date: {new Date(ret.return_date).toLocaleDateString('en-IN')}</p>
-                  </div>
-                  <span style={s.typeBadge}>{getReturnTypeLabel(ret.return_type)}</span>
-                </div>
-
-                {ret.invoice_number && <p style={s.detail}><b>Invoice:</b> {ret.invoice_number} ({ret.invoice_date ? new Date(ret.invoice_date).toLocaleDateString('en-IN') : 'No date'})</p>}
-                {ret.given_through && <p style={s.detail}><b>Given Through:</b> {ret.given_through}</p>}
-                
-                <div style={s.detailsBox}>
-                  <b style={s.detailsLabel}>Details:</b>
-                  <p style={s.detailsText}>{ret.details}</p>
-                </div>
-
-                {ret.amount && <p style={s.amount}>Amount: ₹{parseFloat(ret.amount).toFixed(2)}</p>}
-
-                <div style={s.actions}>
-                  <button style={s.receiptBtn} onClick={() => openReceiptModal(ret)}>📝 Receipt / Inward</button>
-                  <button style={s.deleteBtn} onClick={() => deleteReturn(ret.id)}>🗑 Delete</button>
-                </div>
+              <label style={s.label}>Supplier / Party *</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select style={{ ...s.input, flex: 1 }} value={supplierId} onChange={e => setSupplierId(e.target.value)}>
+                  <option value="">Select Supplier</option>
+                  {suppliers.map(sup => (
+                    <option key={sup.id} value={sup.id}>{sup.name}</option>
+                  ))}
+                </select>
+                <button style={s.addBtn} onClick={() => setShowAddSupplier(true)}>+ Add New</button>
               </div>
-            ))}
-          </>
-        )}
 
-        {/* COMPLETED TAB */}
-        {activeTab === 'completed' && (
-          <>
-            <div style={s.filterBox}>
-              <label style={s.filterLabel}>Filter by Supplier:</label>
-              <select style={s.filterSelect} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
-                <option value="">All Suppliers</option>
-                {suppliers.map(sup => (
-                  <option key={sup.id} value={sup.id}>{sup.name}</option>
-                ))}
+              <label style={s.label}>Invoice Date</label>
+              <input type="date" style={s.input} value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+
+              <label style={s.label}>Invoice Number</label>
+              <input style={s.input} value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-12345" />
+
+              <label style={s.label}>Given Through (Optional)</label>
+              <input style={s.input} value={givenThrough} onChange={e => setGivenThrough(e.target.value)} placeholder="e.g. Person name, courier" />
+
+              <label style={s.label}>Return Type *</label>
+              <select style={s.input} value={returnType} onChange={e => setReturnType(e.target.value)}>
+                <option value="">Select Type</option>
+                <option value="expiry">📅 Expiry Return</option>
+                <option value="goods_return">📦 Goods Return (Non-moving)</option>
+                <option value="wrong_received_exchange">🔄 Wrong Received - Exchange</option>
               </select>
+
+              <label style={s.label}>Details *</label>
+              <textarea style={s.textarea} value={details} onChange={e => setDetails(e.target.value)} placeholder="Enter details in points:&#10;• Item 1: Description&#10;• Item 2: Description" />
+
+              <label style={s.label}>Amount (Optional)</label>
+              <input type="number" step="0.01" style={s.input} value={amount} onChange={e => setAmount(e.target.value)} placeholder="Leave empty for exchange" />
+
+              <button style={s.primaryBtn} onClick={submitReturn} disabled={saving}>
+                {saving ? 'Saving…' : 'Submit Return Request'}
+              </button>
+
+              {message && <p style={message.startsWith('Error') ? s.errorMsg : s.successMsg}>{message}</p>}
             </div>
+          )}
 
-            {filteredCompleted.length === 0 && <div style={s.empty}>No completed returns</div>}
+          {/* PENDING TAB */}
+          {activeTab === 'pending' && (
+            <>
+              <div style={s.filterBox}>
+                <label style={s.filterLabel}>Filter by Supplier:</label>
+                <select style={s.filterSelect} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                  <option value="">All Suppliers</option>
+                  {suppliers.map(sup => (
+                    <option key={sup.id} value={sup.id}>{sup.name}</option>
+                  ))}
+                </select>
+              </div>
 
-            {filteredCompleted.map(ret => {
-              const receipt = ret.return_receipts?.[0]
-              return (
-                <div key={ret.id} style={{ ...s.returnCard, background: '#f8fafc', opacity: 0.9 }}>
-                  <div style={s.completedBanner}>✓ Completed</div>
+              {filteredPending.length === 0 && <div style={s.empty}>No pending returns</div>}
+
+              {filteredPending.map(ret => (
+                <div key={ret.id} style={s.returnCard}>
                   <div style={s.returnHeader}>
                     <div>
                       <h4 style={s.returnSupplier}>{ret.suppliers?.name}</h4>
@@ -349,90 +303,137 @@ export default function GoodsReturns() {
                     <span style={s.typeBadge}>{getReturnTypeLabel(ret.return_type)}</span>
                   </div>
 
-                  {ret.invoice_number && <p style={s.detail}><b>Invoice:</b> {ret.invoice_number}</p>}
+                  {ret.invoice_number && <p style={s.detail}><b>Invoice:</b> {ret.invoice_number} ({ret.invoice_date ? new Date(ret.invoice_date).toLocaleDateString('en-IN') : 'No date'})</p>}
+                  {ret.given_through && <p style={s.detail}><b>Given Through:</b> {ret.given_through}</p>}
                   
                   <div style={s.detailsBox}>
                     <b style={s.detailsLabel}>Details:</b>
                     <p style={s.detailsText}>{ret.details}</p>
                   </div>
 
-                  {ret.amount && <p style={s.amount}>Return Amount: ₹{parseFloat(ret.amount).toFixed(2)}</p>}
+                  {ret.amount && <p style={s.amount}>Amount: ₹{parseFloat(ret.amount).toFixed(2)}</p>}
 
-                  {receipt && (
-                    <div style={s.receiptBox}>
-                      <b>Receipt Details:</b>
-                      <p style={s.detail}>Date: {new Date(receipt.receipt_date).toLocaleDateString('en-IN')}</p>
-                      <p style={s.detail}>Received By: {receipt.received_by}</p>
-                      {receipt.bill_number && <p style={s.detail}>Bill No: {receipt.bill_number}</p>}
-                      {receipt.amount && <p style={s.detail}>Amount: ₹{parseFloat(receipt.amount).toFixed(2)}</p>}
-                    </div>
-                  )}
+                  <div style={s.actions}>
+                    <button style={s.receiptBtn} onClick={() => openReceiptModal(ret)}>📝 Receipt / Inward</button>
+                    <button style={s.deleteBtn} onClick={() => deleteReturn(ret.id)}>🗑 Delete</button>
+                  </div>
                 </div>
-              )
-            })}
-          </>
+              ))}
+            </>
+          )}
+
+          {/* COMPLETED TAB */}
+          {activeTab === 'completed' && (
+            <>
+              <div style={s.filterBox}>
+                <label style={s.filterLabel}>Filter by Supplier:</label>
+                <select style={s.filterSelect} value={filterSupplier} onChange={e => setFilterSupplier(e.target.value)}>
+                  <option value="">All Suppliers</option>
+                  {suppliers.map(sup => (
+                    <option key={sup.id} value={sup.id}>{sup.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {filteredCompleted.length === 0 && <div style={s.empty}>No completed returns</div>}
+
+              {filteredCompleted.map(ret => {
+                const receipt = ret.return_receipts?.[0]
+                return (
+                  <div key={ret.id} style={{ ...s.returnCard, background: '#f8fafc', opacity: 0.9 }}>
+                    <div style={s.completedBanner}>✓ Completed</div>
+                    <div style={s.returnHeader}>
+                      <div>
+                        <h4 style={s.returnSupplier}>{ret.suppliers?.name}</h4>
+                        <p style={s.returnDate}>Return Date: {new Date(ret.return_date).toLocaleDateString('en-IN')}</p>
+                      </div>
+                      <span style={s.typeBadge}>{getReturnTypeLabel(ret.return_type)}</span>
+                    </div>
+
+                    {ret.invoice_number && <p style={s.detail}><b>Invoice:</b> {ret.invoice_number}</p>}
+                    
+                    <div style={s.detailsBox}>
+                      <b style={s.detailsLabel}>Details:</b>
+                      <p style={s.detailsText}>{ret.details}</p>
+                    </div>
+
+                    {ret.amount && <p style={s.amount}>Return Amount: ₹{parseFloat(ret.amount).toFixed(2)}</p>}
+
+                    {receipt && (
+                      <div style={s.receiptBox}>
+                        <b>Receipt Details:</b>
+                        <p style={s.detail}>Date: {new Date(receipt.receipt_date).toLocaleDateString('en-IN')}</p>
+                        <p style={s.detail}>Received By: {receipt.received_by}</p>
+                        {receipt.bill_number && <p style={s.detail}>Bill No: {receipt.bill_number}</p>}
+                        {receipt.amount && <p style={s.detail}>Amount: ₹{parseFloat(receipt.amount).toFixed(2)}</p>}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Add Supplier Modal */}
+        {showAddSupplier && (
+          <div style={s.modalOverlay} onClick={() => setShowAddSupplier(false)}>
+            <div style={s.modal} onClick={e => e.stopPropagation()}>
+              <h3 style={s.modalTitle}>Add New Supplier</h3>
+              
+              <label style={s.label}>Supplier Name *</label>
+              <input style={s.input} value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} placeholder="Supplier name" />
+              
+              <label style={s.label}>Address</label>
+              <input style={s.input} value={newSupplierAddress} onChange={e => setNewSupplierAddress(e.target.value)} placeholder="Address" />
+              
+              <label style={s.label}>Phone</label>
+              <input style={s.input} value={newSupplierPhone} onChange={e => setNewSupplierPhone(e.target.value)} placeholder="Phone number" />
+              
+              <label style={s.label}>Contact Person</label>
+              <input style={s.input} value={newSupplierContact} onChange={e => setNewSupplierContact(e.target.value)} placeholder="Contact person name" />
+              
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button style={s.primaryBtn} onClick={addSupplier} disabled={saving}>
+                  {saving ? 'Adding…' : 'Add Supplier'}
+                </button>
+                <button style={s.cancelBtn} onClick={() => setShowAddSupplier(false)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Receipt Modal */}
+        {showReceiptModal && selectedReturn && (
+          <div style={s.modalOverlay} onClick={() => setShowReceiptModal(false)}>
+            <div style={s.modal} onClick={e => e.stopPropagation()}>
+              <h3 style={s.modalTitle}>Receipt / Inward Entry</h3>
+              <p style={s.modalSub}>For: {suppliers.find(s => s.id === selectedReturn.supplier_id)?.name}</p>
+              
+              <label style={s.label}>Receipt Date *</label>
+              <input type="date" style={s.input} value={receiptDate} onChange={e => setReceiptDate(e.target.value)} />
+              
+              <label style={s.label}>Received By *</label>
+              <input style={s.input} value={receivedBy} onChange={e => setReceivedBy(e.target.value)} placeholder="Person who received" />
+              
+              <label style={s.label}>Bill Number (Optional)</label>
+              <input style={s.input} value={receiptBillNo} onChange={e => setReceiptBillNo(e.target.value)} placeholder="Credit note / bill number" />
+              
+              <label style={s.label}>Amount (Optional)</label>
+              <input type="number" step="0.01" style={s.input} value={receiptAmount} onChange={e => setReceiptAmount(e.target.value)} placeholder="Amount received" />
+              
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button style={s.primaryBtn} onClick={submitReceipt} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save Receipt & Complete'}
+                </button>
+                <button style={s.cancelBtn} onClick={() => setShowReceiptModal(false)}>Cancel</button>
+              </div>
+
+              {message && <p style={message.startsWith('Error') ? s.errorMsg : s.successMsg}>{message}</p>}
+            </div>
+          </div>
         )}
       </div>
-
-      {/* Add Supplier Modal */}
-      {showAddSupplier && (
-        <div style={s.modalOverlay} onClick={() => setShowAddSupplier(false)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <h3 style={s.modalTitle}>Add New Supplier</h3>
-            
-            <label style={s.label}>Supplier Name *</label>
-            <input style={s.input} value={newSupplierName} onChange={e => setNewSupplierName(e.target.value)} placeholder="Supplier name" />
-            
-            <label style={s.label}>Address</label>
-            <input style={s.input} value={newSupplierAddress} onChange={e => setNewSupplierAddress(e.target.value)} placeholder="Address" />
-            
-            <label style={s.label}>Phone</label>
-            <input style={s.input} value={newSupplierPhone} onChange={e => setNewSupplierPhone(e.target.value)} placeholder="Phone number" />
-            
-            <label style={s.label}>Contact Person</label>
-            <input style={s.input} value={newSupplierContact} onChange={e => setNewSupplierContact(e.target.value)} placeholder="Contact person name" />
-            
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button style={s.primaryBtn} onClick={addSupplier} disabled={saving}>
-                {saving ? 'Adding…' : 'Add Supplier'}
-              </button>
-              <button style={s.cancelBtn} onClick={() => setShowAddSupplier(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Receipt Modal */}
-      {showReceiptModal && selectedReturn && (
-        <div style={s.modalOverlay} onClick={() => setShowReceiptModal(false)}>
-          <div style={s.modal} onClick={e => e.stopPropagation()}>
-            <h3 style={s.modalTitle}>Record Receipt</h3>
-            <p style={s.modalSub}>For: {suppliers.find(s => s.id === selectedReturn.supplier_id)?.name}</p>
-            
-            <label style={s.label}>Receipt Date *</label>
-            <input type="date" style={s.input} value={receiptDate} onChange={e => setReceiptDate(e.target.value)} />
-            
-            <label style={s.label}>Received By *</label>
-            <input style={s.input} value={receivedBy} onChange={e => setReceivedBy(e.target.value)} placeholder="Person who received" />
-            
-            <label style={s.label}>Bill Number (Optional)</label>
-            <input style={s.input} value={receiptBillNo} onChange={e => setReceiptBillNo(e.target.value)} placeholder="Credit note / bill number" />
-            
-            <label style={s.label}>Amount (Optional)</label>
-            <input type="number" step="0.01" style={s.input} value={receiptAmount} onChange={e => setReceiptAmount(e.target.value)} placeholder="Amount received" />
-            
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button style={s.primaryBtn} onClick={submitReceipt} disabled={saving}>
-                {saving ? 'Saving…' : 'Record Receipt & Complete'}
-              </button>
-              <button style={s.cancelBtn} onClick={() => setShowReceiptModal(false)}>Cancel</button>
-            </div>
-
-            {message && <p style={message.startsWith('Error') ? s.errorMsg : s.successMsg}>{message}</p>}
-          </div>
-        </div>
-      )}
-    </div>
     </StoreLayout>
   )
 }
