@@ -8,7 +8,7 @@ const PAGE_SIZE = 20
 
 export default function AdminPage() {
   const router = useRouter()
-  const [activeSection, setActiveSection] = useState('pharmacists')
+  const activeSection = router.query.section || 'pharmacists'
   const [status, setStatus] = useState('pending')
   const [pharmacists, setPharmacists] = useState([])
   const [stores, setStores] = useState([])
@@ -168,21 +168,6 @@ export default function AdminPage() {
   return (
     <AdminLayout activeSection={activeSection}>
     <div style={styles.page}>
-      <h1 style={styles.heading}>Admin Panel</h1>
-
-      {/* SECTION TABS */}
-      <div style={styles.sectionTabs}>
-        {['pharmacists', 'stores', 'jobs'].map(s => (
-          <button
-            key={s}
-            style={activeSection === s ? styles.activeSectionTab : styles.sectionTab}
-            onClick={() => setActiveSection(s)}
-          >
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-
       {/* SEARCH */}
       <div style={styles.searchBox}>
         <input
@@ -389,9 +374,7 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
 const styles = {
   page: { padding: 20, maxWidth: 800, margin: '0 auto', fontFamily: 'system-ui, sans-serif' },
   heading: { fontSize: 26, fontWeight: 700, marginBottom: 16 },
-  sectionTabs: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  sectionTab: { padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: 14, fontWeight: 500 },
-  activeSectionTab: { padding: '9px 18px', borderRadius: 8, border: '1px solid #2563eb', background: '#2563eb', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600 },
+
   searchBox: { marginBottom: 14 },
   searchInput: { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' },
   statusRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
