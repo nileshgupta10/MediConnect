@@ -24,6 +24,9 @@ export default function StoreLayout({ children }) {
             <a href="/post-job" style={router.pathname === '/post-job' ? s.activeLink : s.link}>
               💼 Jobs
             </a>
+            <a href="/applicants" style={router.pathname === '/applicants' ? s.activeLink : s.link}>
+              👥 Applicants
+            </a>
             <a href="/goods-returns" style={router.pathname === '/goods-returns' ? s.activeLink : s.link}>
               📦 Returns
             </a>
