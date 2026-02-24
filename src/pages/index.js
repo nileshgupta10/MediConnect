@@ -201,6 +201,8 @@ export default function HomePage() {
     <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
       <a href="/privacy-policy" style={{ color: '#94a3b8', textDecoration: 'none' }}>Privacy Policy</a>
       <a href="/terms-of-service" style={{ color: '#94a3b8', textDecoration: 'none' }}>Terms of Service</a>
+      <a href="/disclaimer" style={{ color: '#94a3b8', textDecoration: 'none' }}>Disclaimer</a>
+      <a href="mailto:askmediclan@gmail.com" style={{ color: '#94a3b8', textDecoration: 'none' }}>Contact Us</a>
     </div>
     <p style={s.footerCopy}>© 2025 MediClan. Built for India's pharmacy community.</p>
   </div>

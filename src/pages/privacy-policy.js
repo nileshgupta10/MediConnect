@@ -84,7 +84,7 @@ export default function PrivacyPolicy() {
             If you have any questions about this Privacy Policy, please contact us at:
           </p>
           <p style={s.text}>
-            Email: support@mediclan.in<br />
+            Email: <a href="mailto:askmediclan@gmail.com" style={{ color: '#0e9090', fontWeight: 700 }}>askmediclan@gmail.com</a><br />
             Website: mediclan.in
           </p>
         </section>
