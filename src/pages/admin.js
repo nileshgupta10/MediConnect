@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import AdminLayout from '../components/AdminLayout'
 
 const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
 const PAGE_SIZE = 20
@@ -165,6 +166,7 @@ export default function AdminPage() {
   if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>
 
   return (
+    <AdminLayout activeSection={activeSection}>
     <div style={styles.page}>
       <h1 style={styles.heading}>Admin Panel</h1>
 
@@ -291,6 +293,7 @@ export default function AdminPage() {
         <button style={styles.loadMoreBtn} onClick={loadMore}>Load More</button>
       )}
     </div>
+    </AdminLayout>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { compressImage } from '../lib/imageCompress'
+import PharmacistLayout from '../components/PharmacistLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=1200&q=80'
 
@@ -144,6 +145,7 @@ export default function PharmacistProfile() {
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <PharmacistLayout>
     <div style={s.page}>
       {/* Banner */}
       <div style={s.banner}>
@@ -243,6 +245,7 @@ export default function PharmacistProfile() {
         </div>
       </div>
     </div>
+    </PharmacistLayout>
   )
 }
 

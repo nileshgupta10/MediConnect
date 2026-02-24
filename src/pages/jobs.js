@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/router'
+import PharmacistLayout from '../components/PharmacistLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1576602976047-174e57a47881?w=1200&q=80'
 
@@ -114,6 +115,7 @@ export default function JobsPage() {
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
 
   return (
+    <PharmacistLayout>
     <div style={s.page}>
       <div style={s.banner}>
         <img src={BANNER_IMG} alt="" style={s.bannerImg} />
@@ -227,6 +229,7 @@ export default function JobsPage() {
         )}
       </div>
     </div>
+    </PharmacistLayout>
   )
 }
 
