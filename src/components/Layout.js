@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useRouter } from 'next/router'
 
-const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
+const ADMIN_EMAIL = 'askmediclan@gmail.com'
 const CACHE_KEY = 'mediclan_upcoming_count'
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 

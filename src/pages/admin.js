@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import AdminLayout from '../components/AdminLayout'
 
-const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
+const ADMIN_EMAIL = 'askmediclan@gmail.com'
 const PAGE_SIZE = 20
 
 export default function AdminPage() {

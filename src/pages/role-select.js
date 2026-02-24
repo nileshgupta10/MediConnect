@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 
-const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
+const ADMIN_EMAIL = 'askmediclan@gmail.com'
 
 export default function RoleSelect() {
   const router = useRouter()
