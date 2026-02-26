@@ -78,7 +78,7 @@ export default function PharmacistLayout({ children }) {
 }
 
 const s = {
-  layout: { minHeight: '100vh', background: '#f0fdfd' },
+  layout: { minHeight: '100vh', width: '100%', background: '#f0fdfd' },
   nav: { background: 'white', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 },
   navInner: { maxWidth: 1200, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'space-between' },
   brand: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
@@ -89,5 +89,5 @@ const s = {
   activeLink: { fontSize: 13, fontWeight: 800, color: '#0e9090', textDecoration: 'none', padding: '7px 10px', borderRadius: 8, background: '#e0f7f7', whiteSpace: 'nowrap' },
   badge: { background: '#ef4444', color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   logoutBtn: { padding: '7px 12px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-  content: { minHeight: 'calc(100vh - 60px)' },
+  content: { minHeight: 'calc(100vh - 60px)', width: '100%' },
 }

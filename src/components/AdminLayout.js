@@ -42,7 +42,7 @@ export default function AdminLayout({ children, activeSection }) {
 }
 
 const s = {
-  layout: { minHeight: '100vh', background: '#f8fafc' },
+  layout: { minHeight: '100vh', width: '100%', background: '#f8fafc' },
   nav: { background: 'white', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 },
   navInner: { maxWidth: 1200, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'space-between' },
   brand: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
@@ -53,5 +53,5 @@ const s = {
   link: { fontSize: 13, fontWeight: 700, color: '#64748b', textDecoration: 'none', padding: '7px 10px', borderRadius: 8, whiteSpace: 'nowrap' },
   activeLink: { fontSize: 13, fontWeight: 800, color: '#2563eb', textDecoration: 'none', padding: '7px 10px', borderRadius: 8, background: '#eff6ff', whiteSpace: 'nowrap' },
   logoutBtn: { padding: '7px 12px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-  content: { minHeight: 'calc(100vh - 60px)' },
+  content: { minHeight: 'calc(100vh - 60px)', width: '100%' },
 }
