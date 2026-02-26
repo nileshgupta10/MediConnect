@@ -59,7 +59,7 @@ export default function AdminPage() {
     const from = pageNum * PAGE_SIZE
     const { data } = await supabase
       .from('store_profiles')
-      .select('user_id, store_name, verification_status, is_verified, address')
+      .select('user_id, store_name, verification_status, is_verified, address, license_url')
       .eq('verification_status', status)
       .order('store_name', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
@@ -232,6 +232,7 @@ export default function AdminPage() {
               status={status}
               onApprove={() => updateStoreStatus(item.user_id, 'approved')}
               onReject={() => updateStoreStatus(item.user_id, 'rejected')}
+              onViewLicense={() => viewLicense(item)}
               getPerformance={getPerformance}
             />
           ))}
@@ -327,7 +328,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [loadingPerf, setLoadingPerf] = useState(false)
 
@@ -348,6 +349,11 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
       </p>
 
       <div style={styles.cardActions}>
+        {item.license_url ? (
+          <button style={styles.licenseBtn} onClick={onViewLicense}>📄 View License</button>
+        ) : (
+          <span style={styles.noLicense}>⚠️ No license uploaded</span>
+        )}
         <button style={styles.perfBtn} onClick={loadPerf} disabled={loadingPerf}>
           {loadingPerf ? 'Loading…' : perf ? 'Hide Stats' : '📊 View Stats'}
         </button>
@@ -388,6 +394,7 @@ const styles = {
   badge: { background: '#e5e7eb', padding: '2px 8px', borderRadius: 12, fontSize: 12 },
   cardActions: { display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' },
   licenseBtn: { padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  noLicense: { fontSize: 13, color: '#f59e0b', fontWeight: 600 },
   perfBtn: { padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e40af' },
   perfBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', marginTop: 10 },
   perfItem: { fontSize: 14, color: '#0f172a', margin: '4px 0' },
