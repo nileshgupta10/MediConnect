@@ -22,6 +22,7 @@ export default function PostJob() {
   const [activeTab, setActiveTab] = useState('active')
   const [user, setUser] = useState(null)
   const [storeName, setStoreName] = useState('')
+  const [isVerified, setIsVerified] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => { init() }, [])
@@ -30,8 +31,9 @@ export default function PostJob() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/simple-login'); return }
     setUser(user)
-    const { data: store } = await supabase.from('store_profiles').select('store_name').eq('user_id', user.id).maybeSingle()
+    const { data: store } = await supabase.from('store_profiles').select('store_name, is_verified').eq('user_id', user.id).maybeSingle()
     if (store?.store_name) setStoreName(store.store_name.split(' ')[0])
+    if (store?.is_verified) setIsVerified(true)
     await loadJobs(user.id)
     setLoading(false)
   }
@@ -132,6 +134,21 @@ export default function PostJob() {
   const canPost = activeCount < MAX_ACTIVE_JOBS
 
   if (loading) return <p style={{ padding: 40, fontFamily: 'Nunito, sans-serif' }}>Loading…</p>
+
+  if (!isVerified) return (
+    <StoreLayout>
+      <div style={gateS.page}>
+        <div style={gateS.card}>
+          <div style={gateS.icon}>🔒</div>
+          <h2 style={gateS.title}>Verification Required</h2>
+          <p style={gateS.text}>
+            Your store profile needs to be verified before you can post jobs. Upload your store license and our team will review it shortly.
+          </p>
+          <a href="/store-profile" style={gateS.btn}>Go to Profile → Upload License</a>
+        </div>
+      </div>
+    </StoreLayout>
+  )
 
   return (
     <StoreLayout>
@@ -346,4 +363,13 @@ quickLink: {
   alignItems: 'center',
   gap: 8
 },
+}
+
+const gateS = {
+  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  card: { background: 'white', borderRadius: 20, padding: '48px 36px', maxWidth: 440, width: '100%', boxShadow: '0 12px 40px rgba(0,0,0,0.1)', textAlign: 'center' },
+  icon: { fontSize: 52, marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: 900, color: '#0f3460', marginBottom: 12 },
+  text: { fontSize: 15, color: '#64748b', lineHeight: 1.75, marginBottom: 28 },
+  btn: { display: 'inline-block', background: '#0e9090', color: 'white', padding: '12px 24px', borderRadius: 12, fontWeight: 800, fontSize: 15, textDecoration: 'none' },
 }

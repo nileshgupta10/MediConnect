@@ -17,6 +17,7 @@ export default function JobsPage() {
   const [applications, setApplications] = useState([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
+  const [isVerified, setIsVerified] = useState(false)
   const [activeTab, setActiveTab] = useState('jobs')
   const [apptTab, setApptTab] = useState('upcoming')
   const [maxDistance, setMaxDistance] = useState(50)
@@ -33,7 +34,7 @@ export default function JobsPage() {
 
     if (user) {
       const [profileRes, appsRes, apptsRes] = await Promise.all([
-        supabase.from('pharmacist_profiles').select('latitude, longitude, name').eq('user_id', user.id).maybeSingle(),
+        supabase.from('pharmacist_profiles').select('latitude, longitude, name, is_verified').eq('user_id', user.id).maybeSingle(),
         supabase.from('job_applications').select('job_id, status').eq('pharmacist_id', user.id),
         supabase.from('appointments').select(`
           id, appointment_date, appointment_time, status, pharmacist_note,
@@ -43,6 +44,7 @@ export default function JobsPage() {
       ])
       if (profileRes.data?.latitude) setUserLocation({ lat: profileRes.data.latitude, lng: profileRes.data.longitude })
       if (profileRes.data?.name) setPharmacistName(profileRes.data.name.split(' ')[0])
+      if (profileRes.data?.is_verified) setIsVerified(true)
       setApplications(appsRes.data || [])
       setAppointments(apptsRes.data || [])
     }
@@ -170,7 +172,7 @@ export default function JobsPage() {
                   <div style={s.jobCardTop}>
                     <div>
                       <h3 style={s.jobTitle}>{job.title}</h3>
-                      <p style={s.jobLocation}>📍 {job.location}</p>
+                      <p style={s.jobLocation}>📍 {isVerified ? job.location : '📍 Verify your profile to see location'}</p>
                     </div>
                     {job.distance != null && (
                       <span style={s.distBadge}>📍 {job.distance.toFixed(1)} km</span>
@@ -181,14 +183,22 @@ export default function JobsPage() {
                     {job.required_experience && <span style={s.tag}>🎓 {job.required_experience}</span>}
                     {job.num_openings && <span style={s.tag}>👥 {job.num_openings} opening{job.num_openings > 1 ? 's' : ''}</span>}
                   </div>
-                  {job.preferred_software && <p style={s.jobDetail}><b>Software:</b> {job.preferred_software}</p>}
-                  {job.description && <p style={s.jobDetail}>{job.description}</p>}
-                  {applied ? (
-                    <div style={s.appliedBadge}>✓ Applied</div>
-                  ) : (
-                    <button style={s.applyBtn} onClick={() => applyForJob(job.id)}>
-                      {user ? 'Apply Now →' : 'Login to Apply'}
-                    </button>
+                  {isVerified && job.preferred_software && <p style={s.jobDetail}><b>Software:</b> {job.preferred_software}</p>}
+                  {isVerified && job.description && <p style={s.jobDetail}>{job.description}</p>}
+                  {!isVerified && (
+                    <div style={s.verifyPrompt}>
+                      🔒 Get verified to see full details and apply
+                      <a href="/pharmacist-profile" style={s.verifyLink}> Upload License →</a>
+                    </div>
+                  )}
+                  {isVerified && (
+                    applied ? (
+                      <div style={s.appliedBadge}>✓ Applied</div>
+                    ) : (
+                      <button style={s.applyBtn} onClick={() => applyForJob(job.id)}>
+                        {user ? 'Apply Now →' : 'Login to Apply'}
+                      </button>
+                    )
                   )}
                 </div>
               )
@@ -331,6 +341,8 @@ const s = {
   jobDetail: { fontSize: 14, color: '#475569', margin: '4px 0' },
   applyBtn: { marginTop: 12, padding: '10px 20px', border: 'none', borderRadius: 10, background: '#0e9090', color: 'white', cursor: 'pointer', fontWeight: 800, fontSize: 14 },
   appliedBadge: { marginTop: 12, padding: '8px 14px', background: '#d1fae5', color: '#065f46', borderRadius: 10, display: 'inline-block', fontSize: 13, fontWeight: 800 },
+  verifyPrompt: { marginTop: 12, padding: '10px 14px', background: '#fef3c7', color: '#92400e', borderRadius: 10, fontSize: 13, fontWeight: 600 },
+  verifyLink: { color: '#0e9090', fontWeight: 800, textDecoration: 'none' },
   apptCard: { background: 'white', padding: 20, borderRadius: 16, boxShadow: '0 4px 16px rgba(0,0,0,0.06)', marginBottom: 14, border: '1px solid #e2e8f0' },
   pastCard: { background: '#f8fafc', boxShadow: 'none', opacity: 0.85 },
   apptTitle: { fontSize: 17, fontWeight: 800, color: '#0f3460', margin: '0 0 8px' },

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { compressImage } from '../lib/imageCompress'
 import StoreLayout from '../components/StoreLayout'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
@@ -11,6 +12,7 @@ export default function StoreProfile() {
   const [message, setMessage] = useState('')
   const [locating, setLocating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [mapsLoaded, setMapsLoaded] = useState(false)
   const [storeName, setStoreName] = useState('')
   const [phone, setPhone] = useState('')
@@ -20,6 +22,8 @@ export default function StoreProfile() {
   const [address, setAddress] = useState('')
   const [addressInput, setAddressInput] = useState('')
   const [ownerFirstName, setOwnerFirstName] = useState('')
+  const cameraInputRef = useRef(null)
+  const galleryInputRef = useRef(null)
 
   useEffect(() => {
     if (window.google) { setMapsLoaded(true); return }
@@ -60,17 +64,13 @@ export default function StoreProfile() {
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
-
-    // Get Google display name for greeting
     const fullName = user.user_metadata?.full_name || ''
     setOwnerFirstName(fullName.split(' ')[0] || '')
-
     const { data } = await supabase
       .from('store_profiles')
-      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, is_verified, verification_status')
+      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, license_url, is_verified, verification_status')
       .eq('user_id', user.id)
       .maybeSingle()
-
     if (data) {
       setProfile(data)
       setStoreName(data.store_name || '')
@@ -122,7 +122,24 @@ export default function StoreProfile() {
     await load(); setMessage('Profile saved.'); setEditing(false)
   }
 
-  // Banner greeting logic
+  const uploadLicense = async (file) => {
+    if (!file) return
+    setUploading(true); setMessage('Uploading…')
+    try {
+      const compressed = await compressImage(file)
+      const { data: { user } } = await supabase.auth.getUser()
+      const path = `store-licenses/${user.id}.jpg`
+      const { error: uploadError } = await supabase.storage.from('licenses').upload(path, compressed, { upsert: true })
+      if (uploadError) { setMessage('Upload failed: ' + uploadError.message); return }
+      const { error: updateError } = await supabase.from('store_profiles')
+        .update({ license_url: path, is_verified: false, verification_status: 'pending' })
+        .eq('user_id', user.id)
+      if (updateError) { setMessage('Error: ' + updateError.message); return }
+      await load(); setMessage('License uploaded. Pending verification.')
+    } catch (e) { setMessage('Error: ' + e.message) }
+    finally { setUploading(false) }
+  }
+
   const getBannerGreeting = () => {
     if (storeName) return `Welcome, ${storeName}! 🏪`
     if (ownerFirstName) return `Welcome, ${ownerFirstName}! 👋`
@@ -151,7 +168,6 @@ export default function StoreProfile() {
           </div>
         </div>
       </div>
-      
 
       <div style={s.cardWrap}>
         <div style={s.card}>
@@ -170,7 +186,34 @@ export default function StoreProfile() {
                   📍 View Store on Google Maps
                 </button>
               )}
+
+              {/* License section in view mode */}
+              <div style={s.licenseSection}>
+                <span style={s.licenseSectionLabel}>STORE LICENSE</span>
+                <div style={s.licenseBox}>
+                  {profile?.license_url ? (
+                    <span style={s.licenseOk}>
+                      ✓ Uploaded — {profile.verification_status === 'approved' ? 'Verified ✓' : profile.verification_status === 'rejected' ? 'Rejected — please re-upload' : 'Awaiting verification'}
+                    </span>
+                  ) : <span style={s.licenseNone}>⚠️ No license uploaded yet — required for verification</span>}
+                </div>
+                <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
+                <input type="file" accept="image/*" ref={galleryInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
+                <button onClick={() => cameraInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
+                  📷 {uploading ? 'Uploading…' : profile?.license_url ? 'Replace License' : 'Take Photo of License'}
+                </button>
+                <button onClick={() => galleryInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
+                  🖼️ Upload from Gallery
+                </button>
+              </div>
+
               <button onClick={() => setEditing(true)} style={s.primaryBtn}>Edit Profile</button>
+              {!storeName && (
+                <div style={s.wrongRoleBox}>
+                  <p style={s.wrongRoleText}>Selected the wrong role?</p>
+                  <a href="/role-select-reset" style={s.wrongRoleLink}>← Go back and change role</a>
+                </div>
+              )}
             </div>
           ) : (
             <div style={s.editMode}>
@@ -208,16 +251,10 @@ export default function StoreProfile() {
           )}
 
           {message && (
-            <p style={message.startsWith('Error') || message.startsWith('Please') ? s.errorMsg : s.successMsg}>
+            <p style={message.startsWith('Error') || message.startsWith('Please') || message.startsWith('Upload failed') ? s.errorMsg : s.successMsg}>
               {message}
             </p>
           )}
-
-          
-          <div style={s.links}>
-            
-
-          </div>
         </div>
       </div>
     </div>
@@ -265,12 +302,18 @@ const s = {
   dividerText: { display: 'block', textAlign: 'center', fontSize: 11, color: '#94a3b8', borderTop: '1px solid #f1f5f9', paddingTop: 10, fontWeight: 700 },
   hint: { fontSize: 12, color: '#94a3b8', marginTop: 4 },
   addrPreview: { background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '9px 12px', borderRadius: 8, fontSize: 13, color: '#15803d', fontWeight: 600, marginTop: 4 },
+  licenseSection: { marginTop: 16, paddingTop: 16, borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6 },
+  licenseSectionLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8 },
+  licenseBox: { padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' },
+  licenseOk: { fontSize: 13, color: '#15803d', fontWeight: 600 },
+  licenseNone: { fontSize: 13, color: '#f59e0b', fontWeight: 600 },
+  secondaryBtn: { background: '#f1f5f9', color: '#0f172a', padding: 11, border: 'none', borderRadius: 10, cursor: 'pointer', width: '100%', fontSize: 14, fontWeight: 600 },
   primaryBtn: { marginTop: 16, width: '100%', padding: 12, background: '#0e9090', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer' },
   cancelBtn: { marginTop: 6, width: '100%', padding: 12, background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 10, fontSize: 14, cursor: 'pointer' },
   mapsBtn: { padding: '10px 14px', background: '#f0fdfd', color: '#0e9090', border: '1.5px solid #99f6e4', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700, width: '100%', marginTop: 10, marginBottom: 4 },
-  hr: { margin: '20px 0', border: 'none', borderTop: '1px solid #f1f5f9' },
-  links: { display: 'flex', gap: 16 },
-  link: { color: '#0e9090', textDecoration: 'none', fontSize: 14, fontWeight: 700 },
   successMsg: { marginTop: 12, fontSize: 13, color: '#059669', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, fontWeight: 600 },
   errorMsg: { marginTop: 12, fontSize: 13, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', borderRadius: 8, fontWeight: 600 },
+  wrongRoleBox: { marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9', textAlign: 'center' },
+  wrongRoleText: { fontSize: 13, color: '#94a3b8', marginBottom: 6 },
+  wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
 }
