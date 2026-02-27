@@ -100,7 +100,7 @@ export default function SimpleLogin() {
 
 const s = {
   page: { display: 'flex', minHeight: '100vh', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
-  left: { flex: '0 0 420px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', background: '#fff', overflowY: 'auto' },
+  left: { flex: '0 0 420px', maxWidth: '100vw', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', background: '#fff', overflowY: 'auto' },
   leftInner: { width: '100%', maxWidth: 360 },
   logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 },
   logo: { width: 42, height: 42, objectFit: 'contain' },

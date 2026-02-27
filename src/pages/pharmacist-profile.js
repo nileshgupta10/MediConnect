@@ -176,6 +176,12 @@ export default function PharmacistProfile() {
               <Field label="Location" value={address || (latitude ? '📍 Saved' : null)} />
               <button onClick={() => setEditing(true)} style={s.primaryBtn}>Edit Profile</button>
               <a href="/jobs" style={s.jobsLink}>Browse Jobs →</a>
+              {!name && (
+                <div style={s.wrongRoleBox}>
+                  <p style={s.wrongRoleText}>Selected the wrong role?</p>
+                  <a href="/role-select-reset" style={s.wrongRoleLink}>← Go back and change role</a>
+                </div>
+              )}
             </div>
           ) : (
             <div style={s.editMode}>
@@ -269,7 +275,7 @@ const fs = {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
+  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif", overflowX: 'hidden' },
   banner: { position: 'relative', height: 200, overflow: 'hidden' },
   bannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
   bannerOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,52,96,0.85) 0%, rgba(14,144,144,0.65) 100%)' },
@@ -299,4 +305,7 @@ const s = {
   successMsg: { marginTop: 12, fontSize: 13, color: '#059669', padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, fontWeight: 600 },
   errorMsg: { marginTop: 12, fontSize: 13, color: '#dc2626', padding: '8px 12px', background: '#fef2f2', borderRadius: 8, fontWeight: 600 },
   jobsLink: { display: 'block', marginTop: 14, color: '#0e9090', textDecoration: 'none', fontSize: 14, fontWeight: 700 },
+  wrongRoleBox: { marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9', textAlign: 'center' },
+  wrongRoleText: { fontSize: 13, color: '#94a3b8', marginBottom: 6 },
+  wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
 }

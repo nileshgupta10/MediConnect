@@ -310,7 +310,7 @@ function AppointmentCard({ appointment, onAction, isToday, formatDate, formatTim
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
+  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif", overflowX: 'hidden' },
   banner: { position: 'relative', height: 160, overflow: 'hidden' },
   bannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
   bannerOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,52,96,0.88) 0%, rgba(14,144,144,0.72) 100%)' },

@@ -282,8 +282,8 @@ const fs = {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif" },
-  banner: { position: 'relative', height: 200, overflow: 'hidden' },
+  page: { minHeight: '100vh', background: '#f0fdfd', fontFamily: "'Nunito', 'Segoe UI', sans-serif", overflowX: 'hidden' },
+  banner: { position: 'relative', height: 200, overflow: 'hidden', width: '100%' },
   bannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
   bannerOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(15,52,96,0.85) 0%, rgba(14,144,144,0.65) 100%)' },
   bannerContent: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '0 32px' },
