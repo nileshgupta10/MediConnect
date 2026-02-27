@@ -18,23 +18,13 @@ export default function PharmacistLayout({ children }) {
           if (Date.now() - ts < CACHE_TTL) { setUpcomingCount(count); return }
         }
       } catch {}
-
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       const today = new Date().toISOString().split('T')[0]
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const tomorrowStr = tomorrow.toISOString().split('T')[0]
-
-      const { data } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('pharmacist_id', user.id)
-        .eq('status', 'confirmed')
-        .gte('appointment_date', today)
-        .lte('appointment_date', tomorrowStr)
-
+      const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1)
+      const { data } = await supabase.from('appointments').select('id')
+        .eq('pharmacist_id', user.id).eq('status', 'confirmed')
+        .gte('appointment_date', today).lte('appointment_date', tomorrow.toISOString().split('T')[0])
       const count = data?.length || 0
       setUpcomingCount(count)
       try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() })) } catch {}
@@ -48,46 +38,44 @@ export default function PharmacistLayout({ children }) {
     router.push('/')
   }
 
+  const nl = (path) => router.pathname === path ? s.activeLink : s.link
+
   return (
-    <div style={s.layout}>
+    <div style={s.wrap}>
       <nav style={s.nav}>
-        <div style={s.navInner}>
-          <div style={s.brand}>
-            <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.logo} />
-            <span style={s.brandText}>MediClan</span>
-          </div>
-          <div style={s.navLinks}>
-            <a href="/pharmacist-profile" style={router.pathname === '/pharmacist-profile' ? s.activeLink : s.link}>
-              💊 Profile
-            </a>
-            <a href="/jobs" style={{ ...(router.pathname === '/jobs' ? s.activeLink : s.link), display: 'flex', alignItems: 'center', gap: 6 }}>
-              💼 Jobs
-              {upcomingCount > 0 && <span style={s.badge}>{upcomingCount}</span>}
-            </a>
-          </div>
-          <button style={s.logoutBtn} onClick={handleLogout}>
-            🚪 Logout
-          </button>
-        </div>
+        <a href="/" style={s.brand}>
+          <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
+          <span style={s.brandTxt}>MediClan</span>
+        </a>
+        <a href="/pharmacist-profile" style={nl('/pharmacist-profile')}>Profile</a>
+        <a href="/jobs" style={{ ...nl('/jobs'), display: 'flex', alignItems: 'center', gap: 4 }}>
+          Jobs {upcomingCount > 0 && <span style={s.badge}>{upcomingCount}</span>}
+        </a>
+        <button style={s.logout} onClick={handleLogout}>Logout</button>
       </nav>
-      <div style={s.content}>
-        {children}
-      </div>
+      {children}
     </div>
   )
 }
 
 const s = {
-  layout: { minHeight: '100vh', width: '100%', background: '#f0fdfd' },
-  nav: { background: 'white', borderBottom: '2px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 },
-  navInner: { maxWidth: 1200, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'space-between' },
-  brand: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
-  logo: { width: 28, height: 28, objectFit: 'contain' },
-  brandText: { fontSize: 16, fontWeight: 900, color: '#0f3460' },
-  navLinks: { display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 },
-  link: { fontSize: 13, fontWeight: 700, color: '#64748b', textDecoration: 'none', padding: '7px 10px', borderRadius: 8, whiteSpace: 'nowrap' },
-  activeLink: { fontSize: 13, fontWeight: 800, color: '#0e9090', textDecoration: 'none', padding: '7px 10px', borderRadius: 8, background: '#e0f7f7', whiteSpace: 'nowrap' },
-  badge: { background: '#ef4444', color: 'white', borderRadius: '50%', width: 18, height: 18, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  logoutBtn: { padding: '7px 12px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
-  content: { minHeight: 'calc(100vh - 60px)', width: '100%' },
+  wrap: { minHeight: '100vh', background: '#f0fdfd' },
+  nav: {
+    background: 'white',
+    borderBottom: '2px solid #e2e8f0',
+    position: 'sticky', top: 0, zIndex: 100,
+    display: 'flex', alignItems: 'center',
+    padding: '0 8px', gap: 2,
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none',
+  },
+  brand: { display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginRight: 4, flexShrink: 0 },
+  logo: { width: 22, height: 22, objectFit: 'contain' },
+  brandTxt: { fontSize: 13, fontWeight: 900, color: '#0f3460', whiteSpace: 'nowrap' },
+  link: { fontSize: 12, fontWeight: 700, color: '#64748b', textDecoration: 'none', padding: '10px 7px', whiteSpace: 'nowrap', flexShrink: 0 },
+  activeLink: { fontSize: 12, fontWeight: 800, color: '#0e9090', textDecoration: 'none', padding: '10px 7px', whiteSpace: 'nowrap', flexShrink: 0, borderBottom: '3px solid #0e9090' },
+  badge: { background: '#ef4444', color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  logout: { marginLeft: 'auto', padding: '6px 10px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
 }
