@@ -14,7 +14,7 @@ export default function StoreLayout({ children }) {
   return (
     <div style={s.wrap}>
       <nav style={s.nav}>
-        <a href="/" style={s.brand}>
+        <a href="/store-profile" style={s.brand}>
           <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
           <span style={s.brandTxt}>MediClan</span>
         </a>

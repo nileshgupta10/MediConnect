@@ -15,7 +15,7 @@ export default function AdminLayout({ children }) {
   return (
     <div style={s.wrap}>
       <nav style={s.nav}>
-        <a href="/" style={s.brand}>
+        <a href="/admin" style={s.brand}>
           <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
           <span style={s.brandTxt}>MediClan</span>
           <span style={s.adminBadge}>Admin</span>
