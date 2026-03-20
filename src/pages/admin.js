@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
-import AdminLayout from '../components/AdminLayout'
 
-const ADMIN_EMAIL = 'askmediclan@gmail.com'
+const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
 const PAGE_SIZE = 20
 
 export default function AdminPage() {
   const router = useRouter()
-  const activeSection = router.query.section || 'pharmacists'
+  const [activeSection, setActiveSection] = useState('pharmacists')
   const [status, setStatus] = useState('pending')
   const [pharmacists, setPharmacists] = useState([])
   const [stores, setStores] = useState([])
@@ -166,8 +165,22 @@ export default function AdminPage() {
   if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>
 
   return (
-    <AdminLayout activeSection={activeSection}>
     <div style={styles.page}>
+      <h1 style={styles.heading}>Admin Panel</h1>
+
+      {/* SECTION TABS */}
+      <div style={styles.sectionTabs}>
+        {['pharmacists', 'stores', 'jobs'].map(s => (
+          <button
+            key={s}
+            style={activeSection === s ? styles.activeSectionTab : styles.sectionTab}
+            onClick={() => setActiveSection(s)}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+
       {/* SEARCH */}
       <div style={styles.searchBox}>
         <input
@@ -232,7 +245,6 @@ export default function AdminPage() {
               status={status}
               onApprove={() => updateStoreStatus(item.user_id, 'approved')}
               onReject={() => updateStoreStatus(item.user_id, 'rejected')}
-              onViewLicense={() => viewLicense(item)}
               getPerformance={getPerformance}
             />
           ))}
@@ -279,7 +291,6 @@ export default function AdminPage() {
         <button style={styles.loadMoreBtn} onClick={loadMore}>Load More</button>
       )}
     </div>
-    </AdminLayout>
   )
 }
 
@@ -328,7 +339,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [loadingPerf, setLoadingPerf] = useState(false)
 
@@ -349,11 +360,6 @@ function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerfor
       </p>
 
       <div style={styles.cardActions}>
-        {item.license_url ? (
-          <button style={styles.licenseBtn} onClick={onViewLicense}>📄 View License</button>
-        ) : (
-          <span style={styles.noLicense}>⚠️ No license uploaded</span>
-        )}
         <button style={styles.perfBtn} onClick={loadPerf} disabled={loadingPerf}>
           {loadingPerf ? 'Loading…' : perf ? 'Hide Stats' : '📊 View Stats'}
         </button>
@@ -380,7 +386,9 @@ function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerfor
 const styles = {
   page: { padding: 20, maxWidth: 800, margin: '0 auto', fontFamily: 'system-ui, sans-serif' },
   heading: { fontSize: 26, fontWeight: 700, marginBottom: 16 },
-
+  sectionTabs: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  sectionTab: { padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: 14, fontWeight: 500 },
+  activeSectionTab: { padding: '9px 18px', borderRadius: 8, border: '1px solid #2563eb', background: '#2563eb', color: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 600 },
   searchBox: { marginBottom: 14 },
   searchInput: { width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' },
   statusRow: { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
@@ -394,7 +402,6 @@ const styles = {
   badge: { background: '#e5e7eb', padding: '2px 8px', borderRadius: 12, fontSize: 12 },
   cardActions: { display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' },
   licenseBtn: { padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-  noLicense: { fontSize: 13, color: '#f59e0b', fontWeight: 600 },
   perfBtn: { padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#1e40af' },
   perfBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', marginTop: 10 },
   perfItem: { fontSize: 14, color: '#0f172a', margin: '4px 0' },
