@@ -152,7 +152,7 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number(header.billNo || 0), VOU_TYPE: 'PUR',
+      VOU_NO: Number(header.billNo || 0), VOU_TYPE: header.vouType || 'PCC',
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
       PROD_CODE: item.prodCode || '', PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
@@ -235,7 +235,7 @@ export default function PurchaseImport() {
   const [usedModel,  setUsedModel]  = useState('')
   const [header, setHeader] = useState({
     partyCode: '', distName: '', address: '',
-    billNo: '', billDate: today, dueDate: today,
+    billNo: '', billDate: today, dueDate: today, vouType: 'PCC',
   })
   const [items, setItems] = useState([blankItem()])
   const cameraRef  = useRef(null)
@@ -301,14 +301,15 @@ export default function PurchaseImport() {
         return
       }
       const h = json.data.header || {}
-      setHeader({
+      setHeader(prev => ({
         partyCode: h.partyCode || '',
         distName:  h.distName  || '',
         address:   h.address   || '',
         billNo:    h.billNo    || '',
         billDate:  h.billDate  || today,
         dueDate:   h.dueDate   || today,
-      })
+        vouType:   prev.vouType || 'PCC',
+      }))
       const extractedItems = (json.data.items || []).map(it => ({
         prodCode: it.prodCode || '',
         prodName: it.prodName || '',
@@ -361,7 +362,7 @@ export default function PurchaseImport() {
   const reset = () => {
     setStep('upload'); setPages([]); setMessage(''); setUsedModel('')
     setItems([blankItem()])
-    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today })
+    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today, vouType: 'PCC' })
   }
 
   const totals = items.reduce((acc, it) => {
@@ -460,6 +461,13 @@ export default function PurchaseImport() {
                   <div style={s.formGroup}>
                     <label style={s.label}>Party Code * <span style={s.hint2}>(3 chars)</span></label>
                     <input style={s.input} maxLength={3} value={header.partyCode} onChange={e => setH('partyCode', e.target.value.toUpperCase())} placeholder="TAP" />
+                  </div>
+                  <div style={s.formGroup}>
+                    <label style={s.label}>Bill Type *</label>
+                    <select style={s.input} value={header.vouType} onChange={e => setH('vouType', e.target.value)}>
+                      <option value="PCC">PCC — Credit Purchase</option>
+                      <option value="PCS">PCS — Cash Purchase</option>
+                    </select>
                   </div>
                   <div style={s.formGroup}>
                     <label style={s.label}>Bill Number *</label>

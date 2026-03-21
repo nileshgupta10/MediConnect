@@ -1,17 +1,4 @@
-// ─── /api/extract-bill ────────────────────────────────────────────────────────
-// Server-side only. API key never exposed to browser.
-// Receives: { imageBase64, mimeType, storeOwnerId }
-// Returns:  { success, data } or { error }
-
 import { createClient } from '@supabase/supabase-js'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY  // server-only, never exposed
-)
-
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY  // server-only, never exposed
-const SCAN_LIMIT = 30
 
 function getCurrentMonthYear() {
   const now = new Date()
@@ -24,29 +11,111 @@ function getResetDate() {
   return next.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+const SCAN_LIMIT = 30
+
+const PROMPT = `You are extracting data from a pharmacy purchase bill image (or multiple pages of the same bill) for import into accounting software.
+
+Extract and return ONLY a valid JSON object with this exact structure — no explanation, no markdown, just raw JSON:
+
+{
+  "header": {
+    "distName": "distributor full name",
+    "partyCode": "first 3 letters of distributor name uppercase",
+    "address": "distributor address if visible, else empty string",
+    "billNo": "invoice/bill number as string",
+    "billDate": "YYYY-MM-DD format",
+    "dueDate": "YYYY-MM-DD format, same as billDate if not visible"
+  },
+  "items": [
+    {
+      "prodName": "product name",
+      "company": "manufacturer name if visible, else empty string",
+      "prodCode": "product code if visible, else empty string",
+      "pack": "pack size e.g. 1*10, default 1*10 if not visible",
+      "qty": quantity as number,
+      "rate": purchase rate as number,
+      "mrp": MRP as number,
+      "disc": discount percentage as number (0 if not visible),
+      "gst": GST percentage as number (5 if not visible),
+      "batch": "batch number if visible, else empty string",
+      "expiry": "MM/YY if visible, else empty string",
+      "hsn": "HSN code if visible, else empty string"
+    }
+  ],
+  "confidence": "high" or "low"
+}
+
+Rules:
+- Extract ALL line items from ALL pages provided
+- Do not duplicate items that appear on multiple pages
+- qty, rate, mrp, disc, gst must be numbers not strings
+- Set confidence to "low" if bill is blurry, handwritten, or many fields are unclear
+- Return ONLY the JSON, nothing else`
+
+async function callClaude(images, model, apiKey) {
+  const imageContent = images.map(img => ({
+    type: 'image',
+    source: { type: 'base64', media_type: img.mimeType || 'image/jpeg', data: img.base64 }
+  }))
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 3000,
+      messages: [{
+        role: 'user',
+        content: [...imageContent, { type: 'text', text: PROMPT }]
+      }]
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json()
+    throw new Error(err.error?.message || 'API error')
+  }
+
+  const result = await response.json()
+  const text = result.content?.[0]?.text || ''
+  const cleaned = text.replace(/```json|```/g, '').trim()
+  return JSON.parse(cleaned)
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { imageBase64, mimeType, storeOwnerId } = req.body
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'OCR service not configured yet. Please contact MediClan.' })
+  }
 
-  if (!imageBase64 || !storeOwnerId) {
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+
+  const { images, storeOwnerId } = req.body
+  // images = [{ base64, mimeType }, ...] — array to support multi-page
+
+  if (!images?.length || !storeOwnerId) {
     return res.status(400).json({ error: 'Missing required fields' })
   }
 
   // ── 1. CHECK QUOTA ──────────────────────────────────────────────────────────
   const monthYear = getCurrentMonthYear()
-
-  const { data: scanRow, error: scanErr } = await supabaseAdmin
+  const { data: scanRow } = await supabaseAdmin
     .from('bill_scans')
     .select('scans_used, scan_limit')
     .eq('store_owner_id', storeOwnerId)
     .eq('month_year', monthYear)
     .maybeSingle()
 
-  if (scanErr) return res.status(500).json({ error: 'Could not check scan quota' })
-
-  const scansUsed  = scanRow?.scans_used  ?? 0
-  const scanLimit  = scanRow?.scan_limit  ?? SCAN_LIMIT
+  const scansUsed = scanRow?.scans_used ?? 0
+  const scanLimit = scanRow?.scan_limit ?? SCAN_LIMIT
 
   if (scansUsed >= scanLimit) {
     return res.status(429).json({
@@ -55,93 +124,30 @@ export default async function handler(req, res) {
     })
   }
 
-  // ── 2. CALL CLAUDE HAIKU ────────────────────────────────────────────────────
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'OCR service not configured yet. Please contact MediClan.' })
-  }
+  // ── 2. TRY HAIKU FIRST ──────────────────────────────────────────────────────
+  let data
+  let usedSonnet = false
 
-  const prompt = `You are extracting data from a pharmacy purchase bill image for import into accounting software.
-
-Extract and return ONLY a valid JSON object with this exact structure — no explanation, no markdown, just JSON:
-
-{
-  "header": {
-    "distName": "distributor full name",
-    "partyCode": "first 3 letters of distributor name in uppercase",
-    "address": "distributor address if visible, else empty string",
-    "billNo": "invoice/bill number as string",
-    "billDate": "date in YYYY-MM-DD format",
-    "dueDate": "due date in YYYY-MM-DD format, same as billDate if not visible"
-  },
-  "items": [
-    {
-      "prodName": "product name",
-      "company": "manufacturer name if visible, else empty string",
-      "prodCode": "product code if visible, else empty string",
-      "pack": "pack size e.g. 1*10, if not visible use 1*10",
-      "qty": number,
-      "rate": number,
-      "mrp": number,
-      "disc": discount percentage as number (0 if not visible),
-      "gst": GST percentage as number (5 if not visible),
-      "batch": "batch number if visible, else empty string",
-      "expiry": "expiry as MM/YY if visible, else empty string",
-      "hsn": "HSN code if visible, else empty string"
-    }
-  ]
-}
-
-Rules:
-- Extract ALL line items visible on the bill
-- If a value is not clearly visible, use the defaults specified
-- billDate and dueDate must be YYYY-MM-DD format
-- qty, rate, mrp, disc, gst must be numbers not strings
-- Return ONLY the JSON, nothing else`
-
-  let claudeData
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType || 'image/jpeg',
-                data: imageBase64,
-              },
-            },
-            { type: 'text', text: prompt },
-          ],
-        }],
-      }),
-    })
+    // Single page → Haiku. Multiple pages → Sonnet directly (needs more power)
+    if (images.length > 1) {
+      data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)
+      usedSonnet = true
+    } else {
+      data = await callClaude(images, 'claude-haiku-4-5-20251001', process.env.ANTHROPIC_API_KEY)
 
-    if (!response.ok) {
-      const err = await response.text()
-      console.error('Claude API error:', err)
-      return res.status(502).json({ error: 'OCR service error. Please try again.' })
+      // If Haiku says low confidence OR fewer than 1 item extracted → retry with Sonnet
+      if (data.confidence === 'low' || !data.items?.length) {
+        console.log('Haiku low confidence, retrying with Sonnet')
+        data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)
+        usedSonnet = true
+      }
     }
-
-    const result = await response.json()
-    const text = result.content?.[0]?.text || ''
-
-    // Strip any accidental markdown fences
-    const cleaned = text.replace(/```json|```/g, '').trim()
-    claudeData = JSON.parse(cleaned)
-
   } catch (e) {
-    console.error('Parse error:', e)
+    console.error('Claude error:', e.message)
+    if (e.message.includes('credit')) {
+      return res.status(402).json({ error: 'Insufficient API credits. Please contact MediClan.' })
+    }
     return res.status(502).json({ error: 'Could not read bill. Please try a clearer photo.' })
   }
 
@@ -158,10 +164,11 @@ Rules:
 
   return res.status(200).json({
     success: true,
-    data: claudeData,
+    data,
     scansUsed: scansUsed + 1,
     scanLimit,
+    model: usedSonnet ? 'sonnet' : 'haiku',
   })
 }
 
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
+export const config = { api: { bodyParser: { sizeLimit: '20mb' } } }
