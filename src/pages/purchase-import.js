@@ -70,7 +70,7 @@ const FIELDS = [
   { name: 'GROS_AMT',   type: 'N', len: 12, dec: 2 },
   { name: 'CAT_CODE',   type: 'C', len: 3,  dec: 0 },
   { name: 'FREIGHT',    type: 'N', len: 10, dec: 2 },
-  { name: 'BAR_CODE',   type: 'C', len: 15, dec: 0 },
+  { name: 'BAR_CODE',   type: 'C', len: 50, dec: 0 },
   { name: 'HSNCODE',    type: 'C', len: 15, dec: 0 },
   { name: 'SGST',       type: 'N', len: 5,  dec: 2 },
   { name: 'CGST',       type: 'N', len: 5,  dec: 2 },
@@ -82,7 +82,7 @@ const FIELDS = [
   { name: '_NullFlags', type: '0', len: 1,  dec: 0, flag: 0x05 },
 ]
 const HEADER_SIZE = 1704
-const RECORD_SIZE = 464
+const RECORD_SIZE = 499
 
 function writeString(view, offset, str, len) {
   const b = new TextEncoder().encode(str || '')
@@ -152,14 +152,14 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'CSB',
+      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'PCS',
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
-      PROD_CODE: item.prodCode || '', PROD_NAME: item.prodName || '',
+      PROD_CODE: (item.batch || '').slice(0, 10).padEnd(10, ' '), PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
       COMP: (item.company || '').slice(0, 3).toUpperCase(),
       QTY: qty, QTY_SCM: 0, DISC_SCM: 0,
-      PR_BATCHNO: item.batch || '*',
-      EXPIRY: item.expiry || '00/00',
+      PR_BATCHNO: item.batch || `AUTO${String(idx + 1).padStart(2, '0')}`,
+      EXPIRY: item.expiry || '12/27',
       RATE: rate, MRP: Number(item.mrp || 0), DISCOUNT: disc,
       DISC_AMT: discAmt, PR_PTR: rate, SPL_DISC: 0, SURCHARGE: 0,
       DISC_PER: disc, CASH_DISC: 0, CR_AMT: 0, PTS_PER: 0, PTS_AMT: 0,
@@ -235,7 +235,7 @@ export default function PurchaseImport() {
   const [usedModel,  setUsedModel]  = useState('')
   const [header, setHeader] = useState({
     partyCode: '', distName: '', address: '',
-    billNo: '', billDate: today, dueDate: today, vouType: 'CSB',
+    billNo: '', billDate: today, dueDate: today, vouType: 'PCS',
   })
   const [items, setItems] = useState([blankItem()])
   const cameraRef  = useRef(null)
@@ -308,7 +308,7 @@ export default function PurchaseImport() {
         billNo:    h.billNo    || '',
         billDate:  h.billDate  || today,
         dueDate:   h.dueDate   || today,
-        vouType:   prev.vouType || 'PCC',
+        vouType:   prev.vouType || 'PCS',
       }))
       const extractedItems = (json.data.items || []).map(it => ({
         prodCode: it.prodCode || '',
@@ -362,7 +362,7 @@ export default function PurchaseImport() {
   const reset = () => {
     setStep('upload'); setPages([]); setMessage(''); setUsedModel('')
     setItems([blankItem()])
-    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today, vouType: 'CSB' })
+    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today, vouType: 'PCS' })
   }
 
   const totals = items.reduce((acc, it) => {
@@ -465,9 +465,9 @@ export default function PurchaseImport() {
                   <div style={s.formGroup}>
                     <label style={s.label}>Bill Type *</label>
                     <select style={s.input} value={header.vouType} onChange={e => setH('vouType', e.target.value)}>
-                      <option value="CSB">CSB (default)</option>
+                      <option value="PCS">PCS — Cash Purchase (default)</option>
                       <option value="PCC">PCC — Credit Purchase</option>
-                      <option value="PCS">PCS — Cash Purchase</option>
+                      <option value="CSB">CSB</option>
                     </select>
                   </div>
                   <div style={s.formGroup}>
@@ -547,7 +547,7 @@ export default function PurchaseImport() {
                 </div>
               </div>
 
-              <div style={s.noteBox}>💡 Blank batch → * (default) | Blank expiry → 00/00 | GST defaults to 5%</div>
+              <div style={s.noteBox}>💡 Blank batch → AUTO01, AUTO02… | Blank expiry → 12/27 | GST defaults to 5%</div>
 
               {message && (
                 <div style={message.startsWith('✓') ? s.successMsg : s.errorMsg}>{message}</div>
