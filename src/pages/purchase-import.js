@@ -152,7 +152,7 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number(header.billNo || 0), VOU_TYPE: header.vouType || 'PCC',
+      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'PCC',
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
       PROD_CODE: item.prodCode || '', PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
@@ -470,8 +470,8 @@ export default function PurchaseImport() {
                     </select>
                   </div>
                   <div style={s.formGroup}>
-                    <label style={s.label}>Bill Number *</label>
-                    <input style={s.input} value={header.billNo} onChange={e => setH('billNo', e.target.value)} placeholder="12345" />
+                    <label style={s.label}>Bill Number * <span style={s.hint2}>(numeric part used e.g. ND17573 → 17573)</span></label>
+                    <input style={s.input} value={header.billNo} onChange={e => setH('billNo', e.target.value)} placeholder="ND17573" />
                   </div>
                   <div style={{ ...s.formGroup, gridColumn: 'span 2' }}>
                     <label style={s.label}>Distributor Name *</label>
