@@ -70,7 +70,7 @@ const FIELDS = [
   { name: 'GROS_AMT',   type: 'N', len: 12, dec: 2 },
   { name: 'CAT_CODE',   type: 'C', len: 3,  dec: 0 },
   { name: 'FREIGHT',    type: 'N', len: 10, dec: 2 },
-  { name: 'BAR_CODE',   type: 'C', len: 50, dec: 0 },
+  { name: 'BAR_CODE',   type: 'C', len: 15, dec: 0 },
   { name: 'HSNCODE',    type: 'C', len: 15, dec: 0 },
   { name: 'SGST',       type: 'N', len: 5,  dec: 2 },
   { name: 'CGST',       type: 'N', len: 5,  dec: 2 },
@@ -82,7 +82,7 @@ const FIELDS = [
   { name: '_NullFlags', type: '0', len: 1,  dec: 0, flag: 0x05 },
 ]
 const HEADER_SIZE = 1704
-const RECORD_SIZE = 499
+const RECORD_SIZE = 464
 
 function writeString(view, offset, str, len) {
   const b = new TextEncoder().encode(str || '')
@@ -152,7 +152,7 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'PCC',
+      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'CSB',
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
       PROD_CODE: item.prodCode || '', PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
@@ -235,7 +235,7 @@ export default function PurchaseImport() {
   const [usedModel,  setUsedModel]  = useState('')
   const [header, setHeader] = useState({
     partyCode: '', distName: '', address: '',
-    billNo: '', billDate: today, dueDate: today, vouType: 'PCC',
+    billNo: '', billDate: today, dueDate: today, vouType: 'CSB',
   })
   const [items, setItems] = useState([blankItem()])
   const cameraRef  = useRef(null)
@@ -362,7 +362,7 @@ export default function PurchaseImport() {
   const reset = () => {
     setStep('upload'); setPages([]); setMessage(''); setUsedModel('')
     setItems([blankItem()])
-    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today, vouType: 'PCC' })
+    setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today, vouType: 'CSB' })
   }
 
   const totals = items.reduce((acc, it) => {
@@ -465,6 +465,7 @@ export default function PurchaseImport() {
                   <div style={s.formGroup}>
                     <label style={s.label}>Bill Type *</label>
                     <select style={s.input} value={header.vouType} onChange={e => setH('vouType', e.target.value)}>
+                      <option value="CSB">CSB (default)</option>
                       <option value="PCC">PCC — Credit Purchase</option>
                       <option value="PCS">PCS — Cash Purchase</option>
                     </select>
