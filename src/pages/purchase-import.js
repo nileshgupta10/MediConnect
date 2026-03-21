@@ -158,8 +158,8 @@ function buildRecords(header, items) {
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
       COMP: (item.company || '').slice(0, 3).toUpperCase(),
       QTY: qty, QTY_SCM: 0, DISC_SCM: 0,
-      PR_BATCHNO: item.batch || `AUTO${String(idx + 1).padStart(2, '0')}`,
-      EXPIRY: item.expiry || '12/27',
+      PR_BATCHNO: item.batch || '*',
+      EXPIRY: item.expiry || '00/00',
       RATE: rate, MRP: Number(item.mrp || 0), DISCOUNT: disc,
       DISC_AMT: discAmt, PR_PTR: rate, SPL_DISC: 0, SURCHARGE: 0,
       DISC_PER: disc, CASH_DISC: 0, CR_AMT: 0, PTS_PER: 0, PTS_AMT: 0,
@@ -546,7 +546,7 @@ export default function PurchaseImport() {
                 </div>
               </div>
 
-              <div style={s.noteBox}>💡 Blank batch → AUTO01, AUTO02… | Blank expiry → 12/27 | GST defaults to 5%</div>
+              <div style={s.noteBox}>💡 Blank batch → * (default) | Blank expiry → 00/00 | GST defaults to 5%</div>
 
               {message && (
                 <div style={message.startsWith('✓') ? s.successMsg : s.errorMsg}>{message}</div>

@@ -13,44 +13,56 @@ function getResetDate() {
 
 const SCAN_LIMIT = 30
 
-const PROMPT = `You are extracting data from a pharmacy purchase bill image (or multiple pages of the same bill) for import into accounting software.
+const PROMPT = `You are extracting data from a pharmacy/FMCG purchase bill image for import into accounting software. Be extremely precise.
 
-Extract and return ONLY a valid JSON object with this exact structure — no explanation, no markdown, just raw JSON:
+CRITICAL COLUMN MAPPING RULES:
+- "S.Rate" or "Rate" or "Pur.Rate" = the RATE field (purchase rate per unit)
+- "MRP" = the MRP field
+- "CS" or "Cases" = cases ordered (NOT qty)
+- "EA" or "Pcs" or "Qty" = the QTY field (individual units/pieces)
+- "Gross.Amt" or "Gross Amount" = GROS_AMT (qty x rate)
+- "Net.Amt" or "Net Amount" = the net payable per line
+- "*Disc+Gst Benefit" or "CD/RD/WSH" = IGNORE these columns entirely, set disc=0
+- "CGST%" and "SGST%" = these together make total GST (add both for gst field)
+- "MNF B.Code" or "Batch" = batch number
+- "HSN Code" = hsn field
+- If bill says "Page X of Y" extract only the items visible on the page provided
+
+FOR QTY: use the EA/Pcs/individual unit column only. If only cases (CS) column exists, multiply cases by the number in the pack size (e.g. CS=2, pack=24x300g means qty=48).
+
+FOR RATE: use S.Rate column. This is per individual unit, not per case.
+
+FOR DISC: only use clearly labelled discount % column. Ignore GST benefit columns. Default 0.
+
+Return ONLY valid JSON, no markdown, no explanation:
 
 {
   "header": {
-    "distName": "distributor full name",
+    "distName": "distributor company name from top of bill",
     "partyCode": "first 3 letters of distributor name uppercase",
-    "address": "distributor address if visible, else empty string",
-    "billNo": "invoice/bill number as string",
-    "billDate": "YYYY-MM-DD format",
-    "dueDate": "YYYY-MM-DD format, same as billDate if not visible"
+    "address": "distributor full address",
+    "billNo": "bill or invoice number as string",
+    "billDate": "YYYY-MM-DD",
+    "dueDate": "YYYY-MM-DD, same as billDate if not shown"
   },
   "items": [
     {
-      "prodName": "product name",
-      "company": "manufacturer name if visible, else empty string",
-      "prodCode": "product code if visible, else empty string",
-      "pack": "pack size e.g. 1*10, default 1*10 if not visible",
-      "qty": quantity as number,
-      "rate": purchase rate as number,
-      "mrp": MRP as number,
-      "disc": discount percentage as number (0 if not visible),
-      "gst": GST percentage as number (5 if not visible),
-      "batch": "batch number if visible, else empty string",
-      "expiry": "MM/YY if visible, else empty string",
-      "hsn": "HSN code if visible, else empty string"
+      "prodName": "product name exactly as printed",
+      "company": "manufacturer name if shown else empty",
+      "prodCode": "empty string",
+      "pack": "pack size e.g. 300G or 75G or 1*10",
+      "qty": quantity as integer from EA column,
+      "rate": purchase rate per unit as number from S.Rate column,
+      "mrp": MRP per unit as number,
+      "disc": discount percentage as number (0 if not a clear discount %),
+      "gst": total GST% as number (CGST% + SGST%, default 5),
+      "batch": "batch number from MNF B.Code column if shown else empty",
+      "expiry": "MM/YY if shown else empty",
+      "hsn": "HSN code as string"
     }
   ],
   "confidence": "high" or "low"
-}
-
-Rules:
-- Extract ALL line items from ALL pages provided
-- Do not duplicate items that appear on multiple pages
-- qty, rate, mrp, disc, gst must be numbers not strings
-- Set confidence to "low" if bill is blurry, handwritten, or many fields are unclear
-- Return ONLY the JSON, nothing else`
+}`
 
 async function callClaude(images, model, apiKey) {
   const imageContent = images.map(img => ({
