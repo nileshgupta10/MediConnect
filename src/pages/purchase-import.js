@@ -152,7 +152,7 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number((header.billNo || '0').replace(/[^0-9]/g, '') || 0), VOU_TYPE: header.vouType || 'PCS',
+      VOU_NO: 0,
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
       PROD_CODE: (item.batch || '').slice(0, 10).padEnd(10, ' '), PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
