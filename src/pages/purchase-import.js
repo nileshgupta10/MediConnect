@@ -70,7 +70,7 @@ const FIELDS = [
   { name: 'GROS_AMT',   type: 'N', len: 12, dec: 2 },
   { name: 'CAT_CODE',   type: 'C', len: 3,  dec: 0 },
   { name: 'FREIGHT',    type: 'N', len: 10, dec: 2 },
-  { name: 'BAR_CODE',   type: 'C', len: 15, dec: 0 },
+  { name: 'BAR_CODE',   type: 'C', len: 50, dec: 0 },
   { name: 'HSNCODE',    type: 'C', len: 15, dec: 0 },
   { name: 'SGST',       type: 'N', len: 5,  dec: 2 },
   { name: 'CGST',       type: 'N', len: 5,  dec: 2 },
@@ -82,7 +82,7 @@ const FIELDS = [
   { name: '_NullFlags', type: '0', len: 1,  dec: 0, flag: 0x05 },
 ]
 const HEADER_SIZE = 1704
-const RECORD_SIZE = 464
+const RECORD_SIZE = 499
 
 function writeString(view, offset, str, len) {
   const b = new TextEncoder().encode(str || '')
@@ -152,7 +152,7 @@ function buildRecords(header, items) {
     return {
       PARTYCODE: (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME: header.distName || '', ADD1: header.address || '',
-      VOU_NO: Number(header.billNo || 0), VOU_TYPE: 'CSB',
+      VOU_NO: Number(header.billNo || 0), VOU_TYPE: 'PUR',
       TR_DATE: header.billDate || '', DUE_DATE: header.dueDate || header.billDate || '',
       PROD_CODE: item.prodCode || '', PROD_NAME: item.prodName || '',
       COMP_NAME: item.company || '', PAK: item.pack || '1*10', UOM: 1,
@@ -230,8 +230,9 @@ export default function PurchaseImport() {
   const [step,       setStep]       = useState('upload') // upload | review | done
   const [uploading,  setUploading]  = useState(false)
   const [generating, setGenerating] = useState(false)
-  const [preview,    setPreview]    = useState(null)   // image preview URL
+  const [pages,      setPages]      = useState([])      // [{ previewUrl, base64 }, ...]
   const [message,    setMessage]    = useState('')
+  const [usedModel,  setUsedModel]  = useState('')
   const [header, setHeader] = useState({
     partyCode: '', distName: '', address: '',
     billNo: '', billDate: today, dueDate: today,
@@ -239,6 +240,7 @@ export default function PurchaseImport() {
   const [items, setItems] = useState([blankItem()])
   const cameraRef  = useRef(null)
   const galleryRef = useRef(null)
+  const multiRef   = useRef(null)
 
   useEffect(() => { loadUser() }, [])
 
@@ -246,7 +248,6 @@ export default function PurchaseImport() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     setUser(user)
-    // load this month's scan count
     const monthYear = new Date().toISOString().slice(0, 7)
     const { data } = await supabase
       .from('bill_scans')
@@ -257,40 +258,48 @@ export default function PurchaseImport() {
     if (data) { setScansUsed(data.scans_used); setScanLimit(data.scan_limit) }
   }
 
-  const handleImage = async (file) => {
-    if (!file) return
+  // Add one or more pages from file input
+  const addPages = async (files) => {
+    if (!files?.length) return
+    setMessage('📸 Compressing images…')
+    const newPages = []
+    for (const file of Array.from(files)) {
+      const compressed = await compressForOCR(file)
+      const base64     = await fileToBase64(compressed)
+      newPages.push({ previewUrl: URL.createObjectURL(file), base64 })
+    }
+    setPages(prev => [...prev, ...newPages])
+    setMessage(`✓ ${newPages.length} page${newPages.length > 1 ? 's' : ''} added. Total: ${pages.length + newPages.length} page${pages.length + newPages.length > 1 ? 's' : ''}.`)
+  }
+
+  const removePage = (i) => setPages(prev => prev.filter((_, idx) => idx !== i))
+
+  const handleScan = async () => {
+    if (!pages.length) { setMessage('Please add at least one photo first.'); return }
     if (scansUsed >= scanLimit) {
-      setMessage(`⚠️ Monthly scan limit reached (${scanLimit}/${scanLimit}). Resets next month.`)
+      setMessage(`⚠️ Monthly scan limit reached. Resets next month.`)
       return
     }
     setUploading(true)
-    setMessage('📸 Compressing image…')
-    setPreview(URL.createObjectURL(file))
-
+    setMessage(pages.length > 1
+      ? '🔍 Reading multi-page bill with AI (Sonnet)… this may take 10-15 seconds…'
+      : '🔍 Reading bill with AI… this takes a few seconds…'
+    )
     try {
-      const compressed = await compressForOCR(file)
-      const base64     = await fileToBase64(compressed)
-      setMessage('🔍 Reading bill with AI… this takes a few seconds…')
-
       const res = await fetch('/api/extract-bill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: base64,
-          mimeType: 'image/jpeg',
+          images: pages.map(p => ({ base64: p.base64, mimeType: 'image/jpeg' })),
           storeOwnerId: user.id,
         }),
       })
-
       const json = await res.json()
-
       if (!res.ok) {
         setMessage(json.error || 'Could not read bill. Try a clearer photo.')
         setUploading(false)
         return
       }
-
-      // Populate form with extracted data
       const h = json.data.header || {}
       setHeader({
         partyCode: h.partyCode || '',
@@ -317,9 +326,9 @@ export default function PurchaseImport() {
       setItems(extractedItems.length > 0 ? extractedItems : [blankItem()])
       setScansUsed(json.scansUsed)
       setScanLimit(json.scanLimit)
-      setMessage('✓ Bill read successfully! Review and correct below, then generate.')
+      setUsedModel(json.model)
+      setMessage(`✓ Bill read successfully using ${json.model === 'sonnet' ? 'Sonnet (high accuracy)' : 'Haiku'}! Review and correct below.`)
       setStep('review')
-
     } catch (e) {
       setMessage('Error: ' + e.message)
     }
@@ -350,7 +359,7 @@ export default function PurchaseImport() {
   }
 
   const reset = () => {
-    setStep('upload'); setPreview(null); setMessage('')
+    setStep('upload'); setPages([]); setMessage(''); setUsedModel('')
     setItems([blankItem()])
     setHeader({ partyCode: '', distName: '', address: '', billNo: '', billDate: today, dueDate: today })
   }
@@ -393,24 +402,37 @@ export default function PurchaseImport() {
           {step === 'upload' && (
             <div style={s.card}>
               <h3 style={s.cardTitle}>📸 Photograph the Bill</h3>
-              <p style={s.cardSub}>Make sure the bill is flat, well-lit, and all text is readable</p>
+              <p style={s.cardSub}>Add one photo per page. Multiple pages supported.</p>
 
-              <input ref={cameraRef}  type="file" accept="image/*" capture="environment" hidden onChange={e => handleImage(e.target.files[0])} />
-              <input ref={galleryRef} type="file" accept="image/*" hidden onChange={e => handleImage(e.target.files[0])} />
+              <input ref={cameraRef}  type="file" accept="image/*" capture="environment" hidden onChange={e => addPages(e.target.files)} />
+              <input ref={galleryRef} type="file" accept="image/*" hidden multiple onChange={e => addPages(e.target.files)} />
 
               <div style={s.uploadBtns}>
-                <button style={s.camBtn} onClick={() => cameraRef.current.click()} disabled={uploading || scansUsed >= scanLimit}>
-                  📷 {uploading ? 'Reading…' : 'Take Photo'}
+                <button style={s.camBtn} onClick={() => cameraRef.current.click()} disabled={uploading}>
+                  📷 Take Photo
                 </button>
-                <button style={s.galBtn} onClick={() => galleryRef.current.click()} disabled={uploading || scansUsed >= scanLimit}>
-                  🖼️ Upload from Gallery
+                <button style={s.galBtn} onClick={() => galleryRef.current.click()} disabled={uploading}>
+                  🖼️ Add from Gallery
                 </button>
               </div>
 
-              {preview && (
-                <div style={s.previewWrap}>
-                  <img src={preview} alt="Bill" style={s.previewImg} />
+              {/* Page previews */}
+              {pages.length > 0 && (
+                <div style={s.pagesWrap}>
+                  {pages.map((pg, i) => (
+                    <div key={i} style={s.pageThumb}>
+                      <img src={pg.previewUrl} alt={`Page ${i+1}`} style={s.thumbImg} />
+                      <div style={s.thumbLabel}>Page {i + 1}</div>
+                      <button style={s.thumbRemove} onClick={() => removePage(i)}>✕</button>
+                    </div>
+                  ))}
                 </div>
+              )}
+
+              {pages.length > 0 && (
+                <button style={s.scanBtn} onClick={handleScan} disabled={uploading || scansUsed >= scanLimit}>
+                  {uploading ? '⏳ Reading bill…' : `🔍 Scan ${pages.length} Page${pages.length > 1 ? 's' : ''} Now`}
+                </button>
               )}
 
               {message && (
@@ -419,7 +441,6 @@ export default function PurchaseImport() {
                 </div>
               )}
 
-              {/* Manual entry option */}
               <button style={s.manualBtn} onClick={() => setStep('review')}>
                 ✏️ Enter bill manually instead
               </button>
@@ -571,6 +592,12 @@ const s = {
   galBtn: { flex: 1, padding: '14px 20px', background: '#f1f5f9', color: '#0f3460', border: '2px solid #e2e8f0', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', minWidth: 140 },
   previewWrap: { marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0', maxHeight: 300 },
   previewImg: { width: '100%', objectFit: 'contain', maxHeight: 300 },
+  pagesWrap: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14, marginTop: 8 },
+  pageThumb: { position: 'relative', width: 90, height: 120, borderRadius: 8, overflow: 'hidden', border: '2px solid #0e9090', flexShrink: 0 },
+  thumbImg: { width: '100%', height: '100%', objectFit: 'cover' },
+  thumbLabel: { position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(14,144,144,0.85)', color: 'white', fontSize: 11, fontWeight: 700, textAlign: 'center', padding: '3px 0' },
+  thumbRemove: { position: 'absolute', top: 3, right: 3, background: '#dc2626', color: 'white', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
+  scanBtn: { width: '100%', padding: 14, background: '#0f3460', color: 'white', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 12 },
   manualBtn: { width: '100%', padding: 11, background: 'transparent', color: '#64748b', border: '1.5px dashed #cbd5e1', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 8 },
   backBtn: { padding: '6px 12px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' },
   addBtn: { padding: '7px 14px', background: '#0e9090', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
