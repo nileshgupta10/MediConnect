@@ -13,32 +13,32 @@ function getResetDate() {
 
 const SCAN_LIMIT = 30
 
-const PROMPT = `You are extracting data from a pharmacy/FMCG purchase bill image for import into CARE accounting software. Be extremely precise.
+const PROMPT = `You are extracting data from a pharmacy/FMCG purchase bill image for import into accounting software. Be extremely precise.
 
 CRITICAL COLUMN MAPPING RULES:
-- "S.Rate" or "Rate" or "Pur.Rate" = the RATE field (purchase rate per unit, NOT MRP)
-- "MRP" = the MRP field (maximum retail price, always higher than rate)
-- "CS" or "Cases" = cases ordered — do NOT use this as qty
-- "EA" or "Pcs" or "Qty" = the QTY field (individual units/pieces) — USE THIS for qty
-- "Gross.Amt" or "Gross Amount" = qty x rate (before discount)
-- "Net.Amt" or "Net Amount" = net payable per line (after discount, before GST)
-- "*Disc+Gst Benefit" or "CD/RD/WSH" or "Scheme" = IGNORE these columns, set disc=0
-- "CGST%" and "SGST%" = these two together make total GST% (e.g. CGST 2.5% + SGST 2.5% = 5%)
-- "MNF B.Code" or "Batch No" or "Batch" = batch number (alphanumeric code like 53510451DA)
-- "HSN Code" or "HSN" = hsn field
+- "S.Rate" or "Rate" or "Pur.Rate" = the RATE field (purchase rate per unit, always LOWER than MRP)
+- "MRP" = the MRP field (maximum retail price, always HIGHER than Rate)
+- "CS" or "Cases" = cases ordered (NOT qty)
+- "EA" or "Pcs" or "Qty" = the QTY field (individual units/pieces)
+- "Gross.Amt" or "Gross Amount" = GROS_AMT (qty x rate)
+- "Net.Amt" or "Net Amount" = the net payable per line
+- "*Disc+Gst Benefit" or "CD/RD/WSH" = IGNORE these columns entirely, set disc=0
+- "CGST%" and "SGST%" = these together make total GST (add both for gst field)
+- "MNF B.Code" or "Batch" = batch number
+- "HSN Code" = hsn field
+- If bill says "Page X of Y" extract only the items visible on the page provided
 
-IMPORTANT — DO NOT CONFUSE RATE AND MRP:
-- RATE is always LOWER than MRP (it is what the store pays)
-- MRP is always HIGHER (it is what the customer pays)
-- If S.Rate column shows 126.70 and MRP shows 290.00 — rate=126.70, mrp=290.00
-- Never put the MRP value in the rate field
+CRITICAL — DO NOT CONFUSE RATE AND MRP:
+- RATE (S.Rate column) is what the store PAYS — always the smaller number
+- MRP is what the customer PAYS — always the larger number
+- Example: if S.Rate=126.70 and MRP=290.00, then rate=126.70 and mrp=290.00
+- Never put the MRP value into the rate field
 
-FOR QTY: Always use the EA/Pcs/individual unit column. Never use Cases (CS) column directly.
-If only CS column exists, multiply: CS × units_per_case (from pack size, e.g. 24x300g → 24 units per case).
+FOR QTY: use the EA/Pcs/individual unit column only. If only cases (CS) column exists, multiply cases by the number in the pack size (e.g. CS=2, pack=24x300g means qty=48).
 
-FOR DISC: Only use clearly labelled "Disc%" or "Discount%" column. Ignore all scheme/benefit columns. Default 0.
+FOR RATE: use S.Rate column. This is per individual unit, not per case.
 
-FOR BATCH: Copy exactly as printed (e.g. 53510451DA, 60330451DA). These are alphanumeric codes.
+FOR DISC: only use clearly labelled discount % column. Ignore GST benefit columns. Default 0.
 
 Return ONLY valid JSON, no markdown, no explanation:
 
@@ -46,25 +46,25 @@ Return ONLY valid JSON, no markdown, no explanation:
   "header": {
     "distName": "distributor company name from top of bill",
     "partyCode": "first 3 letters of distributor name uppercase",
-    "address": "distributor full address as single string",
-    "billNo": "bill or invoice number exactly as printed",
+    "address": "distributor full address",
+    "billNo": "bill or invoice number as string",
     "billDate": "YYYY-MM-DD",
     "dueDate": "YYYY-MM-DD, same as billDate if not shown"
   },
   "items": [
     {
-      "prodName": "product name exactly as printed, max 30 chars",
-      "company": "manufacturer name if shown, else empty string",
-      "prodCode": "",
-      "pack": "pack size e.g. 24x300G or 1*10, max 6 chars",
-      "qty": integer from EA/Pcs column only,
-      "rate": purchase rate per unit from S.Rate column as decimal number,
-      "mrp": MRP per unit as decimal number (must be >= rate),
-      "disc": discount percentage as decimal number (0 if no clear discount column),
-      "gst": total GST% as number (CGST% + SGST%, default 5 if not shown),
-      "batch": "batch code exactly as printed e.g. 53510451DA",
-      "expiry": "MM/YY if shown else empty string",
-      "hsn": "HSN code as string e.g. 1901 10 90"
+      "prodName": "product name exactly as printed",
+      "company": "manufacturer name if shown else empty",
+      "prodCode": "empty string",
+      "pack": "pack size e.g. 300G or 75G or 1*10",
+      "qty": quantity as integer from EA column,
+      "rate": purchase rate per unit as number from S.Rate column (smaller number),
+      "mrp": MRP per unit as number (larger number),
+      "disc": discount percentage as number (0 if not a clear discount %),
+      "gst": total GST% as number (CGST% + SGST%, default 5),
+      "batch": "batch number from MNF B.Code column if shown else empty",
+      "expiry": "MM/YY if shown else empty",
+      "hsn": "HSN code as string"
     }
   ],
   "confidence": "high" or "low"
@@ -85,7 +85,7 @@ async function callClaude(images, model, apiKey) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4000,
+      max_tokens: 4000,   // FIX 2: increased from 3000 for larger bills
       messages: [{
         role: 'user',
         content: [...imageContent, { type: 'text', text: PROMPT }]
@@ -137,25 +137,23 @@ export default async function handler(req, res) {
   if (scansUsed >= scanLimit) {
     return res.status(429).json({
       error: `Monthly limit of ${scanLimit} scans reached. Resets on ${getResetDate()}.`,
-      scansUsed,
-      scanLimit,
+      scansUsed, scanLimit,
     })
   }
 
-  // ── 2. CALL CLAUDE ──────────────────────────────────────────────────────────
+  // ── 2. TRY HAIKU FIRST ──────────────────────────────────────────────────────
   let data
   let usedSonnet = false
 
   try {
+    // Single page → Haiku. Multiple pages → Sonnet directly (needs more power)
     if (images.length > 1) {
-      // Multi-page → always use Sonnet (needs more power)
       data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)
       usedSonnet = true
     } else {
-      // Single page → try Haiku first (cheaper)
       data = await callClaude(images, 'claude-haiku-4-5-20251001', process.env.ANTHROPIC_API_KEY)
 
-      // If Haiku is not confident or extracted 0 items → retry with Sonnet
+      // If Haiku says low confidence OR fewer than 1 item extracted → retry with Sonnet
       if (data.confidence === 'low' || !data.items?.length) {
         console.log('Haiku low confidence, retrying with Sonnet')
         data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)

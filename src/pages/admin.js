@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 
-const ADMIN_EMAIL = 'maniac.gupta@gmail.com'
+const ADMIN_EMAIL = 'askmediclan@gmail.com'  // FIX: was 'maniac.gupta@gmail.com' — caused login loop
+
 const PAGE_SIZE = 20
 
 export default function AdminPage() {
@@ -147,16 +148,13 @@ export default function AdminPage() {
     }
   }
 
-  // Filter by search
   const filteredPharmacists = pharmacists.filter(p =>
     p.name?.toLowerCase().includes(search.toLowerCase())
   )
-
   const filteredStores = stores.filter(s =>
     s.store_name?.toLowerCase().includes(search.toLowerCase()) ||
     s.address?.toLowerCase().includes(search.toLowerCase())
   )
-
   const filteredJobs = jobs.filter(j =>
     j.title?.toLowerCase().includes(search.toLowerCase()) ||
     j.store_profiles?.store_name?.toLowerCase().includes(search.toLowerCase())
@@ -168,7 +166,6 @@ export default function AdminPage() {
     <div style={styles.page}>
       <h1 style={styles.heading}>Admin Panel</h1>
 
-      {/* SECTION TABS */}
       <div style={styles.sectionTabs}>
         {['pharmacists', 'stores', 'jobs'].map(s => (
           <button
@@ -181,7 +178,6 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* SEARCH */}
       <div style={styles.searchBox}>
         <input
           style={styles.searchInput}
@@ -195,7 +191,6 @@ export default function AdminPage() {
         />
       </div>
 
-      {/* STATUS FILTER (not for jobs) */}
       {activeSection !== 'jobs' && (
         <div style={styles.statusRow}>
           {['pending', 'approved', 'rejected'].map(s => (
@@ -210,7 +205,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* PHARMACISTS */}
       {activeSection === 'pharmacists' && (
         <>
           <h2 style={styles.subHeading}>
@@ -231,7 +225,6 @@ export default function AdminPage() {
         </>
       )}
 
-      {/* STORES */}
       {activeSection === 'stores' && (
         <>
           <h2 style={styles.subHeading}>
@@ -251,7 +244,6 @@ export default function AdminPage() {
         </>
       )}
 
-      {/* JOBS */}
       {activeSection === 'jobs' && (
         <>
           <h2 style={styles.subHeading}>
@@ -312,7 +304,6 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
       <p style={styles.detail}>
         Status: <span style={styles.badge}>{item.verification_status || 'pending'}</span>
       </p>
-
       <div style={styles.cardActions}>
         {item.license_url && (
           <button style={styles.licenseBtn} onClick={onViewLicense}>📄 View License</button>
@@ -321,14 +312,12 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
           {loadingPerf ? 'Loading…' : perf ? 'Hide Stats' : '📊 View Stats'}
         </button>
       </div>
-
       {perf && (
         <div style={styles.perfBox}>
           <p style={styles.perfItem}>📋 Jobs Applied: <b>{perf.jobsApplied}</b></p>
           <p style={styles.perfItem}>✓ Appointments Confirmed: <b>{perf.appointmentsConfirmed}</b></p>
         </div>
       )}
-
       {status === 'pending' && (
         <div style={styles.approvalActions}>
           <button style={styles.approve} onClick={onApprove}>Approve</button>
@@ -358,13 +347,11 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
       <p style={styles.detail}>
         Status: <span style={styles.badge}>{item.verification_status || 'pending'}</span>
       </p>
-
       <div style={styles.cardActions}>
         <button style={styles.perfBtn} onClick={loadPerf} disabled={loadingPerf}>
           {loadingPerf ? 'Loading…' : perf ? 'Hide Stats' : '📊 View Stats'}
         </button>
       </div>
-
       {perf && (
         <div style={styles.perfBox}>
           <p style={styles.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p>
@@ -372,7 +359,6 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
           <p style={styles.perfItem}>📅 Appointments Confirmed: <b>{perf.appointmentsConfirmed}</b></p>
         </div>
       )}
-
       {status === 'pending' && (
         <div style={styles.approvalActions}>
           <button style={styles.approve} onClick={onApprove}>Approve</button>

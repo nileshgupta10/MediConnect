@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import StoreLayout from '../components/StoreLayout'
 
-// ─── IMAGE COMPRESSOR ─────────────────────────────────────────────────────────
+// ─── IMAGE COMPRESSOR (optimised for OCR — sharp text, smaller size) ─────────
 async function compressForOCR(file) {
   return new Promise((resolve) => {
     const img = new Image()
@@ -19,7 +19,7 @@ async function compressForOCR(file) {
       canvas.toBlob(blob => {
         const f = new File([blob], 'bill.jpg', { type: 'image/jpeg' })
         resolve(f)
-      }, 'image/jpeg', 0.85)
+      }, 'image/jpeg', 0.85) // 0.85 = sharp enough for text, small enough for API
     }
     reader.readAsDataURL(file)
   })
@@ -34,7 +34,7 @@ function fileToBase64(file) {
   })
 }
 
-// ─── DBF BINARY GENERATOR ─────────────────────────────────────────────────────
+// ─── DBF BINARY GENERATOR ────────────────────────────────────────────────────
 const FIELDS = [
   { name: 'PARTYCODE',  type: 'C', len: 3,  dec: 0 },
   { name: 'NAME',       type: 'C', len: 40, dec: 0 },
@@ -144,36 +144,30 @@ function generateDBF(records) {
 
 function buildRecords(header, items) {
   return items.map((item, idx) => {
-    const qty     = Number(item.qty  || 0)
-    const rate    = Number(item.rate || 0)
-    const disc    = Number(item.disc || 0)
-    const gst     = Number(item.gst  || 5)
-    const sgst    = gst / 2
-    const cgst    = gst / 2
-    const gross   = qty * rate
-    const discAmt = gross * disc / 100
-    const net     = gross - discAmt
-    const sgstAmt = net * sgst / 100
-    const cgstAmt = net * cgst / 100
-
+    const qty = Number(item.qty || 0), rate = Number(item.rate || 0)
+    const disc = Number(item.disc || 0), gst = Number(item.gst || 5)
+    const sgst = gst / 2, cgst = gst / 2
+    const gross = qty * rate, discAmt = gross * disc / 100
+    const net = gross - discAmt
+    const sgstAmt = net * sgst / 100, cgstAmt = net * cgst / 100
     return {
       PARTYCODE:  (header.partyCode || '').slice(0, 3).toUpperCase(),
-      NAME:       header.distName  || '',
-      ADD1:       header.address   || '',
-      VOU_NO:     0,                    // ← ALWAYS 0 — CARE assigns its own bill number
-      VOU_TYPE:   'PCS',                // ← ALWAYS PCS — confirmed working
-      TR_DATE:    header.billDate  || '',
-      DUE_DATE:   header.dueDate   || header.billDate || '',
-      PROD_CODE:  (item.batch || '').slice(0, 10).toUpperCase(),
+      NAME:       header.distName || '',
+      ADD1:       header.address  || '',
+      VOU_NO:     0,                                                    // FIX 1: always 0, CARE assigns its own number
+      VOU_TYPE:   'PCS',                                                // FIX 2: always PCS, confirmed working
+      TR_DATE:    header.billDate || '',
+      DUE_DATE:   header.dueDate  || header.billDate || '',
+      PROD_CODE:  (item.batch || '').slice(0, 10).padEnd(10, ' '),
       PROD_NAME:  item.prodName || '',
       COMP_NAME:  item.company  || '',
-      PAK:        (item.pack || '1*10').slice(0, 6),
+      PAK:        item.pack     || '1*10',
       UOM:        1,
       COMP:       (item.company || '').slice(0, 3).toUpperCase(),
       QTY:        qty,
       QTY_SCM:    0,
       DISC_SCM:   0,
-      PR_BATCHNO: `AUTO${String(idx + 1).padStart(2, '0')}`, // ← ALWAYS AUTO01, AUTO02...
+      PR_BATCHNO: `AUTO${String(idx + 1).padStart(2, '0')}`,           // FIX 3: always AUTO01, AUTO02... confirmed working
       EXPIRY:     item.expiry || '12/27',
       RATE:       rate,
       MRP:        Number(item.mrp || 0),
@@ -206,32 +200,28 @@ function buildRecords(header, items) {
 }
 
 function downloadSMS(buf, filename) {
-  const blob = new Blob([buf], { type: 'application/octet-stream' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = filename
-  document.body.appendChild(a)
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' })),
+    download: filename,
+  })
+  document.body.appendChild(a)                                          // FIX 4: needed for Firefox/mobile
   a.click()
-  setTimeout(() => {
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, 200)
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href) }, 100)
 }
 
 const blankItem = () => ({
   prodCode: '', prodName: '', company: '', pack: '1*10',
-  qty: '', rate: '', mrp: '', disc: '0', gst: '5',
+  qty: '', rate: '', mrp: '', disc: '', gst: '5',
   batch: '', expiry: '', hsn: '',
 })
 
-// ─── SCAN TICKER ──────────────────────────────────────────────────────────────
+// ─── SCAN TICKER COMPONENT ────────────────────────────────────────────────────
 function ScanTicker({ scansUsed, scanLimit }) {
-  const pct   = scanLimit > 0 ? (scansUsed / scanLimit) * 100 : 0
-  const left  = scanLimit - scansUsed
-  const color = pct >= 90 ? '#dc2626' : pct >= 67 ? '#f59e0b' : '#0e9090'
-  const now   = new Date()
-  const reset = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const pct    = scanLimit > 0 ? (scansUsed / scanLimit) * 100 : 0
+  const left   = scanLimit - scansUsed
+  const color  = pct >= 90 ? '#dc2626' : pct >= 67 ? '#f59e0b' : '#0e9090'
+  const now    = new Date()
+  const reset  = new Date(now.getFullYear(), now.getMonth() + 1, 1)
     .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
   return (
     <div style={t.box}>
@@ -318,7 +308,10 @@ export default function PurchaseImport() {
 
   const handleScan = async () => {
     if (!pages.length) { setMessage('Please add at least one photo first.'); return }
-    if (scansUsed >= scanLimit) { setMessage('⚠️ Monthly scan limit reached. Resets next month.'); return }
+    if (scansUsed >= scanLimit) {
+      setMessage(`⚠️ Monthly scan limit reached. Resets next month.`)
+      return
+    }
     setUploading(true)
     setMessage(pages.length > 1
       ? '🔍 Reading multi-page bill with AI (Sonnet)… this may take 10-15 seconds…'
@@ -334,7 +327,11 @@ export default function PurchaseImport() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) { setMessage(json.error || 'Could not read bill. Try a clearer photo.'); setUploading(false); return }
+      if (!res.ok) {
+        setMessage(json.error || 'Could not read bill. Try a clearer photo.')
+        setUploading(false)
+        return
+      }
       const h = json.data.header || {}
       setHeader({
         partyCode: h.partyCode || '',
@@ -362,7 +359,7 @@ export default function PurchaseImport() {
       setScansUsed(json.scansUsed)
       setScanLimit(json.scanLimit)
       setUsedModel(json.model)
-      setMessage(`✓ Bill read using ${json.model === 'sonnet' ? 'Sonnet (high accuracy)' : 'Haiku'}! Review and correct below.`)
+      setMessage(`✓ Bill read successfully using ${json.model === 'sonnet' ? 'Sonnet (high accuracy)' : 'Haiku'}! Review and correct below.`)
       setStep('review')
     } catch (e) {
       setMessage('Error: ' + e.message)
@@ -370,7 +367,7 @@ export default function PurchaseImport() {
     setUploading(false)
   }
 
-  const setH    = (k, v) => setHeader(h => ({ ...h, [k]: v }))
+  const setH = (k, v) => setHeader(h => ({ ...h, [k]: v }))
   const setItem = (i, k, v) => setItems(its => { const n = [...its]; n[i] = { ...n[i], [k]: v }; return n })
   const addItem    = () => setItems(its => [...its, blankItem()])
   const removeItem = (i) => setItems(its => its.filter((_, idx) => idx !== i))
@@ -380,19 +377,16 @@ export default function PurchaseImport() {
     if (!header.distName.trim())  { setMessage('Please enter Distributor Name.'); return }
     if (!header.billNo.trim())    { setMessage('Please enter Bill Number.'); return }
     const validItems = items.filter(it => it.prodName.trim() && Number(it.qty) > 0)
-    if (!validItems.length)       { setMessage('Please add at least one item with name and qty.'); return }
+    if (!validItems.length)       { setMessage('Please add at least one item.'); return }
     setGenerating(true)
     try {
       const records = buildRecords(header, validItems)
       const buf     = generateDBF(records)
-      // Filename format matches working file: NAV_NO17573.SMS
-      const fname   = `${header.partyCode.toUpperCase()}_NO${header.billNo.replace(/[^a-zA-Z0-9]/g, '')}.SMS`
+      const fname   = `${header.partyCode.toUpperCase()}_NO${header.billNo.replace(/[^a-zA-Z0-9]/g, '')}.SMS`  // FIX 5: filename matches working file format
       downloadSMS(buf, fname)
       setMessage(`✓ ${fname} downloaded! Copy to C:\\download\\ on CARE PC, then click DwnLd Purch.`)
       setStep('done')
-    } catch (e) {
-      setMessage('Error generating file: ' + e.message)
-    }
+    } catch (e) { setMessage('Error: ' + e.message) }
     setGenerating(false)
   }
 
@@ -414,6 +408,7 @@ export default function PurchaseImport() {
     <StoreLayout>
       <div style={s.page}>
 
+        {/* BANNER */}
         <div style={s.banner}>
           <div style={s.bannerOverlay} />
           <div style={s.bannerContent}>
@@ -426,8 +421,11 @@ export default function PurchaseImport() {
         </div>
 
         <div style={s.body}>
+
+          {/* SCAN TICKER */}
           <ScanTicker scansUsed={scansUsed} scanLimit={scanLimit} />
 
+          {/* INSTRUCTIONS */}
           <div style={s.infoBox}>
             <b>📋 How it works:</b> Take a photo of the bill → AI reads it → review & correct → download .SMS → copy to <code style={s.code}>C:\download\</code> on CARE PC → click DwnLd Purch
           </div>
@@ -442,10 +440,15 @@ export default function PurchaseImport() {
               <input ref={galleryRef} type="file" accept="image/*" hidden multiple onChange={e => addPages(e.target.files)} />
 
               <div style={s.uploadBtns}>
-                <button style={s.camBtn} onClick={() => cameraRef.current.click()} disabled={uploading}>📷 Take Photo</button>
-                <button style={s.galBtn} onClick={() => galleryRef.current.click()} disabled={uploading}>🖼️ Add from Gallery</button>
+                <button style={s.camBtn} onClick={() => cameraRef.current.click()} disabled={uploading}>
+                  📷 Take Photo
+                </button>
+                <button style={s.galBtn} onClick={() => galleryRef.current.click()} disabled={uploading}>
+                  🖼️ Add from Gallery
+                </button>
               </div>
 
+              {/* Page previews */}
               {pages.length > 0 && (
                 <div style={s.pagesWrap}>
                   {pages.map((pg, i) => (
@@ -470,13 +473,16 @@ export default function PurchaseImport() {
                 </div>
               )}
 
-              <button style={s.manualBtn} onClick={() => setStep('review')}>✏️ Enter bill manually instead</button>
+              <button style={s.manualBtn} onClick={() => setStep('review')}>
+                ✏️ Enter bill manually instead
+              </button>
             </div>
           )}
 
           {/* ── STEP 2: REVIEW ── */}
           {step === 'review' && (
             <>
+              {/* Header */}
               <div style={s.card}>
                 <div style={s.cardHeader}>
                   <h3 style={s.cardTitle}>📄 Bill Header</h3>
@@ -484,7 +490,7 @@ export default function PurchaseImport() {
                 </div>
                 <div style={s.formGrid}>
                   <div style={s.formGroup}>
-                    <label style={s.label}>Party Code * <span style={s.hint2}>(3 chars, e.g. NAV)</span></label>
+                    <label style={s.label}>Party Code * <span style={s.hint2}>(3 chars)</span></label>
                     <input style={s.input} maxLength={3} value={header.partyCode} onChange={e => setH('partyCode', e.target.value.toUpperCase())} placeholder="NAV" />
                   </div>
                   <div style={s.formGroup}>
@@ -493,7 +499,7 @@ export default function PurchaseImport() {
                   </div>
                   <div style={{ ...s.formGroup, gridColumn: 'span 2' }}>
                     <label style={s.label}>Distributor Name *</label>
-                    <input style={s.input} value={header.distName} onChange={e => setH('distName', e.target.value)} placeholder="Navkar Cosmetics" />
+                    <input style={s.input} value={header.distName} onChange={e => setH('distName', e.target.value)} placeholder="Distributor name" />
                   </div>
                   <div style={{ ...s.formGroup, gridColumn: 'span 2' }}>
                     <label style={s.label}>Address</label>
@@ -510,6 +516,7 @@ export default function PurchaseImport() {
                 </div>
               </div>
 
+              {/* Items */}
               <div style={s.card}>
                 <div style={s.cardHeader}>
                   <h3 style={s.cardTitle}>💊 Line Items ({items.length})</h3>
@@ -551,6 +558,7 @@ export default function PurchaseImport() {
                   </table>
                 </div>
 
+                {/* Totals */}
                 <div style={s.summary}>
                   <div style={s.sumRow}><span style={s.sumL}>Gross</span><span style={s.sumV}>₹{totals.gross.toFixed(2)}</span></div>
                   <div style={s.sumRow}><span style={s.sumL}>Discount</span><span style={{ ...s.sumV, color: '#dc2626' }}>-₹{totals.disc.toFixed(2)}</span></div>
@@ -562,7 +570,7 @@ export default function PurchaseImport() {
                 </div>
               </div>
 
-              <div style={s.noteBox}>💡 VOU_TYPE is always PCS • VOU_NO is always 0 (CARE assigns its own number) • Blank batch → AUTO01, AUTO02… • Blank expiry → 12/27</div>
+              <div style={s.noteBox}>💡 VOU_NO=0 & VOU_TYPE=PCS always | Batch → AUTO01, AUTO02… | Blank expiry → 12/27</div>
 
               {message && (
                 <div style={message.startsWith('✓') ? s.successMsg : s.errorMsg}>{message}</div>
