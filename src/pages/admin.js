@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import AdminLayout from '../components/AdminLayout'
 
-const ADMIN_EMAIL = 'askmediclan@gmail.com'  // ← FIXED (was 'maniac.gupta@gmail.com' — caused login loop)
-
+const ADMIN_EMAIL = 'askmediclan@gmail.com'
 const PAGE_SIZE = 20
 
 export default function AdminPage() {
@@ -82,13 +82,25 @@ export default function AdminPage() {
   const loadMore = () => { const next = page + 1; setPage(next); fetchData(next) }
 
   const updatePharmacistStatus = async (userId, newStatus) => {
-    await supabase.from('pharmacist_profiles').update({ verification_status: newStatus, is_verified: newStatus === 'approved' }).eq('user_id', userId)
-    setPharmacists(prev => prev.filter(p => p.user_id !== userId))
+    const { error } = await supabase
+      .from('pharmacist_profiles')
+      .update({ verification_status: newStatus, is_verified: newStatus === 'approved' })
+      .eq('user_id', userId)
+    if (error) { alert('Update failed: ' + error.message); return }
+    // Re-fetch instead of optimistic filter — ensures DB write confirmed
+    await loadPharmacists(0)
+    setPage(0)
   }
 
   const updateStoreStatus = async (userId, newStatus) => {
-    await supabase.from('store_profiles').update({ verification_status: newStatus, is_verified: newStatus === 'approved' }).eq('user_id', userId)
-    setStores(prev => prev.filter(s => s.user_id !== userId))
+    const { error } = await supabase
+      .from('store_profiles')
+      .update({ verification_status: newStatus, is_verified: newStatus === 'approved' })
+      .eq('user_id', userId)
+    if (error) { alert('Update failed: ' + error.message); return }
+    // Re-fetch instead of optimistic filter — ensures DB write confirmed
+    await loadStores(0)
+    setPage(0)
   }
 
   const toggleJobDisabled = async (jobId, currentlyDisabled) => {
@@ -127,75 +139,77 @@ export default function AdminPage() {
   if (loading) return <p style={{ padding: 20 }}>Loading admin panel…</p>
 
   return (
-    <div style={styles.page}>
-      <h1 style={styles.heading}>Admin Panel</h1>
-      <div style={styles.sectionTabs}>
-        {['pharmacists', 'stores', 'jobs'].map(s => (
-          <button key={s} style={activeSection === s ? styles.activeSectionTab : styles.sectionTab} onClick={() => setActiveSection(s)}>
-            {s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-      <div style={styles.searchBox}>
-        <input style={styles.searchInput}
-          placeholder={activeSection === 'pharmacists' ? 'Search by pharmacist name…' : activeSection === 'stores' ? 'Search by store name or area…' : 'Search by job title or store name…'}
-          value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
-      {activeSection !== 'jobs' && (
-        <div style={styles.statusRow}>
-          {['pending', 'approved', 'rejected'].map(s => (
-            <button key={s} style={status === s ? styles.activeBtn : styles.btn} onClick={() => setStatus(s)}>
+    <AdminLayout>
+      <div style={styles.page}>
+        <h1 style={styles.heading}>Admin Panel</h1>
+        <div style={styles.sectionTabs}>
+          {['pharmacists', 'stores', 'jobs'].map(s => (
+            <button key={s} style={activeSection === s ? styles.activeSectionTab : styles.sectionTab} onClick={() => setActiveSection(s)}>
               {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
-      )}
-      {activeSection === 'pharmacists' && (
-        <>
-          <h2 style={styles.subHeading}>{status.charAt(0).toUpperCase() + status.slice(1)} Pharmacists ({filteredPharmacists.length}{hasMore ? '+' : ''})</h2>
-          {filteredPharmacists.length === 0 && <p style={styles.empty}>No records found.</p>}
-          {filteredPharmacists.map(item => (
-            <PharmacistCard key={item.user_id} item={item} status={status}
-              onApprove={() => updatePharmacistStatus(item.user_id, 'approved')}
-              onReject={() => updatePharmacistStatus(item.user_id, 'rejected')}
-              onViewLicense={() => viewLicense(item)} getPerformance={getPerformance} />
-          ))}
-        </>
-      )}
-      {activeSection === 'stores' && (
-        <>
-          <h2 style={styles.subHeading}>{status.charAt(0).toUpperCase() + status.slice(1)} Stores ({filteredStores.length}{hasMore ? '+' : ''})</h2>
-          {filteredStores.length === 0 && <p style={styles.empty}>No records found.</p>}
-          {filteredStores.map(item => (
-            <StoreCard key={item.user_id} item={item} status={status}
-              onApprove={() => updateStoreStatus(item.user_id, 'approved')}
-              onReject={() => updateStoreStatus(item.user_id, 'rejected')}
-              getPerformance={getPerformance} />
-          ))}
-        </>
-      )}
-      {activeSection === 'jobs' && (
-        <>
-          <h2 style={styles.subHeading}>All Jobs ({filteredJobs.length}{hasMore ? '+' : ''})</h2>
-          {filteredJobs.length === 0 && <p style={styles.empty}>No jobs found.</p>}
-          {filteredJobs.map(job => (
-            <div key={job.id} style={{ ...styles.card, ...(job.disabled_by_admin ? { border: '2px solid #ef4444' } : {}) }}>
-              {job.disabled_by_admin && <div style={styles.disabledBanner}>🚫 Disabled by Admin</div>}
-              <h3 style={styles.cardTitle}>{job.title}</h3>
-              <p style={styles.detail}><b>Store:</b> {job.store_profiles?.store_name || '—'}</p>
-              <p style={styles.detail}><b>Location:</b> {job.location}</p>
-              <p style={styles.detail}><b>Status:</b> {job.status}</p>
-              <p style={styles.detail}><b>Posted:</b> {new Date(job.created_at).toLocaleDateString('en-IN')}</p>
-              <p style={styles.detail}><b>Expires:</b> {new Date(job.expires_at).toLocaleDateString('en-IN')}</p>
-              <button style={job.disabled_by_admin ? styles.enableBtn : styles.disableBtn} onClick={() => toggleJobDisabled(job.id, job.disabled_by_admin)}>
-                {job.disabled_by_admin ? '✓ Re-enable Job' : '🚫 Disable Job'}
+        <div style={styles.searchBox}>
+          <input style={styles.searchInput}
+            placeholder={activeSection === 'pharmacists' ? 'Search by pharmacist name…' : activeSection === 'stores' ? 'Search by store name or area…' : 'Search by job title or store name…'}
+            value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        {activeSection !== 'jobs' && (
+          <div style={styles.statusRow}>
+            {['pending', 'approved', 'rejected'].map(s => (
+              <button key={s} style={status === s ? styles.activeBtn : styles.btn} onClick={() => setStatus(s)}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
-            </div>
-          ))}
-        </>
-      )}
-      {hasMore && <button style={styles.loadMoreBtn} onClick={loadMore}>Load More</button>}
-    </div>
+            ))}
+          </div>
+        )}
+        {activeSection === 'pharmacists' && (
+          <>
+            <h2 style={styles.subHeading}>{status.charAt(0).toUpperCase() + status.slice(1)} Pharmacists ({filteredPharmacists.length}{hasMore ? '+' : ''})</h2>
+            {filteredPharmacists.length === 0 && <p style={styles.empty}>No records found.</p>}
+            {filteredPharmacists.map(item => (
+              <PharmacistCard key={item.user_id} item={item} status={status}
+                onApprove={() => updatePharmacistStatus(item.user_id, 'approved')}
+                onReject={() => updatePharmacistStatus(item.user_id, 'rejected')}
+                onViewLicense={() => viewLicense(item)} getPerformance={getPerformance} />
+            ))}
+          </>
+        )}
+        {activeSection === 'stores' && (
+          <>
+            <h2 style={styles.subHeading}>{status.charAt(0).toUpperCase() + status.slice(1)} Stores ({filteredStores.length}{hasMore ? '+' : ''})</h2>
+            {filteredStores.length === 0 && <p style={styles.empty}>No records found.</p>}
+            {filteredStores.map(item => (
+              <StoreCard key={item.user_id} item={item} status={status}
+                onApprove={() => updateStoreStatus(item.user_id, 'approved')}
+                onReject={() => updateStoreStatus(item.user_id, 'rejected')}
+                getPerformance={getPerformance} />
+            ))}
+          </>
+        )}
+        {activeSection === 'jobs' && (
+          <>
+            <h2 style={styles.subHeading}>All Jobs ({filteredJobs.length}{hasMore ? '+' : ''})</h2>
+            {filteredJobs.length === 0 && <p style={styles.empty}>No jobs found.</p>}
+            {filteredJobs.map(job => (
+              <div key={job.id} style={{ ...styles.card, ...(job.disabled_by_admin ? { border: '2px solid #ef4444' } : {}) }}>
+                {job.disabled_by_admin && <div style={styles.disabledBanner}>🚫 Disabled by Admin</div>}
+                <h3 style={styles.cardTitle}>{job.title}</h3>
+                <p style={styles.detail}><b>Store:</b> {job.store_profiles?.store_name || '—'}</p>
+                <p style={styles.detail}><b>Location:</b> {job.location}</p>
+                <p style={styles.detail}><b>Status:</b> {job.status}</p>
+                <p style={styles.detail}><b>Posted:</b> {new Date(job.created_at).toLocaleDateString('en-IN')}</p>
+                <p style={styles.detail}><b>Expires:</b> {new Date(job.expires_at).toLocaleDateString('en-IN')}</p>
+                <button style={job.disabled_by_admin ? styles.enableBtn : styles.disableBtn} onClick={() => toggleJobDisabled(job.id, job.disabled_by_admin)}>
+                  {job.disabled_by_admin ? '✓ Re-enable Job' : '🚫 Disable Job'}
+                </button>
+              </div>
+            ))}
+          </>
+        )}
+        {hasMore && <button style={styles.loadMoreBtn} onClick={loadMore}>Load More</button>}
+      </div>
+    </AdminLayout>
   )
 }
 
@@ -237,7 +251,7 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
       {item.address && <p style={styles.detail}>📍 {item.address}</p>}
       <p style={styles.detail}>Status: <span style={styles.badge}>{item.verification_status || 'pending'}</span></p>
       <div style={styles.cardActions}><button style={styles.perfBtn} onClick={loadPerf} disabled={loadingPerf}>{loadingPerf ? 'Loading…' : perf ? 'Hide Stats' : '📊 View Stats'}</button></div>
-      {perf && <div style={styles.perfBox}><p style={styles.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={styles.perfItem}>✓ Jobs Closed (Hired): <b>{perf.jobsClosed}</b></p><p style={styles.perfItem}>📅 Appointments Confirmed: <b>{perf.appointmentsConfirmed}</b></p></div>}
+      {perf && <div style={styles.perfBox}><p style={styles.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={styles.perfItem}>✓ Jobs Closed: <b>{perf.jobsClosed}</b></p><p style={styles.perfItem}>📅 Appointments Confirmed: <b>{perf.appointmentsConfirmed}</b></p></div>}
       {status === 'pending' && <div style={styles.approvalActions}><button style={styles.approve} onClick={onApprove}>Approve</button><button style={styles.reject} onClick={onReject}>Reject</button></div>}
     </div>
   )
