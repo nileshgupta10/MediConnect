@@ -19,7 +19,7 @@ async function compressForOCR(file) {
       canvas.toBlob(blob => {
         const f = new File([blob], 'bill.jpg', { type: 'image/jpeg' })
         resolve(f)
-      }, 'image/jpeg', 0.85) // 0.85 = sharp enough for text, small enough for API
+      }, 'image/jpeg', 0.85)
     }
     reader.readAsDataURL(file)
   })
@@ -150,15 +150,22 @@ function buildRecords(header, items) {
     const gross = qty * rate, discAmt = gross * disc / 100
     const net = gross - discAmt
     const sgstAmt = net * sgst / 100, cgstAmt = net * cgst / 100
+
+    // PROD_CODE: use batch code if available, else fallback to first 10 chars of product name
+    // (CARE needs a non-empty PROD_CODE to match/create product — blank causes silent reject)
+    const prodCode = item.batch
+      ? item.batch.slice(0, 10).padEnd(10, ' ')
+      : (item.prodName || '').replace(/\s+/g, '').toUpperCase().slice(0, 10).padEnd(10, ' ')
+
     return {
       PARTYCODE:  (header.partyCode || '').slice(0, 3).toUpperCase(),
       NAME:       header.distName || '',
       ADD1:       header.address  || '',
-      VOU_NO:     0,                                                    // FIX 1: always 0, CARE assigns its own number
-      VOU_TYPE:   'PCS',                                                // FIX 2: always PCS, confirmed working
+      VOU_NO:     0,                                        // always 0 — CARE assigns its own number
+      VOU_TYPE:   'PCS',                                    // always PCS — confirmed working
       TR_DATE:    header.billDate || '',
       DUE_DATE:   header.dueDate  || header.billDate || '',
-      PROD_CODE:  (item.batch || '').slice(0, 10).padEnd(10, ' '),
+      PROD_CODE:  prodCode,                                 // batch code if present, else name-derived
       PROD_NAME:  item.prodName || '',
       COMP_NAME:  item.company  || '',
       PAK:        item.pack     || '1*10',
@@ -167,7 +174,7 @@ function buildRecords(header, items) {
       QTY:        qty,
       QTY_SCM:    0,
       DISC_SCM:   0,
-      PR_BATCHNO: `AUTO${String(idx + 1).padStart(2, '0')}`,           // FIX 3: always AUTO01, AUTO02... confirmed working
+      PR_BATCHNO: `AUTO${String(idx + 1).padStart(2, '0')}`, // always AUTO01, AUTO02...
       EXPIRY:     item.expiry || '12/27',
       RATE:       rate,
       MRP:        Number(item.mrp || 0),
@@ -204,7 +211,7 @@ function downloadSMS(buf, filename) {
     href: URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' })),
     download: filename,
   })
-  document.body.appendChild(a)                                          // FIX 4: needed for Firefox/mobile
+  document.body.appendChild(a)
   a.click()
   setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href) }, 100)
 }
@@ -382,7 +389,7 @@ export default function PurchaseImport() {
     try {
       const records = buildRecords(header, validItems)
       const buf     = generateDBF(records)
-      const fname   = `${header.partyCode.toUpperCase()}_NO${header.billNo.replace(/[^a-zA-Z0-9]/g, '')}.SMS`  // FIX 5: filename matches working file format
+      const fname   = `${header.partyCode.toUpperCase()}_NO${header.billNo.replace(/[^a-zA-Z0-9]/g, '')}.SMS`
       downloadSMS(buf, fname)
       setMessage(`✓ ${fname} downloaded! Copy to C:\\download\\ on CARE PC, then click DwnLd Purch.`)
       setStep('done')
@@ -448,7 +455,6 @@ export default function PurchaseImport() {
                 </button>
               </div>
 
-              {/* Page previews */}
               {pages.length > 0 && (
                 <div style={s.pagesWrap}>
                   {pages.map((pg, i) => (
@@ -482,7 +488,6 @@ export default function PurchaseImport() {
           {/* ── STEP 2: REVIEW ── */}
           {step === 'review' && (
             <>
-              {/* Header */}
               <div style={s.card}>
                 <div style={s.cardHeader}>
                   <h3 style={s.cardTitle}>📄 Bill Header</h3>
@@ -516,7 +521,6 @@ export default function PurchaseImport() {
                 </div>
               </div>
 
-              {/* Items */}
               <div style={s.card}>
                 <div style={s.cardHeader}>
                   <h3 style={s.cardTitle}>💊 Line Items ({items.length})</h3>
@@ -558,7 +562,6 @@ export default function PurchaseImport() {
                   </table>
                 </div>
 
-                {/* Totals */}
                 <div style={s.summary}>
                   <div style={s.sumRow}><span style={s.sumL}>Gross</span><span style={s.sumV}>₹{totals.gross.toFixed(2)}</span></div>
                   <div style={s.sumRow}><span style={s.sumL}>Discount</span><span style={{ ...s.sumV, color: '#dc2626' }}>-₹{totals.disc.toFixed(2)}</span></div>
