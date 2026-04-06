@@ -66,6 +66,7 @@ export default function AdminPage() {
     const { data } = await supabase.from('store_profiles')
       .select('user_id, store_name, verification_status, is_verified, address, license_url')
       .eq('verification_status', status).order('store_name').range(from, from + PAGE_SIZE - 1)
+      console.log('stores:', JSON.stringify(data))
     if (pageNum === 0) setStores(data || [])
     else setStores(prev => [...prev, ...(data || [])])
     setHasMore((data || []).length === PAGE_SIZE)
