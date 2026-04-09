@@ -114,9 +114,11 @@ export default function AdminPage() {
 
   const viewLicense = async (item) => {
     if (!item.license_url) { alert('No license uploaded.'); return }
-    const cleanPath = item.license_url.includes('supabase.co') ? item.license_url.split('/licenses/')[1] : item.license_url
+    const cleanPath = item.license_url.includes('supabase.co')
+      ? item.license_url.split('/licenses/')[1]
+      : item.license_url
     const { data, error } = await supabase.storage.from('licenses').createSignedUrl(cleanPath, 3600)
-    if (error || !data?.signedUrl) { alert('Could not load license.'); return }
+    if (error || !data?.signedUrl) { alert('Could not load license. Error: ' + error?.message); return }
     window.open(data.signedUrl, '_blank')
   }
 
@@ -126,13 +128,20 @@ export default function AdminPage() {
         supabase.from('jobs').select('id, status').eq('store_owner_id', userId),
         supabase.from('appointments').select('id, status').eq('store_owner_id', userId),
       ])
-      return { jobsPosted: j.data?.length || 0, jobsClosed: j.data?.filter(x => x.status === 'closed').length || 0, appointmentsConfirmed: a.data?.filter(x => x.status === 'confirmed').length || 0 }
+      return {
+        jobsPosted: j.data?.length || 0,
+        jobsClosed: j.data?.filter(x => x.status === 'closed').length || 0,
+        appointmentsConfirmed: a.data?.filter(x => x.status === 'confirmed').length || 0
+      }
     } else {
       const [ap, a] = await Promise.all([
         supabase.from('job_applications').select('id').eq('pharmacist_id', userId),
         supabase.from('appointments').select('id, status').eq('pharmacist_id', userId),
       ])
-      return { jobsApplied: ap.data?.length || 0, appointmentsConfirmed: a.data?.filter(x => x.status === 'confirmed').length || 0 }
+      return {
+        jobsApplied: ap.data?.length || 0,
+        appointmentsConfirmed: a.data?.filter(x => x.status === 'confirmed').length || 0
+      }
     }
   }
 
@@ -171,7 +180,8 @@ export default function AdminPage() {
             <PharmacistCard key={item.user_id} item={item} status={status}
               onApprove={()=>updatePharmacistStatus(item.user_id,'approved')}
               onReject={()=>updatePharmacistStatus(item.user_id,'rejected')}
-              onViewLicense={()=>viewLicense(item)} getPerformance={getPerformance} />
+              onViewLicense={()=>viewLicense(item)}
+              getPerformance={getPerformance} />
           ))}
         </>}
 
@@ -182,6 +192,7 @@ export default function AdminPage() {
             <StoreCard key={item.user_id} item={item} status={status}
               onApprove={()=>updateStoreStatus(item.user_id,'approved')}
               onReject={()=>updateStoreStatus(item.user_id,'rejected')}
+              onViewLicense={()=>viewLicense(item)}
               getPerformance={getPerformance} />
           ))}
         </>}
@@ -228,7 +239,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const loadPerf = async () => { if(perf){setPerf(null);return} setLp(true); setPerf(await getPerformance(item.user_id,'store')); setLp(false) }
@@ -238,6 +249,7 @@ function StoreCard({ item, status, onApprove, onReject, getPerformance }) {
       {item.address && <p style={st.detail}>📍 {item.address}</p>}
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
       <div style={st.actions}>
+        {item.license_url && <button style={st.licBtn} onClick={onViewLicense}>📄 License</button>}
         <button style={st.perfBtn} onClick={loadPerf} disabled={lp}>{lp?'…':perf?'Hide Stats':'📊 Stats'}</button>
       </div>
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={st.perfItem}>✓ Hired: <b>{perf.jobsClosed}</b></p><p style={st.perfItem}>📅 Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
