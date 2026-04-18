@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     const items = protocol.mapRows(rows)
     const records = normalizer.normalize(items, metadata)
 
-    const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB154288.sms')
+    const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
     const templateBuffer = fs.readFileSync(templatePath)
 
     const smsBuffer = smsWriter.generate(records, templateBuffer)
