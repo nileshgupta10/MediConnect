@@ -21,8 +21,7 @@ export default function StoreLayout({ children }) {
         <a href="/store-profile" style={nl('/store-profile')}>Profile</a>
         <a href="/post-job" style={nl('/post-job')}>Jobs</a>
         <a href="/applicants" style={nl('/applicants')}>Applicants</a>
-        <a href="/goods-returns" style={nl('/goods-returns')}>Returns</a>
-        <a href="/purchase-import" style={nl('/purchase-import')}>Purchase</a>
+        <a href="/bill-converter" style={nl('/bill-converter')}>Bill Converter</a>
         <button style={s.logout} onClick={handleLogout}>Logout</button>
       </nav>
       {children}
