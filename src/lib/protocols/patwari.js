@@ -31,7 +31,18 @@ module.exports = {
         rate: derivedRate,
         mrp: parseFloat(row.mrp || 0),
         hsn,
-        expiry: row.expdate || '12/30',
+       expiry: (() => {
+  const d = row.expdate || ''
+  if (d.includes('-')) {
+    const parts = d.split('-')
+    if (parts.length === 3) return `${parts[1]}/${parts[2].substring(2)}`
+  }
+  if (d.includes('/')) {
+    const parts = d.split('/')
+    if (parts.length === 3) return `${parts[1]}/${parts[2].substring(2)}`
+  }
+  return '12/30'
+})(),
         discountPer: 0,
         cgstAmt: parseFloat(row.cgstamt || 0),
         sgstAmt: parseFloat(row.sgstamt || 0),
