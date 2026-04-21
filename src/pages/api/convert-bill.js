@@ -3,8 +3,9 @@ import path from 'path'
 import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 import patwari from '../../lib/protocols/patwari'
+import medica from '../../lib/protocols/medica'
 
-const PROTOCOLS = [patwari]
+const PROTOCOLS = [patwari, medica]
 
 export const config = {
   api: { bodyParser: { sizeLimit: '10mb' } }
