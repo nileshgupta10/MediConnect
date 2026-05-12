@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     let textContent = ''
 
     if (isPDF) {
-      const pdfParse = (await import('pdf-parse')).default
+      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
       const pdfData = await pdfParse(fileBuffer)
       textContent = pdfData.text
     } else {
