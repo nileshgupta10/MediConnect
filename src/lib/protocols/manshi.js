@@ -3,7 +3,7 @@
    * Parses item blocks using the HSN/taxable/amount tail as the anchor.
    */
 
-  const { generateStableId } = require('../utils/stableId');
+  const { generateStableId } = require('../../utils/stableId');
 
   module.exports = {
     name: 'Manshi Agencies PDF',

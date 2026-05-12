@@ -3,7 +3,7 @@
    * Handles duplicated line extraction from MARG-style GST invoice PDFs.
    */
 
-  const { generateStableId } = require('../utils/stableId');
+  const { generateStableId } = require('../../utils/stableId');
 
   function dedupeAdjacent(lines) {
     const out = [];
