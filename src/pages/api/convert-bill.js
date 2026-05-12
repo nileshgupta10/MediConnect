@@ -4,8 +4,12 @@ import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 import patwari from '../../lib/protocols/patwari'
 import medica from '../../lib/protocols/medica'
+import beautyCosmetics from '../../lib/protocols/beautyCosmetics'
+import manshi from '../../lib/protocols/manshi'
+import manshiLeap from '../../lib/protocols/manshiLeap'
 
-const PROTOCOLS = [patwari, medica]
+const PROTOCOLS = [patwari, medica, beautyCosmetics, manshi, manshiLeap]
+
 
 export const config = {
   api: { bodyParser: { sizeLimit: '10mb' } }
