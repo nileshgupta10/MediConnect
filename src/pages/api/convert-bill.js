@@ -96,9 +96,16 @@ export default async function handler(req, res) {
     let textContent = ''
 
     if (isPDF) {
-      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default
-      const pdfData = await pdfParse(fileBuffer)
-      textContent = pdfData.text
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js')
+const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(fileBuffer) })
+const pdfDoc = await loadingTask.promise
+let text = ''
+for (let i = 1; i <= pdfDoc.numPages; i++) {
+  const page = await pdfDoc.getPage(i)
+  const content = await page.getTextContent()
+  text += content.items.map(item => item.str).join(' ') + '\n'
+}
+textContent = text
     } else {
       textContent = fileBuffer.toString('utf-8')
     }
