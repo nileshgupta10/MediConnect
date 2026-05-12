@@ -97,8 +97,16 @@ export default async function handler(req, res) {
 
     if (isPDF) {
       const { extractText } = await import('unpdf')
-const extracted = await extractText(new Uint8Array(fileBuffer))
-textContent = Array.isArray(extracted) ? extracted.join('\n') : String(extracted)
+        const extracted = await extractText(new Uint8Array(fileBuffer))
+        if (Array.isArray(extracted?.text)) {
+          textContent = extracted.text.join('\n')
+        } else if (typeof extracted?.text === 'string') {
+          textContent = extracted.text
+        } else if (Array.isArray(extracted)) {
+          textContent = extracted.join('\n')
+        } else {
+          textContent = String(extracted || '')
+        }
     } else {
       textContent = fileBuffer.toString('utf-8')
     }
