@@ -4,7 +4,7 @@ import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 import patwari from '../../lib/protocols/patwari'
 import medica from '../../lib/protocols/medica'
-import beautyCosmetics from '../../lib/protocols/beautyCosmetics'
+import beautyCosmetics from '../../lib/protocols/beauty'
 import manshi from '../../lib/protocols/manshi'
 import manshiLeap from '../../lib/protocols/manshiLeap'
 

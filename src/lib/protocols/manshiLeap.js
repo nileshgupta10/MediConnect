@@ -3,7 +3,7 @@
    * Handles the tabular LEAP-style invoice format used by Manshi Agencies.
    */
 
-  const { generateStableId } = require('../utils/stableId');
+  const { generateStableId } = require('../../utils/stableId');
 
   module.exports = {
     name: 'Manshi Leap PDF',
