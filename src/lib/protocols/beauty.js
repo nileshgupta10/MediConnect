@@ -18,7 +18,7 @@
 
   module.exports = {
     name: 'Beauty Cosmetics PDF',
-    identifyPatterns: ['BEAUTY COSMETICS', 'A020699', 'MARG'],
+    identifyPatterns: ['BEAUTY COSMETICS', 'MARG'],
 
     getMetadata: (lines) => {
       const cleaned = dedupeAdjacent(Array.isArray(lines) ? lines : String(lines).split('\n'));

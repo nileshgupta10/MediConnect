@@ -112,13 +112,29 @@ textContent = Array.isArray(extracted) ? extracted.join('\n') : String(extracted
     // For CSVs — parse into rows
     let rows
     if (isPDF) {
-      if (!protocol.mapPDF) {
-        return res.status(400).json({ error: protocol.name + ' does not support PDF yet.' })
-      }
-      rows = protocol.mapPDF(textContent)
-    } else {
-      rows = parseCSV(textContent)
-    }
+  const lines = textContent.split('\n').map(l => l.trim()).filter(l => l)
+  if (protocol.mapPDF) {
+    rows = protocol.mapPDF(lines)
+  } else if (protocol.mapRows) {
+    rows = protocol.mapRows(lines)
+  } else {
+    return res.status(400).json({ error: protocol.name + ' does not support PDF.' })
+  }
+  // For PDF protocols, getMetadata also receives lines
+  const metadata = protocol.getMetadata(lines)
+  const items = rows
+  const records = normalizer.normalize(items, metadata)
+  const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
+  const templateBuffer = fs.readFileSync(templatePath)
+  const smsBuffer = smsWriter.generate(records, templateBuffer)
+  const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+  const filename = `RATADEH_${metadata.partyCode}CRB${invNo}.sms`
+  res.setHeader('Content-Type', 'application/octet-stream')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  return res.send(smsBuffer)
+} else {
+  rows = parseCSV(textContent)
+}
 
     if (!rows || rows.length === 0) return res.status(400).json({ error: 'No data rows found in file.' })
 
