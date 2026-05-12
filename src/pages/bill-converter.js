@@ -7,43 +7,44 @@ export default function BillConverter() {
   const [loading, setLoading] = useState(false)
 
   const handleConvert = async () => {
-    if (!file) { setStatus('Please select a CSV file first.'); return }
-    setLoading(true)
-    setStatus('Converting...')
+  if (!file) { setStatus('Please select a file first.'); return }
+  setLoading(true)
+  setStatus('Converting...')
 
-    try {
-      const text = await file.text()
-      const res = await fetch('/api/convert-bill', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvText: text })
-      })
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
 
-      if (!res.ok) {
-        const err = await res.json()
-        setStatus('Error: ' + err.error)
-        setLoading(false)
-        return
-      }
+    const res = await fetch('/api/convert-bill', {
+      method: 'POST',
+      body: formData
+    })
 
-      const blob = await res.blob()
-      const disposition = res.headers.get('Content-Disposition')
-      const filename = disposition?.split('filename=')[1]?.replace(/"/g, '') || 'output.sms'
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-
-      setStatus('✅ Done! ' + filename + ' downloaded. Copy to C:\\download\\ on CARE PC.')
-    } catch (err) {
-      setStatus('Error: ' + err.message)
+    if (!res.ok) {
+      const err = await res.json()
+      setStatus('Error: ' + err.error)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    const blob = await res.blob()
+    const disposition = res.headers.get('Content-Disposition')
+    const filename = disposition?.split('filename=')[1]?.replace(/"/g, '') || 'output.sms'
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    setStatus('✅ Done! ' + filename + ' downloaded. Copy to C:\\download\\ on CARE PC.')
+  } catch (err) {
+    setStatus('Error: ' + err.message)
   }
+  setLoading(false)
+}
 
   return (
     <StoreLayout>
@@ -55,7 +56,7 @@ export default function BillConverter() {
           <label style={st.label}>Select Bill File (.CSV)</label>
           <input
             type="file"
-            accept=".csv,.CSV"
+            accept=".csv,.CSV,.pdf,.PDF"
             onChange={e => { setFile(e.target.files[0]); setStatus('') }}
             style={st.input}
           />

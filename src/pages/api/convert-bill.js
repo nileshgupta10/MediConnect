@@ -10,13 +10,24 @@ import manshiLeap from '../../lib/protocols/manshiLeap'
 
 const PROTOCOLS = [patwari, medica, beautyCosmetics, manshi, manshiLeap]
 
-
 export const config = {
-  api: { bodyParser: { sizeLimit: '10mb' } }
+  api: {
+    bodyParser: false,
+    sizeLimit: '10mb'
+  }
 }
 
-function detectProtocol(csvText) {
-  const upper = csvText.toUpperCase()
+async function getRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    req.on('data', chunk => chunks.push(chunk))
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
+}
+
+function detectProtocol(text) {
+  const upper = text.toUpperCase()
   for (const protocol of PROTOCOLS) {
     for (const pattern of protocol.identifyPatterns) {
       if (upper.includes(pattern.toUpperCase())) return protocol
@@ -41,35 +52,98 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    const { csvText } = req.body
-    if (!csvText) return res.status(400).json({ error: 'No CSV data received' })
+    const rawBody = await getRawBody(req)
+    const contentType = req.headers['content-type'] || ''
 
-    const protocol = detectProtocol(csvText)
-    if (!protocol) {
-      return res.status(400).json({ error: 'Could not identify distributor. Only Patwari supported currently.' })
+    let fileBuffer = null
+    let fileName = ''
+    let isPDF = false
+
+    // Parse multipart form data
+    if (contentType.includes('multipart/form-data')) {
+      const boundary = contentType.split('boundary=')[1]
+      if (!boundary) return res.status(400).json({ error: 'No boundary in multipart' })
+
+      const bodyStr = rawBody.toString('binary')
+      const parts = bodyStr.split('--' + boundary)
+
+      for (const part of parts) {
+        if (part.includes('filename=')) {
+          const nameMatch = part.match(/filename="([^"]+)"/)
+          if (nameMatch) fileName = nameMatch[1]
+          isPDF = fileName.toLowerCase().endsWith('.pdf')
+          const dataStart = part.indexOf('\r\n\r\n') + 4
+          const dataEnd = part.lastIndexOf('\r\n')
+          fileBuffer = Buffer.from(part.slice(dataStart, dataEnd), 'binary')
+          break
+        }
+      }
+    } else {
+      // JSON body with csvText
+      const body = JSON.parse(rawBody.toString())
+      if (body.csvText) {
+        const text = body.csvText
+        const protocol = detectProtocol(text)
+        if (!protocol) return res.status(400).json({ error: 'Could not identify distributor.' })
+        const rows = parseCSV(text)
+        if (rows.length === 0) return res.status(400).json({ error: 'No data rows found.' })
+        return await generateSMS(protocol, rows, res)
+      }
     }
 
-    const rows = parseCSV(csvText)
-    if (rows.length === 0) return res.status(400).json({ error: 'No data rows found in file' })
+    if (!fileBuffer) return res.status(400).json({ error: 'No file received.' })
 
-    const metadata = protocol.getMetadata(rows)
-    const items = protocol.mapRows(rows)
-    const records = normalizer.normalize(items, metadata)
+    let textContent = ''
 
-    const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
-    const templateBuffer = fs.readFileSync(templatePath)
+    if (isPDF) {
+      const pdfParse = (await import('pdf-parse')).default
+      const pdfData = await pdfParse(fileBuffer)
+      textContent = pdfData.text
+    } else {
+      textContent = fileBuffer.toString('utf-8')
+    }
 
-    const smsBuffer = smsWriter.generate(records, templateBuffer)
+    const protocol = detectProtocol(textContent)
+    if (!protocol) {
+      return res.status(400).json({ error: 'Could not identify distributor. Supported: Patwari, Medica, Beauty Cosmetics, Manshi, ManshiLeap.' })
+    }
 
-    const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
-    const filename = `RATADEH_${metadata.partyCode}CRB${invNo}.sms`
+    // For PDFs — pass raw text to protocol
+    // For CSVs — parse into rows
+    let rows
+    if (isPDF) {
+      if (!protocol.mapPDF) {
+        return res.status(400).json({ error: protocol.name + ' does not support PDF yet.' })
+      }
+      rows = protocol.mapPDF(textContent)
+    } else {
+      rows = parseCSV(textContent)
+    }
 
-    res.setHeader('Content-Type', 'application/octet-stream')
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-    res.send(smsBuffer)
+    if (!rows || rows.length === 0) return res.status(400).json({ error: 'No data rows found in file.' })
+
+    return await generateSMS(protocol, rows, res)
 
   } catch (err) {
     console.error('convert-bill error:', err)
     res.status(500).json({ error: err.message })
   }
+}
+
+async function generateSMS(protocol, rows, res) {
+  const metadata = protocol.getMetadata(rows)
+  const items = protocol.mapRows(rows)
+  const records = normalizer.normalize(items, metadata)
+
+  const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
+  const templateBuffer = fs.readFileSync(templatePath)
+
+  const smsBuffer = smsWriter.generate(records, templateBuffer)
+
+  const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+  const filename = `RATADEH_${metadata.partyCode}CRB${invNo}.sms`
+
+  res.setHeader('Content-Type', 'application/octet-stream')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  res.send(smsBuffer)
 }
