@@ -77,9 +77,11 @@ export default function BillConverter() {
 
         <div style={st.infoBox}>
           <p style={st.infoTitle}>How to use:</p>
-          <p style={st.infoText}>1. Download the .SMS file</p>
-          <p style={st.infoText}>2. Copy it to <b>C:\download\</b> on your CARE PC</p>
-          <p style={st.infoText}>3. Open CARE → click <b>DwnLd Purch</b></p>
+          <p style={st.infoText}>1. Ask your distributor to mail of WhatsApp the .CSV or .PDF file generated from their software.</p>
+          <p style={st.infoText}>2. Download that file.</p>
+          <p style={st.infoText}>3. In <b>MEDICLAN</b> Click on Choose File and select the file.</p>
+          <p style={st.infoText}>3. Click on Convert & Download.</p>
+          <p style={st.infoText}>4. Open CARE → click <b>DwnLd Purch</b></p>
         </div>
       </div>
     </StoreLayout>
