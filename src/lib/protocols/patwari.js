@@ -221,8 +221,10 @@ const { generateStableId } = require('../../utils/stableId')
     name: 'Patwari Pharma',
     identifyPatterns: ['PATWARI PHARMA', '306538'],
 
-    getMetadata: (input) => {
-    },
+     getMetadata: (input) => {
+    if (isPdfLines(input)) return parsePdfMetadata(input)
+    return parseCsvMetadata(input)
+  },
 
     mapRows: (input) => {
       if (isPdfLines(input)) return mapPdfRows(input)
