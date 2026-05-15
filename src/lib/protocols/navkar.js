@@ -70,19 +70,29 @@ const { generateStableId } = require('../../utils/stableId')
         const mrp = cleanNum(tokens[tokens.length - 5])
         const exp = tokens[tokens.length - 6]
         const batch = tokens[tokens.length - 7]
-       const packToken = tokens[tokens.length - 10]
-const isValidPack = /[A-Z']/i.test(packToken)
+       const defaultPackIdx = tokens.length - 10
+          const shiftedPackIdx = tokens.length - 9
 
-const qty = isValidPack
-  ? cleanNum(tokens[tokens.length - 9])
-  : cleanNum(tokens[tokens.length - 8])
+          const looksLikeManufacturer = /^[A-Z]{2,}$/i.test(tokens[defaultPackIdx] || '')
+          const looksLikeShiftedUnit = /^\d+[A-Z']*$/i.test(tokens[shiftedPackIdx] || '')
+          const looksLikeShiftedQty = /^\d+(\.\d+)?$/.test(tokens[tokens.length - 8] || '')
+          const looksLikeBatch = /^[A-Z0-9]+$/i.test(tokens[tokens.length - 7] || '')
 
-const schQty = isValidPack
-  ? cleanNum(tokens[tokens.length - 8])
-  : 0
+          const hasNoSchemeAndShiftedUnit =
+            looksLikeManufacturer &&
+            looksLikeShiftedUnit &&
+            looksLikeShiftedQty &&
+            looksLikeBatch
 
-const pack = isValidPack ? packToken : '1'
-        const productTokens = tokens.slice(1, tokens.length - 10)
+          const packIdx = hasNoSchemeAndShiftedUnit ? shiftedPackIdx : defaultPackIdx
+          const qtyIdx = hasNoSchemeAndShiftedUnit ? tokens.length - 8 : tokens.length - 9
+          const schIdx = hasNoSchemeAndShiftedUnit ? -1 : tokens.length - 8
+          const mfgIdx = packIdx - 1
+
+          const pack = tokens[packIdx] || '1'
+          const qty = cleanNum(tokens[qtyIdx])
+          const schQty = schIdx === -1 ? 0 : cleanNum(tokens[schIdx])
+          const productTokens = tokens.slice(1, mfgIdx)
         if (!productTokens.length) continue
 
         const productName = productTokens.join(' ').trim()
