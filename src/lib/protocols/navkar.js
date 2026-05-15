@@ -81,8 +81,7 @@ const schQty = isValidPack
   ? cleanNum(tokens[tokens.length - 8])
   : 0
 
-const pack = isValidPack ? packToken : tokens[tokens.length - 9]
-
+const pack = isValidPack ? packToken : '1'
         const productTokens = tokens.slice(1, tokens.length - 10)
         if (!productTokens.length) continue
 
