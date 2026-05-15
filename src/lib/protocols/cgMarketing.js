@@ -7,18 +7,15 @@
       const cleaned = lines.map(x => String(x || '').trim()).filter(Boolean)
       const text = cleaned.join('\n')
 
-      const invMatch =
-        text.match(/INVOICE NO:\s*([A-Z0-9_-]+)/i) ||
-        text.match(/\b(CGTAL-\d{2}-I\d+)\b/i)
+      const invMatch = text.match(/\bCGTAL-\d{2}-I(\d{6})\b/i)
+  const dateMatch = text.match(/Invoice Date:\s*(\d{2}-[A-Za-z]{3}-\d{4})/i)
 
-      const dateMatch = text.match(/Invoice Date:\s*(\d{2}-[A-Za-z]{3}-\d{4})/i)
-
-      return {
-        partyCode: 'CGM',
-        partyName: 'C G MARKETING PVT LTD',
-        invoiceNo: invMatch ? invMatch[1].replace(/[^0-9]/g, '') || '000000' : '000000',
-        date: dateMatch ? dateMatch[1] : ''
-      }
+  return {
+    partyCode: 'CGM',
+    partyName: 'C G MARKETING PVT LTD',
+    invoiceNo: invMatch ? invMatch[1] : '000000',
+    date: dateMatch ? dateMatch[1] : ''
+  }
     },
 
     mapRows: (lines) => {
