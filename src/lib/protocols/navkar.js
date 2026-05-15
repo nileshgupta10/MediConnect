@@ -70,14 +70,18 @@ const { generateStableId } = require('../../utils/stableId')
         const mrp = cleanNum(tokens[tokens.length - 5])
         const exp = tokens[tokens.length - 6]
         const batch = tokens[tokens.length - 7]
-        const rawQty = cleanNum(tokens[tokens.length - 9])
-const rawSch = cleanNum(tokens[tokens.length - 8])
-const pack = tokens[tokens.length - 10]
+       const packToken = tokens[tokens.length - 10]
+const isValidPack = /[A-Z']/i.test(packToken)
 
-// qty should always be >= sch qty, and sch is free units
-// if rawQty < rawSch, they are likely swapped due to short pack token
-const qty = rawQty >= rawSch ? rawQty : rawSch
-const schQty = rawQty >= rawSch ? rawSch : rawQty
+const qty = isValidPack
+  ? cleanNum(tokens[tokens.length - 9])
+  : cleanNum(tokens[tokens.length - 8])
+
+const schQty = isValidPack
+  ? cleanNum(tokens[tokens.length - 8])
+  : 0
+
+const pack = isValidPack ? packToken : tokens[tokens.length - 9]
 
         const productTokens = tokens.slice(1, tokens.length - 10)
         if (!productTokens.length) continue
