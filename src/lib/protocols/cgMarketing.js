@@ -88,12 +88,12 @@
         const discAmt = num(schAmtToken) + num(discAmtToken)
 
         items.push({
-          productName: productName.substring(0, 30),
-          prodCode: pcode,
-          companyName: 'C G MARKETING PVT LTD',
-          pack: pack || '1N',
-          batch: pcode,
-          qty,
+            productName: productName.substring(0, 30),
+            prodCode: String(pcode || '').padStart(10, '0'),
+            companyName: 'C G MARKETING PVT LTD',
+            pack: pack || '1N',
+            batch: '*',
+            qty,
           freeQty: 0,
           rate,
           mrp: mrp || rate,
