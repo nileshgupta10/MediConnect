@@ -10,7 +10,7 @@ import manshiLeap from '../../lib/protocols/manshiLeap'
 import navkar from '../../lib/protocols/navkar'
 import cgMarketing from '../../lib/protocols/cgMarketing'
 
-const PROTOCOLS = [patwari, medica, beautyCosmetics, manshi, manshiLeap, navkar, cgMarketing]
+const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshi, manshiLeap, navkar]
 
 export const config = {
   api: {
