@@ -8,8 +8,9 @@ import beautyCosmetics from '../../lib/protocols/beauty'
 import manshi from '../../lib/protocols/manshi'
 import manshiLeap from '../../lib/protocols/manshiLeap'
 import navkar from '../../lib/protocols/navkar'
+import cgMarketing from '../../lib/protocols/cgMarketing'
 
-const PROTOCOLS = [patwari, medica, beautyCosmetics, manshi, manshiLeap, navkar]
+const PROTOCOLS = [patwari, medica, beautyCosmetics, manshi, manshiLeap, navkar, cgMarketing]
 
 export const config = {
   api: {
