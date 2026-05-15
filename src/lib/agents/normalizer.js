@@ -30,7 +30,9 @@
         const rate = parseFloat(item.rate) || 0
         const mrp = parseFloat(item.mrp) || 0
         const discPer = parseFloat(item.discountPer) || 0
-        const gstPer = parseFloat(item.gstPer) || 12
+        const validGST = [0, 5, 12, 18, 28]
+const parsedGST = parseFloat(item.gstPer)
+const gstPer = validGST.includes(parsedGST) ? parsedGST : 0
 
         const grossAmt = qty * rate
         const discAmt = grossAmt * (discPer / 100)
