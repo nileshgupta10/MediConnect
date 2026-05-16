@@ -1,59 +1,74 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../lib/supabase'
 import StoreLayout from '../components/StoreLayout'
 
 export default function BillConverter() {
+  const router = useRouter()
+  const [checking, setChecking] = useState(true)
   const [file, setFile] = useState(null)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleConvert = async () => {
-  if (!file) { setStatus('Please select a file first.'); return }
-  setLoading(true)
-  setStatus('Converting...')
-
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    const res = await fetch('/api/convert-bill', {
-      method: 'POST',
-      body: formData
-    })
-
-    if (!res.ok) {
-      const err = await res.json()
-      setStatus('Error: ' + err.error)
-      setLoading(false)
-      return
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/simple-login'); return }
+      setChecking(false)
     }
+    checkAuth()
+  }, [])
 
-    const blob = await res.blob()
-    const disposition = res.headers.get('Content-Disposition')
-    const filename = disposition?.split('filename=')[1]?.replace(/"/g, '') || 'output.sms'
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  if (checking) return <p style={{ padding: 20 }}>Loading...</p>
 
-    setStatus('✅ Done! ' + filename + ' downloaded. Copy to C:\\download\\ on CARE PC.')
-  } catch (err) {
-    setStatus('Error: ' + err.message)
+  const handleConvert = async () => {
+    if (!file) { setStatus('Please select a file first.'); return }
+    setLoading(true)
+    setStatus('Converting...')
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const res = await fetch('/api/convert-bill', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        setStatus('Error: ' + err.error)
+        setLoading(false)
+        return
+      }
+
+      const blob = await res.blob()
+      const disposition = res.headers.get('Content-Disposition')
+      const filename = disposition?.split('filename=')[1]?.replace(/"/g, '') || 'output.sms'
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      setStatus('✅ Done! ' + filename + ' downloaded. Copy to C:\\download\\ on CARE PC.')
+    } catch (err) {
+      setStatus('Error: ' + err.message)
+    }
+    setLoading(false)
   }
-  setLoading(false)
-}
 
   return (
     <StoreLayout>
       <div style={st.page}>
         <h1 style={st.heading}>📋 Bill Converter</h1>
-        <p style={st.sub}>Upload your distributor bill (CSV) to generate a CARE-compatible .SMS file.</p>
+        <p style={st.sub}>Upload your distributor bill (CSV or PDF) to generate a CARE-compatible .SMS file.</p>
 
         <div style={st.card}>
-          <label style={st.label}>Select Bill File (.CSV)</label>
+          <label style={st.label}>Select Bill File (.CSV or .PDF)</label>
           <input
             type="file"
             accept=".csv,.CSV,.pdf,.PDF"
@@ -77,11 +92,11 @@ export default function BillConverter() {
 
         <div style={st.infoBox}>
           <p style={st.infoTitle}>How to use:</p>
-          <p style={st.infoText}>1. Ask your distributor to mail of WhatsApp the .CSV or .PDF file generated from their software.</p>
+          <p style={st.infoText}>1. Ask your distributor to mail or WhatsApp the .CSV or .PDF file generated from their software.</p>
           <p style={st.infoText}>2. Download that file.</p>
-          <p style={st.infoText}>3. In <b>MEDICLAN</b> Click on Choose File and select the file.</p>
-          <p style={st.infoText}>3. Click on Convert & Download.</p>
-          <p style={st.infoText}>4. Open CARE → click <b>DwnLd Purch</b></p>
+          <p style={st.infoText}>3. In <b>MEDICLAN</b> click on Choose File and select the file.</p>
+          <p style={st.infoText}>4. Click on Convert & Download.</p>
+          <p style={st.infoText}>5. Open CARE → click <b>DwnLd Purch</b></p>
         </div>
       </div>
     </StoreLayout>
