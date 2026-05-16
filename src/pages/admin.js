@@ -165,7 +165,7 @@ export default function AdminPage() {
         <input style={st.search} placeholder={activeSection==='pharmacists'?'Search pharmacist…':activeSection==='stores'?'Search store…':'Search job…'} value={search} onChange={e=>setSearch(e.target.value)} />
         {activeSection !== 'jobs' && (
           <div style={st.statusRow}>
-            {['pending','approved','rejected'].map(s => (
+            {['pending','approved','rejected','suspended'].map(s => (
               <button key={s} style={status===s ? st.activeBtn : st.btn} onClick={() => setStatus(s)}>
                 {s.charAt(0).toUpperCase()+s.slice(1)}
               </button>
@@ -178,10 +178,11 @@ export default function AdminPage() {
           {filteredPharmacists.length===0 && <p style={st.empty}>No records.</p>}
           {filteredPharmacists.map(item => (
             <PharmacistCard key={item.user_id} item={item} status={status}
-              onApprove={()=>updatePharmacistStatus(item.user_id,'approved')}
-              onReject={()=>updatePharmacistStatus(item.user_id,'rejected')}
-              onViewLicense={()=>viewLicense(item)}
-              getPerformance={getPerformance} />
+  onApprove={()=>updatePharmacistStatus(item.user_id,'approved')}
+  onReject={()=>updatePharmacistStatus(item.user_id,'rejected')}
+  onSuspend={()=>updatePharmacistStatus(item.user_id,'suspended')}
+  onViewLicense={()=>viewLicense(item)}
+  getPerformance={getPerformance} />
           ))}
         </>}
 
@@ -190,10 +191,11 @@ export default function AdminPage() {
           {filteredStores.length===0 && <p style={st.empty}>No records.</p>}
           {filteredStores.map(item => (
             <StoreCard key={item.user_id} item={item} status={status}
-              onApprove={()=>updateStoreStatus(item.user_id,'approved')}
-              onReject={()=>updateStoreStatus(item.user_id,'rejected')}
-              onViewLicense={()=>viewLicense(item)}
-              getPerformance={getPerformance} />
+  onApprove={()=>updateStoreStatus(item.user_id,'approved')}
+  onReject={()=>updateStoreStatus(item.user_id,'rejected')}
+  onSuspend={()=>updateStoreStatus(item.user_id,'suspended')}
+  onViewLicense={()=>viewLicense(item)}
+  getPerformance={getPerformance} />
           ))}
         </>}
 
@@ -221,7 +223,7 @@ export default function AdminPage() {
   )
 }
 
-function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getPerformance }) {
+function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onViewLicense, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const loadPerf = async () => { if(perf){setPerf(null);return} setLp(true); setPerf(await getPerformance(item.user_id,'pharmacist')); setLp(false) }
@@ -235,11 +237,12 @@ function PharmacistCard({ item, status, onApprove, onReject, onViewLicense, getP
       </div>
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Applied: <b>{perf.jobsApplied}</b></p><p style={st.perfItem}>✓ Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
       {status==='pending' && <div style={st.approvalRow}><button style={st.approve} onClick={onApprove}>✓ Approve</button><button style={st.reject} onClick={onReject}>✕ Reject</button></div>}
+{status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
     </div>
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onSuspend, onViewLicense, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const loadPerf = async () => { if(perf){setPerf(null);return} setLp(true); setPerf(await getPerformance(item.user_id,'store')); setLp(false) }
@@ -254,6 +257,7 @@ function StoreCard({ item, status, onApprove, onReject, onViewLicense, getPerfor
       </div>
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={st.perfItem}>✓ Hired: <b>{perf.jobsClosed}</b></p><p style={st.perfItem}>📅 Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
       {status==='pending' && <div style={st.approvalRow}><button style={st.approve} onClick={onApprove}>✓ Approve</button><button style={st.reject} onClick={onReject}>✕ Reject</button></div>}
+{status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
     </div>
   )
 }
@@ -286,4 +290,5 @@ const st = {
   enableBtn:{ marginTop:10, padding:'7px 14px', background:'#d1fae5', color:'#065f46', border:'1px solid #6ee7b7', borderRadius:6, cursor:'pointer', fontSize:13 },
   disabledBanner:{ background:'#fee2e2', color:'#991b1b', padding:'6px 10px', borderRadius:6, fontSize:13, fontWeight:600, marginBottom:10 },
   loadMore:{ marginTop:20, width:'100%', padding:12, background:'#f1f5f9', border:'1px solid #e2e8f0', borderRadius:8, cursor:'pointer', fontSize:14 },
+  suspend:{ background:'#f59e0b', color:'white', border:'none', padding:'8px 20px', borderRadius:6, cursor:'pointer', fontWeight:700, fontSize:14 },
 }
