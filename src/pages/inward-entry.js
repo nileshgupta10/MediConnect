@@ -23,68 +23,79 @@ export default function InwardEntry() {
   const [productNotFound, setProductNotFound] = useState(false);
 
   // --- Barcode scanned ---
-  async function handleScan(barcode) {
+  aasync function handleScan(barcode) {
   setShowScanner(false);
   setCurrent(prev => ({ ...prev, barcode }));
   setProductNotFound(false);
 
-  // 1. Check local Supabase barcode_mappings first
+  // 1. Local Supabase barcode_mappings
   const { data: mapping } = await supabase
     .from('barcode_mappings')
     .select('product_id, products(product_name, company, pack, gst)')
     .eq('barcode', barcode)
     .maybeSingle();
-
   if (mapping?.products) {
     const p = mapping.products;
     setCurrent(prev => ({ ...prev, barcode, product_name: p.product_name || '', company: p.company || '', pack: p.pack || '', gst: p.gst || '' }));
     return;
   }
 
-  // 2. Check local Supabase products table
+  // 2. Local Supabase products table
   const { data: product } = await supabase
     .from('products')
-    .select('*')
-    .eq('barcode', barcode)
-    .maybeSingle();
-
+    .select('*').eq('barcode', barcode).maybeSingle();
   if (product) {
     setCurrent(prev => ({ ...prev, barcode, product_name: product.product_name || '', company: product.company || '', pack: product.pack || '', gst: product.gst || '' }));
     return;
   }
 
-  // 3. Try Open Food Facts (free, no API key needed)
+  // 3. Open Food Facts — largest free FMCG database
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
-    const data = await res.json();
-    if (data.status === 1 && data.product) {
-      const p = data.product;
-      const productName = p.product_name || p.product_name_en || p.generic_name || '';
-      const company = p.brands || p.manufacturer || '';
-      const pack = p.quantity || p.net_weight || '';
-      if (productName) {
-        setCurrent(prev => ({ ...prev, barcode, product_name: productName, company, pack, gst: '' }));
+    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+    const d = await r.json();
+    if (d.status === 1 && d.product) {
+      const p = d.product;
+      const name = p.product_name_en || p.product_name || p.generic_name_en || p.generic_name || '';
+      if (name) {
+        setCurrent(prev => ({ ...prev, barcode, product_name: name, company: p.brands || '', pack: p.quantity || '', gst: '' }));
         return;
       }
     }
-  } catch (e) {}
+  } catch {}
 
-  // 4. Try Open Beauty Facts (covers more Indian products)
+  // 4. UPC Item DB — strong FMCG + pharma coverage
   try {
-    const res = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
-    const data = await res.json();
-    if (data.status === 1 && data.product) {
-      const p = data.product;
-      const productName = p.product_name || p.generic_name || '';
-      const company = p.brands || '';
-      if (productName) {
-        setCurrent(prev => ({ ...prev, barcode, product_name: productName, company, pack: p.quantity || '', gst: '' }));
-        return;
-      }
+    const r = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+    const d = await r.json();
+    if (d.code === 'OK' && d.items?.length > 0) {
+      const p = d.items[0];
+      setCurrent(prev => ({ ...prev, barcode, product_name: p.title || '', company: p.brand || '', pack: p.size || '', gst: '' }));
+      return;
     }
-  } catch (e) {}
+  } catch {}
 
-  // 5. Nothing found anywhere
+  // 5. Datakick — open product database
+  try {
+    const r = await fetch(`https://www.datakick.org/api/items/${barcode}`);
+    const d = await r.json();
+    if (d.name) {
+      setCurrent(prev => ({ ...prev, barcode, product_name: d.name || '', company: d.brand_name || '', pack: d.size || '', gst: '' }));
+      return;
+    }
+  } catch {}
+
+  // 6. Open Beauty Facts — covers cosmetics/pharma OTC
+  try {
+    const r = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
+    const d = await r.json();
+    if (d.status === 1 && d.product?.product_name) {
+      const p = d.product;
+      setCurrent(prev => ({ ...prev, barcode, product_name: p.product_name || '', company: p.brands || '', pack: p.quantity || '', gst: '' }));
+      return;
+    }
+  } catch {}
+
+  // Nothing found
   setProductNotFound(true);
 }
 

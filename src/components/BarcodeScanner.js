@@ -3,107 +3,108 @@ import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/
 
 export default function BarcodeScanner({ onScan, onClose }) {
   const videoRef = useRef(null);
-  const readerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const readerRef = useRef(new BrowserMultiFormatReader());
+  const streamRef = useRef(null);
+  const rafRef = useRef(null);
   const [error, setError] = useState(null);
-  const [scanning, setScanning] = useState(false);
+  const [status, setStatus] = useState('Starting camera...');
 
   useEffect(() => {
-    const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.EAN_8,
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.CODE_39,
-      BarcodeFormat.QR_CODE,
-    ]);
-    hints.set(DecodeHintType.TRY_HARDER, true);
+    startCamera();
+    return () => stopAll();
+  }, []);
 
-    const codeReader = new BrowserMultiFormatReader(hints);
-    readerRef.current = codeReader;
-
-    codeReader.listVideoInputDevices().then((devices) => {
-      if (devices.length === 0) {
-        setError('No camera found on this device.');
-        return;
-      }
-
-      // Always prefer back/environment camera on mobile
-      const backCamera = devices.find(d =>
-        d.label.toLowerCase().includes('back') ||
-        d.label.toLowerCase().includes('rear') ||
-        d.label.toLowerCase().includes('environment')
-      ) || devices[devices.length - 1]; // last device is usually back camera
-
-      setScanning(true);
-
-      // Use facingMode constraint for mobile browsers
-      const constraints = {
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         }
-      };
-
-      navigator.mediaDevices.getUserMedia(constraints).then(stream => {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-
-        codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
-          if (result) {
-            // Stop all tracks
-            stream.getTracks().forEach(t => t.stop());
-            codeReader.reset();
-            onScan(result.getText());
-          }
-        });
-      }).catch(() => {
-        // Fallback to device id method
-        codeReader.decodeFromVideoDevice(backCamera.deviceId, videoRef.current, (result) => {
-          if (result) {
-            codeReader.reset();
-            onScan(result.getText());
-          }
-        });
       });
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setStatus('Scanning... hold steady');
+      rafRef.current = requestAnimationFrame(scanFrame);
+    } catch (err) {
+      setError('Camera access denied. Please allow camera permission and reload.');
+    }
+  }
 
-    }).catch(() => {
-      setError('Camera permission denied or not available.');
-    });
+  function scanFrame() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState !== 4) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    return () => {
-      if (readerRef.current) readerRef.current.reset();
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, []);
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const result = readerRef.current.decodeFromImageData
+        ? null // skip — use luminance source below
+        : null;
+
+      // Use ZXing luminance source decode
+      readerRef.current.decodeFromCanvas(canvas).then(res => {
+        if (res) {
+          stopAll();
+          onScan(res.getText());
+        } else {
+          rafRef.current = requestAnimationFrame(scanFrame);
+        }
+      }).catch(() => {
+        rafRef.current = requestAnimationFrame(scanFrame);
+      });
+    } catch {
+      rafRef.current = requestAnimationFrame(scanFrame);
+    }
+  }
+
+  function stopAll() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+  }
 
   return (
     <div style={styles.overlay}>
       <div style={styles.box}>
-        <p style={styles.title}>📷 Point camera at barcode</p>
-        {error && <p style={styles.error}>{error}</p>}
-        {!error && (
-          <>
-            <video ref={videoRef} style={styles.video} autoPlay muted playsInline />
-            <div style={styles.scanLine} />
-          </>
-        )}
-        {scanning && !error && <p style={styles.hint}>Scanning... hold steady in good light</p>}
-        <button onClick={onClose} style={styles.closeBtn}>✕ Cancel</button>
+        <p style={styles.title}>📷 Scan Barcode</p>
+        {error
+          ? <p style={styles.error}>{error}</p>
+          : <>
+              <div style={styles.videoWrap}>
+                <video ref={videoRef} style={styles.video} autoPlay muted playsInline />
+                <div style={styles.scanOverlay}>
+                  <div style={styles.scanBox} />
+                </div>
+              </div>
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              <p style={styles.hint}>{status}</p>
+            </>
+        }
+        <button onClick={() => { stopAll(); onClose(); }} style={styles.closeBtn}>✕ Cancel</button>
       </div>
     </div>
   );
 }
 
 const styles = {
-  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
-  box: { backgroundColor: '#fff', borderRadius: '12px', padding: '20px', width: '90%', maxWidth: '420px', textAlign: 'center' },
-  title: { fontSize: '16px', fontWeight: '600', marginBottom: '12px' },
-  video: { width: '100%', borderRadius: '8px', border: '2px solid #10b981' },
-  scanLine: { height: '3px', background: '#10b981', margin: '-3px 0 0 0', borderRadius: '2px', animation: 'none' },
-  hint: { marginTop: '10px', fontSize: '13px', color: '#6b7280' },
-  error: { color: '#ef4444', fontSize: '14px', marginTop: '8px' },
-  closeBtn: { marginTop: '16px', padding: '10px 24px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' },
+  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 },
+  box: { backgroundColor: '#111', borderRadius: '16px', padding: '20px', width: '92%', maxWidth: '440px', textAlign: 'center' },
+  title: { fontSize: '16px', fontWeight: '700', marginBottom: '12px', color: '#fff' },
+  videoWrap: { position: 'relative', width: '100%', borderRadius: '10px', overflow: 'hidden' },
+  video: { width: '100%', display: 'block', borderRadius: '10px' },
+  scanOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  scanBox: { width: '65%', height: '120px', border: '3px solid #10b981', borderRadius: '10px', boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' },
+  hint: { marginTop: '12px', fontSize: '13px', color: '#9ca3af' },
+  error: { color: '#ef4444', fontSize: '14px', margin: '16px 0' },
+  closeBtn: { marginTop: '16px', padding: '10px 28px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' },
 };
