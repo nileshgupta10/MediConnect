@@ -24,50 +24,69 @@ export default function InwardEntry() {
 
   // --- Barcode scanned ---
   async function handleScan(barcode) {
-    setShowScanner(false);
-    setCurrent(prev => ({ ...prev, barcode }));
-    setProductNotFound(false);
+  setShowScanner(false);
+  setCurrent(prev => ({ ...prev, barcode }));
+  setProductNotFound(false);
 
-    // Search barcode_mappings first, then products
-    const { data: mapping } = await supabase
-      .from('barcode_mappings')
-      .select('product_id, products(product_name, company, pack, gst)')
-      .eq('barcode', barcode)
-      .maybeSingle();
+  // 1. Check local Supabase barcode_mappings first
+  const { data: mapping } = await supabase
+    .from('barcode_mappings')
+    .select('product_id, products(product_name, company, pack, gst)')
+    .eq('barcode', barcode)
+    .maybeSingle();
 
-    if (mapping?.products) {
-      const p = mapping.products;
-      setCurrent(prev => ({
-        ...prev,
-        barcode,
-        product_name: p.product_name || '',
-        company: p.company || '',
-        pack: p.pack || '',
-        gst: p.gst || '',
-      }));
-      return;
-    }
-
-    // Direct barcode search in products table
-    const { data: product } = await supabase
-      .from('products')
-      .select('*')
-      .eq('barcode', barcode)
-      .maybeSingle();
-
-    if (product) {
-      setCurrent(prev => ({
-        ...prev,
-        barcode,
-        product_name: product.product_name || '',
-        company: product.company || '',
-        pack: product.pack || '',
-        gst: product.gst || '',
-      }));
-    } else {
-      setProductNotFound(true);
-    }
+  if (mapping?.products) {
+    const p = mapping.products;
+    setCurrent(prev => ({ ...prev, barcode, product_name: p.product_name || '', company: p.company || '', pack: p.pack || '', gst: p.gst || '' }));
+    return;
   }
+
+  // 2. Check local Supabase products table
+  const { data: product } = await supabase
+    .from('products')
+    .select('*')
+    .eq('barcode', barcode)
+    .maybeSingle();
+
+  if (product) {
+    setCurrent(prev => ({ ...prev, barcode, product_name: product.product_name || '', company: product.company || '', pack: product.pack || '', gst: product.gst || '' }));
+    return;
+  }
+
+  // 3. Try Open Food Facts (free, no API key needed)
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+    const data = await res.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const productName = p.product_name || p.product_name_en || p.generic_name || '';
+      const company = p.brands || p.manufacturer || '';
+      const pack = p.quantity || p.net_weight || '';
+      if (productName) {
+        setCurrent(prev => ({ ...prev, barcode, product_name: productName, company, pack, gst: '' }));
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // 4. Try Open Beauty Facts (covers more Indian products)
+  try {
+    const res = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
+    const data = await res.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const productName = p.product_name || p.generic_name || '';
+      const company = p.brands || '';
+      if (productName) {
+        setCurrent(prev => ({ ...prev, barcode, product_name: productName, company, pack: p.quantity || '', gst: '' }));
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // 5. Nothing found anywhere
+  setProductNotFound(true);
+}
 
   // --- Add item to list ---
   function addItem() {
