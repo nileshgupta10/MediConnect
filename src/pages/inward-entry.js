@@ -23,7 +23,7 @@ export default function InwardEntry() {
   const [productNotFound, setProductNotFound] = useState(false);
 
   // --- Barcode scanned ---
-  aasync function handleScan(barcode) {
+  async function handleScan(barcode) {
   setShowScanner(false);
   setCurrent(prev => ({ ...prev, barcode }));
   setProductNotFound(false);
