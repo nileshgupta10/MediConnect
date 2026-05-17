@@ -1,72 +1,85 @@
 import { useEffect, useRef, useState } from 'react';
-import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 
 export default function BarcodeScanner({ onScan, onClose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const readerRef = useRef(new BrowserMultiFormatReader());
   const streamRef = useRef(null);
   const rafRef = useRef(null);
+  const readerRef = useRef(null);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState('Starting camera...');
 
   useEffect(() => {
-    startCamera();
-    return () => stopAll();
-  }, []);
+    let cancelled = false;
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        }
-      });
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      setStatus('Scanning... hold steady');
-      rafRef.current = requestAnimationFrame(scanFrame);
-    } catch (err) {
-      setError('Camera access denied. Please allow camera permission and reload.');
+    async function init() {
+      // Dynamically import ZXing only on client
+      const { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } = await import('@zxing/library');
+
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.QR_CODE,
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+
+      const reader = new BrowserMultiFormatReader(hints);
+      readerRef.current = reader;
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = stream;
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setStatus('Scanning... hold steady');
+        tick(reader);
+      } catch (err) {
+        setError('Camera access denied. Allow camera and reload.');
+      }
     }
-  }
 
-  function scanFrame() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState !== 4) {
-      rafRef.current = requestAnimationFrame(scanFrame);
-      return;
-    }
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    function tick(reader) {
+      if (cancelled) return;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
+      if (video.readyState < 2) {
+        rafRef.current = requestAnimationFrame(() => tick(reader));
+        return;
+      }
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    try {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const result = readerRef.current.decodeFromImageData
-        ? null // skip — use luminance source below
-        : null;
-
-      // Use ZXing luminance source decode
-      readerRef.current.decodeFromCanvas(canvas).then(res => {
-        if (res) {
+      try {
+        // ZXing decode from canvas element directly
+        const result = reader.decodeFromCanvas(canvas);
+        if (result && !cancelled) {
           stopAll();
-          onScan(res.getText());
-        } else {
-          rafRef.current = requestAnimationFrame(scanFrame);
+          onScan(result.getText());
+          return;
         }
-      }).catch(() => {
-        rafRef.current = requestAnimationFrame(scanFrame);
-      });
-    } catch {
-      rafRef.current = requestAnimationFrame(scanFrame);
+      } catch {
+        // NotFoundException is normal — keep scanning
+      }
+      rafRef.current = requestAnimationFrame(() => tick(reader));
     }
-  }
+
+    init();
+
+    return () => {
+      cancelled = true;
+      stopAll();
+    };
+  }, []);
 
   function stopAll() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
