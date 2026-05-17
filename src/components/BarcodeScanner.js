@@ -29,7 +29,7 @@ export default function BarcodeScanner({ onScan, onClose }) {
 
       try {
         await scanner.start(
-          { facingMode: 'environment' }, // back camera
+  { facingMode: { exact: 'environment' } }, // force back camera
           config,
           (decodedText) => {
             stopScanner(scanner);

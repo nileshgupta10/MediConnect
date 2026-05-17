@@ -49,53 +49,17 @@ export default function InwardEntry() {
     return;
   }
 
-  // 3. Open Food Facts — largest free FMCG database
+  // 3. Internet lookup via our server-side API (no CORS, covers Indian barcodes)
   try {
-    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+    const r = await fetch(`/api/lookup-barcode?barcode=${barcode}`);
     const d = await r.json();
-    if (d.status === 1 && d.product) {
-      const p = d.product;
-      const name = p.product_name_en || p.product_name || p.generic_name_en || p.generic_name || '';
-      if (name) {
-        setCurrent(prev => ({ ...prev, barcode, product_name: name, company: p.brands || '', pack: p.quantity || '', gst: '' }));
-        return;
-      }
-    }
-  } catch {}
-
-  // 4. UPC Item DB — strong FMCG + pharma coverage
-  try {
-    const r = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
-    const d = await r.json();
-    if (d.code === 'OK' && d.items?.length > 0) {
-      const p = d.items[0];
-      setCurrent(prev => ({ ...prev, barcode, product_name: p.title || '', company: p.brand || '', pack: p.size || '', gst: '' }));
+    if (d.found) {
+      setCurrent(prev => ({ ...prev, barcode, product_name: d.product_name || '', company: d.company || '', pack: d.pack || '', gst: '' }));
       return;
     }
   } catch {}
 
-  // 5. Datakick — open product database
-  try {
-    const r = await fetch(`https://www.datakick.org/api/items/${barcode}`);
-    const d = await r.json();
-    if (d.name) {
-      setCurrent(prev => ({ ...prev, barcode, product_name: d.name || '', company: d.brand_name || '', pack: d.size || '', gst: '' }));
-      return;
-    }
-  } catch {}
-
-  // 6. Open Beauty Facts — covers cosmetics/pharma OTC
-  try {
-    const r = await fetch(`https://world.openbeautyfacts.org/api/v0/product/${barcode}.json`);
-    const d = await r.json();
-    if (d.status === 1 && d.product?.product_name) {
-      const p = d.product;
-      setCurrent(prev => ({ ...prev, barcode, product_name: p.product_name || '', company: p.brands || '', pack: p.quantity || '', gst: '' }));
-      return;
-    }
-  } catch {}
-
-  // Nothing found
+  // Nothing found — let user enter manually
   setProductNotFound(true);
 }
 
