@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+
 
 const LOGIN_IMG = 'https://images.unsplash.com/photo-1576602976047-174e57a47881?w=1000&q=80'
 
