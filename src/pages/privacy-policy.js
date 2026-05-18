@@ -1,7 +1,12 @@
+import Link from 'next/link'
 export default function PrivacyPolicy() {
   return (
     <div style={s.page}>
       <div style={s.container}>
+        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginBottom: 32 }}>
+  <img src="/brand/mediclan-logo.png" alt="MediClan" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+  <span style={{ fontSize: 16, fontWeight: 900, color: '#0f3460' }}>MediClan</span>
+</Link>
         <h1 style={s.title}>Privacy Policy</h1>
         <p style={s.date}>Last updated: February 18, 2026</p>
 

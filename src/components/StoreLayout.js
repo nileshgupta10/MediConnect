@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import Link from 'next/link'
 
 export default function StoreLayout({ children }) {
   const router = useRouter()
@@ -14,10 +15,10 @@ export default function StoreLayout({ children }) {
   return (
     <div style={s.wrap}>
       <nav style={s.nav}>
-        <a href="/store-profile" style={s.brand}>
-          <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
-          <span style={s.brandTxt}>MediClan</span>
-        </a>
+        <Link href="/" style={s.brand}>
+  <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
+  <span style={s.brandTxt}>MediClan</span>
+</Link>
         <a href="/store-profile" style={nl('/store-profile')}>Profile</a>
         <a href="/post-job" style={nl('/post-job')}>Jobs</a>
         <a href="/applicants" style={nl('/applicants')}>Applicants</a>

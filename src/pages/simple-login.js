@@ -32,10 +32,10 @@ export default function SimpleLogin() {
       {/* LEFT */}
       <div style={s.left}>
         <div style={s.leftInner}>
-          <div style={s.logoRow}>
-            <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.logo} />
-            <span style={s.brandName}>MediClan</span>
-          </div>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', marginBottom: 32 }}>
+  <img src="/brand/mediclan-logo.png" alt="MediClan" style={s.logo} />
+  <span style={s.brandName}>MediClan</span>
+</Link>
 
           <h1 style={s.title}>Welcome 👋</h1>
           <p style={s.subtitle}>Sign in to find pharmacy jobs near you, or manage your store operations, convert distributor bills, and connect with verified pharmacists..</p>
