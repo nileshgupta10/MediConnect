@@ -38,7 +38,7 @@ export default function SimpleLogin() {
           </div>
 
           <h1 style={s.title}>Welcome 👋</h1>
-          <p style={s.subtitle}>Sign in to find pharmacy jobs near you, or post an opening for your store.</p>
+          <p style={s.subtitle}>Sign in to find pharmacy jobs near you, or manage your store operations, convert distributor bills, and connect with verified pharmacists..</p>
 
           <button style={s.googleBtn} onClick={handleGoogleLogin} disabled={loading}>
             {loading ? (
@@ -62,6 +62,7 @@ export default function SimpleLogin() {
 
           <div style={s.features}>
             {[
+              { icon: '🧾', text: 'Convert distributor bills to your software format' },
               { icon: '📍', text: 'Find jobs near you — sorted by distance' },
               { icon: '✅', text: 'Only verified pharmacists and stores' },
               { icon: '📅', text: 'Direct interview scheduling, no middlemen' },
