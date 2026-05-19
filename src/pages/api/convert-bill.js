@@ -10,8 +10,9 @@ import manshiLeap from '../../lib/protocols/manshiLeap'
 import navkar from '../../lib/protocols/navkar'
 import cgMarketing from '../../lib/protocols/cgMarketing'
 import abmarketing from '../../lib/protocols/abmarketing'
+import medicineHouse from '../../lib/protocols/medicineHouse'
 
-const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshi, manshiLeap, navkar, abmarketing]
+const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshi, manshiLeap, navkar, abmarketing, medicineHouse]
 
 export const config = {
   api: {
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
 
     const protocol = detectProtocol(textContent)
     if (!protocol) {
-      return res.status(400).json({ error: 'Could not identify distributor. Supported: Patwari, Medica, Beauty Cosmetics, Manshi, ManshiLeap, Navkar, CG Marketing, A B Marketing / Ratan Stores.' })
+      return res.status(400).json({ error: 'Could not identify distributor. Supported: Patwari, Medica, Beauty Cosmetics, Manshi, ManshiLeap, Navkar, CG Marketing, AB Marketing, Medicine House.' })
     }
 
     // For PDFs — pass raw text to protocol
