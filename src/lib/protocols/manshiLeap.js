@@ -29,6 +29,7 @@
     const patterns = [
       /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT)\b/ig,
       /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
+      /\b\d+'\s*S\b/ig,
       /\b(?:PCS|PC|UNIT|PADS)\b/ig,
       /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
       /\b\d+[A-Z]{1,3}\b/ig

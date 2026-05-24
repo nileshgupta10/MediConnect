@@ -31,8 +31,21 @@
         const mrp = parseFloat(item.mrp) || 0
         const discPer = parseFloat(item.discountPer) || 0
         const validGST = [0, 5, 12, 18, 28]
-const parsedGST = parseFloat(item.gstPer)
-const gstPer = validGST.includes(parsedGST) ? parsedGST : 0
+        const parsedGST = parseFloat(item.gstPer)
+        const gstPer = (() => {
+          if (!isFinite(parsedGST)) return 0
+          if (validGST.includes(parsedGST)) return parsedGST
+          let closest = 0
+          let minDiff = Infinity
+          for (const rate of validGST) {
+            const diff = Math.abs(rate - parsedGST)
+            if (diff < minDiff) {
+              minDiff = diff
+              closest = rate
+            }
+          }
+          return minDiff <= 0.5 ? closest : 0
+        })()
 
         const grossAmt = qty * rate
         const discAmt = grossAmt * (discPer / 100)

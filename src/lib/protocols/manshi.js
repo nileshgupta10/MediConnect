@@ -25,6 +25,7 @@
     const patterns = [
       /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT|PADS)\b/ig,
       /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
+      /\b\d+'\s*S\b/ig,
       /\b(?:PCS|PC|UNIT|PADS)\b/ig,
       /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
       /\b\d+[A-Z]{1,3}\b/ig
@@ -68,14 +69,21 @@
     const mrpHint = (productName.match(/\bMRP\s*=\s*(\d+(?:\.\d+)?)/i) || [])[1];
     let mrp = beforeNums.length > 1 ? beforeNums[1] : (beforeNums[0] || 0);
     if ((!mrp || mrp < 1) && mrpHint) mrp = parseFloat(mrpHint) || mrp;
-    const taxable = afterNums.length >= 2
+    let taxable = afterNums.length >= 2
       ? afterNums[afterNums.length - 2]
       : (qty > 0 && beforeNums.length > 0 ? qty * beforeNums[0] : 0);
-    const amount = afterNums.length >= 1
+    let amount = afterNums.length >= 1
       ? afterNums[afterNums.length - 1]
       : taxable;
+    let gstPer = taxable > 0 ? +(((Math.max(amount - taxable, 0)) / taxable) * 100).toFixed(2) : 0;
+
+    if (afterNums.length === 2 && afterNums[0] > 0 && afterNums[0] <= 28 && afterNums[1] > 50) {
+      gstPer = +afterNums[0].toFixed(2);
+      amount = afterNums[1];
+      taxable = gstPer > 0 ? +(amount / (1 + (gstPer / 100))).toFixed(2) : amount;
+    }
+
     const gstTotal = Math.max(amount - taxable, 0);
-    const gstPer = taxable > 0 ? +((gstTotal / taxable) * 100).toFixed(2) : 0;
     const gstAmt = +(gstTotal / 2).toFixed(2);
     const rate = qty > 0 ? +(taxable / qty).toFixed(4) : 0;
     const prodCode = generateStableId('747', hsn, `${productName} ${pack}`);
