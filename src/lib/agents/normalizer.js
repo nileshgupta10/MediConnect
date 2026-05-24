@@ -52,8 +52,9 @@ const grossAmt = qty * preDiscRate
 const discAmt = parseFloat(item.discAmt) > 0
   ? parseFloat(item.discAmt)
   : grossAmt * (parseFloat(item.discountPer || 0) / 100)
-const taxableAmt = grossAmt - discAmt
-
+const taxableAmt = parseFloat(item.taxable) > 0
+  ? parseFloat(item.taxable)
+  : grossAmt - discAmt
         let finalCgstAmt = item.cgstAmt !== undefined ? item.cgstAmt : (taxableAmt * (gstPer / 200))
         let finalSgstAmt = item.sgstAmt !== undefined ? item.sgstAmt : (taxableAmt * (gstPer / 200))
 
