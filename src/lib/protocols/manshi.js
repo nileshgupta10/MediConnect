@@ -5,80 +5,145 @@
 
   const { generateStableId } = require('../../utils/stableId');
 
+  function cleanLines(lines) {
+    return (Array.isArray(lines) ? lines : String(lines || '').split('\n'))
+      .map(line => String(line || '').trim())
+      .filter(Boolean);
+  }
+
+  function isRowStart(line, nextLine) {
+    const text = String(line || '').trim();
+    const next = String(nextLine || '').trim();
+    return (
+      /^\d+\s+\d{6,10}\b/.test(text) ||
+      (/^\d+$/.test(text) && /^\d{6,10}\b/.test(next))
+    );
+  }
+
+  function extractPack(text) {
+    const raw = String(text || '');
+    const patterns = [
+      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS)\b/ig,
+      /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
+      /\b\d+[A-Z]{1,3}\b/ig
+    ];
+
+    for (const pattern of patterns) {
+      const matches = raw.match(pattern);
+      if (matches && matches.length) {
+        return matches[matches.length - 1].replace(/^0+(?=\d)/, '').substring(0, 6);
+      }
+    }
+    return '10T';
+  }
+
+  function parseRowLine(line) {
+    const text = String(line || '').replace(/\s+/g, ' ').trim();
+    if (!text || !/\d{8}/.test(text)) return null;
+
+    const qtyMatch = text.match(/^(.+?)\s+(\d{1,3})\s+(.*)$/);
+    if (!qtyMatch) return null;
+
+    const productName = qtyMatch[1].trim();
+    const qty = parseFloat(qtyMatch[2]);
+    const rest = qtyMatch[3];
+    const hsnRuns = rest.match(/\d{8,}/g);
+    if (!hsnRuns || !hsnRuns.length) return null;
+
+    const hsnRun = hsnRuns[hsnRuns.length - 1];
+    const hsn = hsnRun.slice(-8);
+    const hsnStart = rest.lastIndexOf(hsnRun);
+    const beforeHsn = rest.slice(0, hsnStart).trim();
+    const afterHsn = rest.slice(hsnStart + hsnRun.length).trim();
+    const beforeNums = (beforeHsn.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    const afterNums = (afterHsn.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+
+    if (!qty || afterNums.length === 0) return null;
+
+    const pack = extractPack(`${productName} ${beforeHsn} ${afterHsn}`);
+    const mrp = beforeNums.length > 1 ? beforeNums[1] : (beforeNums[0] || 0);
+    const taxable = afterNums.length >= 2
+      ? afterNums[afterNums.length - 2]
+      : (qty > 0 && beforeNums.length > 0 ? qty * beforeNums[0] : 0);
+    const amount = afterNums.length >= 1
+      ? afterNums[afterNums.length - 1]
+      : taxable;
+    const gstPer = afterNums.length >= 3 ? afterNums[afterNums.length - 3] : 0;
+    const gstAmt = +(Math.max(amount - taxable, 0) / 2).toFixed(2);
+    const rate = qty > 0 ? +(taxable / qty).toFixed(4) : 0;
+    const prodCode = generateStableId('747', hsn, `${productName} ${pack}`);
+
+    return {
+      productName,
+      prodCode,
+      qty,
+      freeQty: 0,
+      rate,
+      mrp,
+      pack,
+      hsn,
+      expiry: '00/00',
+      discountPer: 0,
+      cgstAmt: gstAmt,
+      sgstAmt: gstAmt,
+      gstPer,
+      taxable,
+      amount
+    };
+  }
+
   module.exports = {
     name: 'Manshi Agencies PDF',
     identifyPatterns: ['MANSHI AGENCIES', 'CC-'],
 
     getMetadata: (lines) => {
-      // text is passed as array of lines here
-      const text = Array.isArray(lines) ? lines.join(' ') : lines;
-      const invMatch = text.match(/CC-(\d+)/);
-      const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{2})/);
+      const text = cleanLines(lines).join(' ');
+      const invMatch = text.match(/CC-(\d+)/i) || text.match(/Invoice No\.?\s*:\s*([A-Z0-9/-]+)/i);
+      const dateMatch =
+        text.match(/(\d{2}\/\d{2}\/\d{2,4})/) ||
+        text.match(/(\d{2}-[A-Za-z]{3}-\d{4})/i) ||
+        text.match(/(\d{2}-\d{2}-\d{4})/);
       return {
         partyCode: 'MAN',
         partyName: 'MANSHI AGENCIES',
-        invoiceNo: invMatch ? invMatch[1] : '000000',
+        invoiceNo: invMatch ? String(invMatch[1]).replace(/\D/g, '') : '000000',
         date: dateMatch ? dateMatch[1] : ''
       };
     },
 
     mapRows: (lines) => {
-      if (!Array.isArray(lines)) lines = lines.split('\n');
+      const cleaned = cleanLines(lines);
+      let capture = false;
       const items = [];
-      const pageStarts = [];
-      for (let i = 0; i < lines.length; i++) {
-        if (String(lines[i] || '').includes('RAJESHWAR NAMAH')) pageStarts.push(i);
-      }
 
-      const segments = pageStarts.length ? pageStarts : [0];
-      for (const segmentStart of segments) {
-        let segmentEnd = lines.length - 1;
-        for (let j = segmentStart + 1; j < lines.length; j++) {
-          const candidate = String(lines[j] || '').trim();
-          if (candidate.includes('Auth.Signatory') || candidate.includes('NET AMT.')) {
-            segmentEnd = j - 1;
-            break;
-          }
+      for (const line of cleaned) {
+        if (line.includes('RAJESHWAR NAMAH')) {
+          capture = true;
+          continue;
+        }
+        if (!capture) continue;
+        if (line.includes('Auth.Signatory') || line.startsWith('NET AMT.')) {
+          capture = false;
+          continue;
         }
 
-        for (let i = segmentStart + 1; i <= segmentEnd; i++) {
-          const line = String(lines[i] || '').trim();
-          const nextLine = String(lines[i + 1] || '').trim();
-          if (!isProductStart(line, nextLine)) continue;
-
-          let endIdx = segmentEnd;
-          for (let j = i + 1; j <= segmentEnd; j++) {
-            const candidate = String(lines[j] || '').trim();
-            const following = String(lines[j + 1] || '').trim();
-            if (isProductStart(candidate, following)) {
-              endIdx = j - 1;
-              break;
-            }
-          }
-
-          const block = lines.slice(i, endIdx + 1).map(x => String(x || '').trim()).filter(Boolean);
-          const parsed = parseItemBlock(block);
-          if (!parsed) continue;
-
-          const uniqueProdCode = generateStableId('747', parsed.hsn, `${parsed.productName} ${parsed.pack}`);
-          items.push({
-            productName: parsed.productName.substring(0, 30),
-            prodCode: uniqueProdCode,
-            qty: parsed.qty,
-            freeQty: parsed.freeQty,
-            rate: parsed.qty > 0 ? (parsed.taxable / parsed.qty) : parsed.rate,
-            mrp: parsed.mrp,
-            pack: parsed.pack || '10T',
-            hsn: parsed.hsn,
-            expiry: '00/00',
-            discountPer: 0,
-            cgstAmt: parsed.cgstAmt,
-            sgstAmt: parsed.sgstAmt,
-            gstPer: parsed.gstPer
-          });
-
-          i = endIdx;
-        }
+        const parsed = parseRowLine(line);
+        if (!parsed) continue;
+        items.push({
+          productName: parsed.productName.substring(0, 30),
+          prodCode: parsed.prodCode,
+          qty: parsed.qty,
+          freeQty: parsed.freeQty,
+          rate: parsed.rate,
+          mrp: parsed.mrp,
+          pack: parsed.pack || '10T',
+          hsn: parsed.hsn,
+          expiry: '00/00',
+          discountPer: parsed.discountPer,
+          cgstAmt: parsed.cgstAmt,
+          sgstAmt: parsed.sgstAmt,
+          gstPer: parsed.gstPer
+        });
       }
 
       const targetTotal = extractNetAmount(lines);
@@ -96,76 +161,6 @@
       return items;
     }
   };
-
-  function parseItemBlock(block) {
-    if (block.length < 11) return null;
-
-    const productName = block[0];
-    const qty = parseFloat(block[1]);
-    const rate = parseFloat(block[2]);
-    const mrp = parseFloat(block[3]);
-
-    if (!productName || isNaN(qty) || isNaN(rate) || isNaN(mrp)) return null;
-
-    const numeric = (value) => {
-      const parsed = parseFloat(value);
-      return isNaN(parsed) ? null : parsed;
-    };
-
-    let hsnIdx = -1;
-    for (let idx = block.length - 3; idx >= 4; idx--) {
-      if (/^\d{4,8}$/.test(block[idx])) {
-        hsnIdx = idx;
-        break;
-      }
-    }
-    if (hsnIdx === -1) return null;
-
-    const amount = numeric(block[block.length - 1]) || 0;
-    const taxable = numeric(block[block.length - 2]) || 0;
-    const hasDiscAfterHsn = hsnIdx === block.length - 4;
-    const discountPer = hasDiscAfterHsn ? (numeric(block[hsnIdx + 1]) || 0) : 0;
-
-    const sgstRate = numeric(block[hsnIdx - 1]) || 0;
-    const sgstAmt = numeric(block[hsnIdx - 2]) || 0;
-    const cgstAmt = numeric(block[hsnIdx - 3]) || 0;
-    const cgstRate = numeric(block[hsnIdx - 4]) || 0;
-    const gstPer = cgstRate + sgstRate;
-
-    const preTaxTokens = block.slice(4, Math.max(4, hsnIdx - 4));
-    let freeQty = 0;
-    let pack = '10T';
-
-    if (preTaxTokens.length === 1) {
-      pack = preTaxTokens[0];
-    } else if (preTaxTokens.length >= 2) {
-      const maybeFree = numeric(preTaxTokens[0]);
-      if (maybeFree !== null && !/[A-Z]/i.test(preTaxTokens[0]) && /[A-Z*]/i.test(preTaxTokens[1])) {
-        freeQty = maybeFree;
-        pack = preTaxTokens[1];
-      } else {
-        pack = preTaxTokens[0];
-      }
-    }
-
-    if (pack === '*****') pack = 'PC';
-
-    return {
-      productName,
-      qty,
-      freeQty,
-      rate,
-      mrp,
-      pack,
-      hsn: block[hsnIdx],
-      discountPer,
-      taxable,
-      amount,
-      cgstAmt,
-      sgstAmt,
-      gstPer
-    };
-  }
 
   function extractNetAmount(lines) {
     for (let i = 0; i < lines.length; i++) {

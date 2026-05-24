@@ -5,135 +5,175 @@
 
   const { generateStableId } = require('../../utils/stableId');
 
+  function cleanLines(input) {
+    return (Array.isArray(input) ? input : String(input || '').split('\n'))
+      .map(line => String(line || '').trim())
+      .filter(Boolean);
+  }
+
+  function isRowStart(line, nextLine) {
+    const text = String(line || '').trim();
+    const next = String(nextLine || '').trim();
+    return (
+      /^\d+\s+\d{6,10}\b/.test(text) ||
+      (/^\d+$/.test(text) && /^\d{6,10}\b/.test(next))
+    );
+  }
+
+  function isFooterLine(line) {
+    return /^(TOTAL\b|STOCKIST FOR\b|PAYMENT TYPE\b|SALESMAN:\b|Rupees\b|For MANSHI AGENCIES\b|GTG1 Page No\b|MANSHI AGENCIES\b|PLOT NO\b|STATE:\b|GSTIN:\b|TEL NO:\b|MOBILE:\b|E-MAIL:\b|DL NO:\b|TAX INVOICE\b|INVOICE NO:\b|INVOICE DATE:\b|PO NO\.\s*:?\b|Program Type\b|EWAY\b|BILL&DATE\b)/i.test(String(line || '').trim());
+  }
+
+  function extractPack(text) {
+    const raw = String(text || '');
+    const patterns = [
+      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS)\b/ig,
+      /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
+      /\b\d+[A-Z]{1,3}\b/ig
+    ];
+
+    for (const pattern of patterns) {
+      const matches = raw.match(pattern);
+      if (matches && matches.length) {
+        return matches[matches.length - 1].replace(/^0+(?=\d)/, '').substring(0, 6);
+      }
+    }
+    return '1N';
+  }
+
+  function buildRowChunks(lines) {
+    const chunks = [];
+    let current = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = String(lines[i] || '').trim();
+      if (!line) continue;
+      if (isFooterLine(line)) break;
+
+      const nextLine = String(lines[i + 1] || '').trim();
+      if (isRowStart(line, nextLine)) {
+        if (current.length) chunks.push(current);
+        current = [line];
+        if (/^\d+$/.test(line) && /^\d{6,10}\b/.test(nextLine)) {
+          current.push(nextLine);
+          i++;
+        }
+        continue;
+      }
+
+      if (current.length) current.push(line);
+    }
+
+    if (current.length) chunks.push(current);
+    return chunks;
+  }
+
+  function parseRowChunk(chunkLines) {
+    const text = chunkLines.join(' ').replace(/\s+/g, ' ').trim();
+    const startMatch = text.match(/^(\d+)\s+(\d{6,10})\s+(.*)$/);
+    if (!startMatch) return null;
+
+    const rest = startMatch[3];
+    const restTokens = rest.split(/\s+/);
+    const firstNumericIdx = restTokens.findIndex(token => /^\d+(?:\.\d+)?$/.test(token));
+    if (firstNumericIdx === -1) return null;
+
+    const description = restTokens.slice(0, firstNumericIdx).join(' ').trim();
+    const numericTail = restTokens.slice(firstNumericIdx).join(' ');
+    const numericValues = (numericTail.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if (numericValues.length < 5) return null;
+
+    const mrp = numericValues[0] || 0;
+    const qty = numericValues[1] || 0;
+    const rateToken = numericValues[2] || 0;
+    const gross = numericValues[3] || (qty > 0 ? qty * rateToken : 0);
+    const tail = numericValues.slice(-5);
+    const discAmt = tail[0] || 0;
+    const taxable = tail[1] || 0;
+    const gstPer = tail[2] || 0;
+    const gstAmt = tail[3] || 0;
+    const netAmt = tail[4] || 0;
+    const pack = extractPack(description);
+    const derivedRate = qty > 0 ? +(taxable / qty).toFixed(4) : rateToken;
+    const discountPer = gross > 0 ? +(((gross - taxable) / gross) * 100).toFixed(2) : 0;
+    const cgstAmt = +(gstAmt / 2).toFixed(2);
+    const sgstAmt = +(gstAmt / 2).toFixed(2);
+
+    return {
+      productName: description.substring(0, 30),
+      prodCode: generateStableId('746', startMatch[2], `${description} ${pack}`),
+      qty,
+      freeQty: 0,
+      rate: derivedRate,
+      mrp: mrp || rateToken,
+      pack,
+      hsn: startMatch[2],
+      expiry: '00/00',
+      discountPer,
+      cgstAmt,
+      sgstAmt,
+      gstPer,
+      taxable,
+      netAmt,
+      discAmt,
+      rawRate: rateToken
+    };
+  }
+
   module.exports = {
     name: 'Manshi Leap PDF',
     identifyPatterns: ['PRODUCT DESCRIPTION', 'HIMALAYA WELLNESS COMPANY', 'INVOICE NO:'],
 
     getMetadata: (lines) => {
-      if (!Array.isArray(lines)) lines = String(lines).split('\n');
-
-      const invoiceIdx = lines.findIndex(x => String(x || '').trim() === 'INVOICE NO:');
-      const dateIdx = lines.findIndex(x => String(x || '').trim() === 'INVOICE DATE:');
-      const invoiceRaw = invoiceIdx !== -1 ? String(lines[invoiceIdx + 1] || '').trim() : '000000';
-      const date = dateIdx !== -1 ? String(lines[dateIdx + 1] || '').trim() : '';
-      const invoiceDigits = invoiceRaw.replace(/\D/g, '');
+      const cleaned = cleanLines(lines);
+      const text = cleaned.join(' ');
+      const invoiceMatch =
+        text.match(/INVOICE NO:\s*([A-Z0-9/-]+)/i) ||
+        text.match(/INVOICE NO\.\s*:\s*([A-Z0-9/-]+)/i);
+      const dateMatch =
+        text.match(/\b\d{2}-[A-Za-z]{3}-\d{4}\b/) ||
+        text.match(/\b\d{2}[/-]\d{2}[/-]\d{4}\b/) ||
+        text.match(/\b\d{2}[/-][A-Za-z]{3}[/-]\d{4}\b/i);
+      const invoiceRaw = invoiceMatch ? String(invoiceMatch[1]).trim() : '000000';
 
       return {
         partyCode: 'MAN',
         partyName: 'MANSHI AGENCIES',
-        invoiceNo: invoiceDigits ? invoiceDigits.slice(-6) : '000000',
+        invoiceNo: invoiceRaw.replace(/\D/g, '') || '000000',
         sourceInvoiceNo: invoiceRaw,
-        date
+        date: dateMatch ? dateMatch[0] : ''
       };
     },
 
     mapRows: (lines) => {
-      if (!Array.isArray(lines)) lines = String(lines).split('\n');
+      const cleaned = cleanLines(lines);
+      const chunks = buildRowChunks(cleaned);
       const items = [];
 
-      const totalIdx = lines.findIndex(x => String(x || '').trim() === 'TOTAL');
-      let i = 0;
-
-      while (i < lines.length) {
-        const seq = String(lines[i] || '').trim();
-        const next = String(lines[i + 1] || '').trim();
-        if (!/^\d+$/.test(seq) || !/^\d{6,10}$/.test(next)) {
-          i++;
-          continue;
-        }
-        if (totalIdx !== -1 && i >= totalIdx) break;
-
-        const hsn = next;
-        let j = i + 2;
-
-        while (j < lines.length) {
-          const candidate = String(lines[j] || '').trim();
-          const following = String(lines[j + 1] || '').trim();
-          if (/^\d+(\.\d+)?$/.test(candidate) && /^\d+$/.test(following)) break;
-          j++;
-        }
-        if (j >= lines.length) break;
-
-        const descriptionLines = lines.slice(i + 2, j).map(x => String(x || '').trim()).filter(Boolean);
-        const mrp = parseFloat(String(lines[j] || '').trim()) || 0;
-        const qty = parseFloat(String(lines[j + 1] || '').trim()) || 0;
-        const rate = parseFloat(String(lines[j + 2] || '').trim()) || 0;
-        const gross = parseFloat(String(lines[j + 3] || '').trim()) || 0;
-
-        let blockEnd = totalIdx !== -1 ? totalIdx - 1 : lines.length - 1;
-        for (let scan = j + 4; scan < lines.length; scan++) {
-          const maybeSeq = String(lines[scan] || '').trim();
-          const maybeHsn = String(lines[scan + 1] || '').trim();
-          if (/^\d+$/.test(maybeSeq) && /^\d{6,10}$/.test(maybeHsn)) {
-            blockEnd = scan - 1;
-            break;
-          }
-          if (String(lines[scan] || '').trim() === 'TOTAL') {
-            blockEnd = scan - 1;
-            break;
-          }
-        }
-
-        const numericTail = [];
-        for (let k = j + 4; k <= blockEnd; k++) {
-          const token = String(lines[k] || '').trim();
-          if (/^\d+(\.\d+)?$/.test(token)) {
-            numericTail.push({ idx: k, value: parseFloat(token) });
-          }
-        }
-
-        if (numericTail.length < 5) break;
-
-        const tail = numericTail.slice(-5);
-        const discAmt = tail[0].value;
-        const taxable = tail[1].value;
-        const gstPer = tail[2].value;
-        const gstAmt = tail[3].value;
-        const netAmt = tail[4].value;
-
-        const productName = descriptionLines.join(' ').replace(/\\\(/g, '(').replace(/\\\)/g, ')').trim();
-        const pack = extractPack(descriptionLines);
-        const discountPer = gross > 0 ? +(((gross - taxable) / gross) * 100).toFixed(2) : 0;
-        const cgstAmt = +(gstAmt / 2).toFixed(2);
-        const sgstAmt = +(gstAmt / 2).toFixed(2);
-        const prodCode = generateStableId('746', hsn, `${productName} ${pack}`);
-
+      for (const chunk of chunks) {
+        const parsed = parseRowChunk(chunk);
+        if (!parsed) continue;
         items.push({
-          productName: productName.substring(0, 30),
-          prodCode,
-          qty,
-          freeQty: 0,
-          rate: qty > 0 ? +(taxable / qty).toFixed(4) : rate,
-          mrp: mrp || rate,
-          pack,
-          hsn,
-          expiry: '00/00',
-          discountPer: 0,
-          cgstAmt,
-          sgstAmt,
-          gstPer,
-          taxable,
-          netAmt,
-          discAmt,
-          rawRate: rate
+          productName: parsed.productName,
+          prodCode: parsed.prodCode,
+          qty: parsed.qty,
+          freeQty: parsed.freeQty,
+          rate: parsed.rate,
+          mrp: parsed.mrp,
+          pack: parsed.pack,
+          hsn: parsed.hsn,
+          expiry: parsed.expiry,
+          discountPer: parsed.discountPer,
+          cgstAmt: parsed.cgstAmt,
+          sgstAmt: parsed.sgstAmt,
+          gstPer: parsed.gstPer,
+          taxable: parsed.taxable,
+          netAmt: parsed.netAmt,
+          discAmt: parsed.discAmt,
+          rawRate: parsed.rawRate
         });
-
-        i = blockEnd + 1;
       }
 
       return items;
     }
   };
-
-  function extractPack(descriptionLines) {
-    for (let idx = descriptionLines.length - 1; idx >= 0; idx--) {
-      const line = descriptionLines[idx];
-      if (/^(?:\d+\s*)?(ML|GM|G|KG|N|JAR|PCS|PC|TAB|TABS|S|'S)/i.test(line)) return line.substring(0, 6);
-      if (/\b\d+(ML|GM|G|KG|N)\b/i.test(line)) {
-        const m = line.match(/\b\d+(ML|GM|G|KG|N)\b/i);
-        if (m) return m[0].substring(0, 6);
-      }
-      if (/25'S|10'S|12X12|1N/i.test(line)) return line.substring(0, 6);
-    }
-    return '1N';
-  }

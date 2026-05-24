@@ -12,7 +12,8 @@ import cgMarketing from '../../lib/protocols/cgMarketing'
 import abmarketing from '../../lib/protocols/abmarketing'
 import medicineHouse from '../../lib/protocols/medicineHouse'
 
-const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshi, manshiLeap, navkar, abmarketing, medicineHouse]
+// Check Manshi Leap before Manshi because the Leap PDF also contains shared Manshi footer text.
+const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshiLeap, manshi, navkar, abmarketing, medicineHouse]
 
 export const config = {
   api: {
