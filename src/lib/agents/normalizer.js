@@ -47,10 +47,12 @@
           return minDiff <= 0.5 ? closest : 0
         })()
 
-        const preDiscRate = parseFloat(item.rawRate) || rate 
-        const grossAmt = qty * preDiscRate
-        const discAmt = grossAmt * (discPer / 100)
-        const taxableAmt = grossAmt - discAmt
+        const preDiscRate = parseFloat(item.rawRate) || rate
+const grossAmt = qty * preDiscRate
+const discAmt = parseFloat(item.discAmt) > 0
+  ? parseFloat(item.discAmt)
+  : grossAmt * (parseFloat(item.discountPer || 0) / 100)
+const taxableAmt = grossAmt - discAmt
 
         let finalCgstAmt = item.cgstAmt !== undefined ? item.cgstAmt : (taxableAmt * (gstPer / 200))
         let finalSgstAmt = item.sgstAmt !== undefined ? item.sgstAmt : (taxableAmt * (gstPer / 200))
