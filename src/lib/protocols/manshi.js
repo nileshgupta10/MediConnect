@@ -43,7 +43,7 @@
 
   function parseRowLine(line) {
     const text = String(line || '').replace(/\s+/g, ' ').trim();
-    if (!text || !/\d{8}/.test(text)) return null;
+    if (!text || !/\d{7,}/.test(text)) return null;
 
     const qtyMatch = text.match(/^(.+?)\s+(\d{1,3})\s+(.*)$/);
     if (!qtyMatch) return null;
@@ -51,7 +51,7 @@
     const productName = qtyMatch[1].trim();
     const qty = parseFloat(qtyMatch[2]);
     const rest = qtyMatch[3];
-    const hsnRuns = rest.match(/\d{8,}/g);
+    const hsnRuns = rest.match(/\d{7,}/g);
     if (!hsnRuns || !hsnRuns.length) return null;
 
     const hsnRun = hsnRuns[hsnRuns.length - 1];
@@ -169,15 +169,21 @@
     }
   };
 
-  function extractNetAmount(lines) {
-    for (let i = 0; i < lines.length; i++) {
-      if (String(lines[i] || '').trim() === 'NET AMT.') {
-        const val = parseFloat(String(lines[i + 1] || '').trim());
-        if (!isNaN(val)) return val;
-      }
+function extractNetAmount(lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = String(lines[i] || '').trim();
+    const inlineMatch = line.match(/^NET AMT\.?\s+([0-9,]+(?:\.[0-9]+)?)/i);
+    if (inlineMatch) {
+      const val = parseFloat(inlineMatch[1].replace(/,/g, ''));
+      if (!isNaN(val)) return val;
     }
-    return 0;
+    if (line === 'NET AMT.') {
+      const val = parseFloat(String(lines[i + 1] || '').trim().replace(/,/g, ''));
+      if (!isNaN(val)) return val;
+    }
   }
+  return 0;
+}
 
   function isProductStart(line, nextLine) {
     const qty = parseFloat(nextLine);

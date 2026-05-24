@@ -89,7 +89,11 @@
     const qtyIdx = numericTokens.findIndex(token => /^\d+$/.test(token));
     if (qtyIdx === -1 || qtyIdx + 2 >= numericTokens.length) return null;
 
-    const mrp = parseFloat(numericTokens[0]) || 0;
+    let mrp = parseFloat(numericTokens[0]) || 0;
+    if (mrp <= 1) {
+      const fallbackMrp = numericTokens.find(token => (parseFloat(token) || 0) > 1);
+      if (fallbackMrp) mrp = parseFloat(fallbackMrp) || mrp;
+    }
     const qty = parseFloat(numericTokens[qtyIdx]) || 0;
     const rateToken = parseFloat(numericTokens[qtyIdx + 1]) || 0;
     const gross = parseFloat(numericTokens[qtyIdx + 2]) || (qty > 0 ? qty * rateToken : 0);
@@ -115,7 +119,7 @@
       pack,
       hsn: startMatch[2],
       expiry: '00/00',
-      discountPer,
+      discountPer: 0,
       cgstAmt,
       sgstAmt,
       gstPer,
