@@ -23,7 +23,9 @@
   function extractPack(text) {
     const raw = String(text || '');
     const patterns = [
-      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS)\b/ig,
+      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT|PADS)\b/ig,
+      /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
+      /\b(?:PCS|PC|UNIT|PADS)\b/ig,
       /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
       /\b\d+[A-Z]{1,3}\b/ig
     ];
@@ -31,7 +33,9 @@
     for (const pattern of patterns) {
       const matches = raw.match(pattern);
       if (matches && matches.length) {
-        return matches[matches.length - 1].replace(/^0+(?=\d)/, '').substring(0, 6);
+        const candidate = matches[matches.length - 1].replace(/^0+/, '').substring(0, 6);
+        if (!candidate) continue;
+        return candidate.toUpperCase();
       }
     }
     return '10T';
@@ -55,21 +59,24 @@
     const hsnStart = rest.lastIndexOf(hsnRun);
     const beforeHsn = rest.slice(0, hsnStart).trim();
     const afterHsn = rest.slice(hsnStart + hsnRun.length).trim();
-    const beforeNums = (beforeHsn.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    const beforeNums = (beforeHsn.match(/\d+\.\d{2}/g) || []).map(Number);
     const afterNums = (afterHsn.match(/\d+(?:\.\d+)?/g) || []).map(Number);
 
     if (!qty || afterNums.length === 0) return null;
 
     const pack = extractPack(`${productName} ${beforeHsn} ${afterHsn}`);
-    const mrp = beforeNums.length > 1 ? beforeNums[1] : (beforeNums[0] || 0);
+    const mrpHint = (productName.match(/\bMRP\s*=\s*(\d+(?:\.\d+)?)/i) || [])[1];
+    let mrp = beforeNums.length > 1 ? beforeNums[1] : (beforeNums[0] || 0);
+    if ((!mrp || mrp < 1) && mrpHint) mrp = parseFloat(mrpHint) || mrp;
     const taxable = afterNums.length >= 2
       ? afterNums[afterNums.length - 2]
       : (qty > 0 && beforeNums.length > 0 ? qty * beforeNums[0] : 0);
     const amount = afterNums.length >= 1
       ? afterNums[afterNums.length - 1]
       : taxable;
-    const gstPer = afterNums.length >= 3 ? afterNums[afterNums.length - 3] : 0;
-    const gstAmt = +(Math.max(amount - taxable, 0) / 2).toFixed(2);
+    const gstTotal = Math.max(amount - taxable, 0);
+    const gstPer = taxable > 0 ? +((gstTotal / taxable) * 100).toFixed(2) : 0;
+    const gstAmt = +(gstTotal / 2).toFixed(2);
     const rate = qty > 0 ? +(taxable / qty).toFixed(4) : 0;
     const prodCode = generateStableId('747', hsn, `${productName} ${pack}`);
 

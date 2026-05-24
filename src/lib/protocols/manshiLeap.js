@@ -27,7 +27,9 @@
   function extractPack(text) {
     const raw = String(text || '');
     const patterns = [
-      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS)\b/ig,
+      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT)\b/ig,
+      /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
+      /\b(?:PCS|PC|UNIT|PADS)\b/ig,
       /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
       /\b\d+[A-Z]{1,3}\b/ig
     ];
@@ -35,7 +37,9 @@
     for (const pattern of patterns) {
       const matches = raw.match(pattern);
       if (matches && matches.length) {
-        return matches[matches.length - 1].replace(/^0+(?=\d)/, '').substring(0, 6);
+        const candidate = matches[matches.length - 1].replace(/^0+/, '').substring(0, 6);
+        if (!candidate) continue;
+        return candidate.toUpperCase();
       }
     }
     return '1N';
@@ -79,15 +83,17 @@
     if (firstNumericIdx === -1) return null;
 
     const description = restTokens.slice(0, firstNumericIdx).join(' ').trim();
-    const numericTail = restTokens.slice(firstNumericIdx).join(' ');
-    const numericValues = (numericTail.match(/\d+(?:\.\d+)?/g) || []).map(Number);
-    if (numericValues.length < 5) return null;
+    const numericTokens = restTokens.slice(firstNumericIdx).filter(token => /^\d+(?:\.\d+)?$/.test(token));
+    if (numericTokens.length < 5) return null;
 
-    const mrp = numericValues[0] || 0;
-    const qty = numericValues[1] || 0;
-    const rateToken = numericValues[2] || 0;
-    const gross = numericValues[3] || (qty > 0 ? qty * rateToken : 0);
-    const tail = numericValues.slice(-5);
+    const qtyIdx = numericTokens.findIndex(token => /^\d+$/.test(token));
+    if (qtyIdx === -1 || qtyIdx + 2 >= numericTokens.length) return null;
+
+    const mrp = parseFloat(numericTokens[0]) || 0;
+    const qty = parseFloat(numericTokens[qtyIdx]) || 0;
+    const rateToken = parseFloat(numericTokens[qtyIdx + 1]) || 0;
+    const gross = parseFloat(numericTokens[qtyIdx + 2]) || (qty > 0 ? qty * rateToken : 0);
+    const tail = numericTokens.slice(-5).map(n => parseFloat(n) || 0);
     const discAmt = tail[0] || 0;
     const taxable = tail[1] || 0;
     const gstPer = tail[2] || 0;
