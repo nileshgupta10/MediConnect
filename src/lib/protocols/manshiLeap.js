@@ -83,7 +83,7 @@
     const firstNumericIdx = restTokens.findIndex(token => /^\d+(?:\.\d+)?$/.test(token));
     if (firstNumericIdx === -1) return null;
 
-    const description = restTokens.slice(0, firstNumericIdx).join(' ').trim();
+    const description = restTokens.slice(0, firstNumericIdx).join(' ') .replace(/\bBUY\s+\d+\s+GET\s+\d+\s+FREE\b/gi, '').trim();
     const numericTokens = restTokens.slice(firstNumericIdx).filter(token => /^\d+(?:\.\d+)?$/.test(token));
     if (numericTokens.length < 5) return null;
 
@@ -105,7 +105,7 @@
     const gstAmt = tail[3] || 0;
     const netAmt = tail[4] || 0;
     const pack = extractPack(description);
-    const derivedRate = qty > 0 ? +(taxable / qty).toFixed(4) : rateToken;
+    const derivedRate = qty > 0 ? +(taxable / qty).toFixed(4) : rateToken; const grossRate = qty > 0 && gross > 0 ? +(gross / qty).toFixed(4) : rateToken;
     const discountPer = gross > 0 ? +(((gross - taxable) / gross) * 100).toFixed(2) : 0;
     const cgstAmt = +(gstAmt / 2).toFixed(2);
     const sgstAmt = +(gstAmt / 2).toFixed(2);
@@ -115,12 +115,12 @@
       prodCode: generateStableId('746', startMatch[2], `${description} ${pack}`),
       qty,
       freeQty: 0,
-      rate: derivedRate,
+      rate: derivedRate, rawRate: grossRate,
       mrp: mrp || rateToken,
       pack,
       hsn: startMatch[2],
       expiry: '00/00',
-      discountPer: 0,
+      discountPer: discountPer,
       cgstAmt,
       sgstAmt,
       gstPer,
@@ -150,7 +150,7 @@
       return {
         partyCode: 'MAN',
         partyName: 'MANSHI AGENCIES',
-        invoiceNo: invoiceRaw.replace(/\D/g, '') || '000000',
+        invoiceNo: (invoiceRaw.replace(/\D/g, '') || '000000').slice(-6),
         sourceInvoiceNo: invoiceRaw,
         date: dateMatch ? dateMatch[0] : ''
       };

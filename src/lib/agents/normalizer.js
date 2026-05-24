@@ -47,7 +47,8 @@
           return minDiff <= 0.5 ? closest : 0
         })()
 
-        const grossAmt = qty * rate
+        const preDiscRate = parseFloat(item.rawRate) || rate 
+        const grossAmt = qty * preDiscRate
         const discAmt = grossAmt * (discPer / 100)
         const taxableAmt = grossAmt - discAmt
 

@@ -23,13 +23,13 @@
   function extractPack(text) {
     const raw = String(text || '');
     const patterns = [
-      /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT|PADS)\b/ig,
-      /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
-      /\b\d+'\s*S\b/ig,
-      /\b(?:PCS|PC|UNIT|PADS)\b/ig,
-      /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
-      /\b\d+[A-Z]{1,3}\b/ig
-    ];
+  /\b\d{1,4}(?:X\d+)?(?:ML|GM|G|KG|MG|L|N|PCS|PC|TAB|TABS|UNIT)\b/ig,
+  /\b(?:XXL|XL|L|M|S|P)\s*=\s*\d+\b/ig,
+  /\b\d+'\s*S\b/ig,
+  /\b(?:PCS|PC|UNIT|PADS)\b/ig,
+  /\b\d+X\d+[A-Z0-9'/-]*\b/ig,
+  /\b\d{1,2}[A-Z]{1,4}\b/ig
+];
 
     for (const pattern of patterns) {
       const matches = raw.match(pattern);
@@ -52,11 +52,7 @@
     const productName = qtyMatch[1].trim();
     const qty = parseFloat(qtyMatch[2]);
     const rest = qtyMatch[3];
-    const hsnRuns = rest.match(/\d{7,}/g);
-    if (!hsnRuns || !hsnRuns.length) return null;
-
-    const hsnRun = hsnRuns[hsnRuns.length - 1];
-    const hsn = hsnRun.slice(-8);
+    const hsnRuns = rest.match(/\d{7,}/g); if (!hsnRuns || !hsnRuns.length) return null; const hsnRun = hsnRuns[hsnRuns.length - 1]; let hsn = hsnRun.slice(-8); if (hsn.length === 7) hsn = '0' + hsn;
     const hsnStart = rest.lastIndexOf(hsnRun);
     const beforeHsn = rest.slice(0, hsnStart).trim();
     const afterHsn = rest.slice(hsnStart + hsnRun.length).trim();
@@ -98,7 +94,7 @@
       pack,
       hsn,
       expiry: '00/00',
-      discountPer: 0,
+      discountPer: taxable > 0 && beforeNums.length > 0 ? +(((qty * beforeNums[0] - taxable) / (qty * beforeNums[0])) * 100).toFixed(2) : 0,
       cgstAmt: gstAmt,
       sgstAmt: gstAmt,
       gstPer,
