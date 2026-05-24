@@ -115,7 +115,7 @@
       prodCode: generateStableId('746', startMatch[2], `${description} ${pack}`),
       qty,
       freeQty: 0,
-      rate: derivedRate, rawRate: grossRate,
+      rate: derivedRate, 
       mrp: mrp || rateToken,
       pack,
       hsn: startMatch[2],

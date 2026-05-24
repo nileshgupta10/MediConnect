@@ -65,12 +65,12 @@
     const mrpHint = (productName.match(/\bMRP\s*=\s*(\d+(?:\.\d+)?)/i) || [])[1];
     let mrp = beforeNums.length > 1 ? beforeNums[1] : (beforeNums[0] || 0);
     if ((!mrp || mrp < 1) && mrpHint) mrp = parseFloat(mrpHint) || mrp;
-    let taxable = afterNums.length >= 2
-      ? afterNums[afterNums.length - 2]
-      : (qty > 0 && beforeNums.length > 0 ? qty * beforeNums[0] : 0);
-    let amount = afterNums.length >= 1
-      ? afterNums[afterNums.length - 1]
-      : taxable;
+    let taxable = afterNums.length >= 1
+  ? afterNums[0]
+  : (qty > 0 && beforeNums.length > 0 ? qty * beforeNums[0] : 0);
+let amount = afterNums.length >= 1
+  ? afterNums[afterNums.length - 1]
+  : taxable;
     let gstPer = taxable > 0 ? +(((Math.max(amount - taxable, 0)) / taxable) * 100).toFixed(2) : 0;
 
     if (afterNums.length === 2 && afterNums[0] > 0 && afterNums[0] <= 28 && afterNums[1] > 50) {
@@ -153,7 +153,12 @@ rawRate: beforeNums[0] || rate,      cgstAmt: gstAmt,
           discountPer: parsed.discountPer,
           cgstAmt: parsed.cgstAmt,
           sgstAmt: parsed.sgstAmt,
-          gstPer: parsed.gstPer
+          gstPer: parsed.gstPer,
+          rawRate: parsed.rawRate,
+          taxable: parsed.taxable,
+          discAmt: parsed.cgstAmt + parsed.sgstAmt > 0
+            ? Math.max((parsed.qty * (parsed.rawRate || parsed.rate)) - parsed.taxable, 0)
+            : 0
         });
       }
 
