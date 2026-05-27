@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
 import { KhaataLayout } from '../components/khata/KhaataLayout';
+import StoreLayout from '../components/StoreLayout';
 
 export default function KhataPage() {
   const router = useRouter();
@@ -59,8 +60,10 @@ export default function KhataPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
-      <KhaataLayout user={user} />
-    </div>
+    <StoreLayout>
+      <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950">
+        <KhaataLayout user={user} />
+      </div>
+    </StoreLayout>
   );
 }
