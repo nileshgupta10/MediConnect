@@ -1,0 +1,506 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model appointments {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_application_id  String?              @db.Uuid
+  job_id              BigInt?
+  pharmacist_id       String?              @db.Uuid
+  store_owner_id      String?              @db.Uuid
+  appointment_date    DateTime             @db.Date
+  appointment_time    String
+  status              String?              @default("pending")
+  pharmacist_note     String?
+  created_at          DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime?            @default(now()) @db.Timestamptz(6)
+  job_applications    job_applications?    @relation(fields: [job_application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  jobs                jobs?                @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pharmacist_profiles pharmacist_profiles? @relation(fields: [pharmacist_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "appointments_pharmacist_fkey")
+  store_profiles      store_profiles?      @relation(fields: [store_owner_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "appointments_store_owner_fkey")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model barcode_mappings {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barcode        String
+  product_id     String?   @db.Uuid
+  user_confirmed Boolean?  @default(false)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  products       products? @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bill_scans {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  store_owner_id String?   @db.Uuid
+  month_year     String
+  scans_used     Int?      @default(0)
+  scan_limit     Int?      @default(30)
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([store_owner_id, month_year])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model inward_bills {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?        @db.Uuid
+  distributor_name String
+  bill_number      String
+  bill_date        DateTime       @db.Date
+  created_at       DateTime?      @default(now()) @db.Timestamp(6)
+  inward_items     inward_items[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model inward_items {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inward_bill_id String?       @db.Uuid
+  product_id     String?       @db.Uuid
+  barcode        String?
+  product_name   String?
+  company        String?
+  pack           String?
+  qty            Decimal?      @db.Decimal(10, 2)
+  batch          String?
+  expiry         String?
+  ptr            Decimal?      @db.Decimal(10, 2)
+  mrp            Decimal?      @db.Decimal(10, 2)
+  gst            Decimal?      @db.Decimal(5, 2)
+  created_at     DateTime?     @default(now()) @db.Timestamp(6)
+  inward_bills   inward_bills? @relation(fields: [inward_bill_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products       products?     @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model job_applications {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_id              BigInt?
+  pharmacist_id       String?              @db.Uuid
+  created_at          DateTime?            @default(now()) @db.Timestamptz(6)
+  status              String?              @default("pending")
+  appointments        appointments[]
+  jobs                jobs?                @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pharmacist_profiles pharmacist_profiles? @relation(fields: [pharmacist_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "job_applications_pharmacist_fkey")
+
+  @@unique([job_id, pharmacist_id])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model jobs {
+  id                  BigInt             @id @default(autoincrement())
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  title               String?
+  location            String?
+  description         String?
+  store_owner_id      String?            @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shift               String?
+  num_openings        Int?
+  required_experience String?
+  preferred_software  String?
+  status              String?            @default("active")
+  expires_at          DateTime?          @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamptz(6)
+  disabled_by_admin   Boolean?           @default(false)
+  closed_at           DateTime?          @db.Timestamptz(6)
+  appointments        appointments[]
+  job_applications    job_applications[]
+  store_profiles      store_profiles?    @relation(fields: [store_owner_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "jobs_store_owner_fkey")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacies {
+  id                   String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  owner_name           String?
+  store_name           String?
+  location             String?
+  map_url              String?
+  number_of_vacancies  Int?
+  preferred_experience String?
+  preferred_shift      String?
+  created_at           DateTime?   @default(now()) @db.Timestamp(6)
+  vacancies            vacancies[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacist_profiles {
+  id                  String             @id @default(dbgenerated("auth.uid()")) @db.Uuid
+  user_id             String             @unique(map: "pharmacist_profiles_user_id_unique") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String?
+  age                 Int?
+  sex                 String?
+  marital_status      String?
+  current_address     String?
+  ready_to_move       Boolean?
+  years_experience    Int?
+  software_experience String?
+  preferred_shifts    String[]
+  license_url         String?
+  is_verified         Boolean?           @default(false)
+  verification_status String?            @default("pending")
+  verification_remark String?
+  phone               String?
+  latitude            Float?
+  longitude           Float?
+  address             String?
+  appointments        appointments[]
+  job_applications    job_applications[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model pharmacists {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String?
+  age                Int?
+  address            String?
+  sex                String?
+  marital_status     String?
+  license_image_url  String?
+  experience         String?
+  preferred_shift    String?
+  preferred_location String?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model products {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  barcode          String?
+  product_name     String
+  company          String?
+  pack             String?
+  gst              Decimal?           @db.Decimal(5, 2)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  hsn_code         String?
+  barcode_mappings barcode_mappings[]
+  inward_items     inward_items[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model return_receipts {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  return_request_id String          @db.Uuid
+  store_owner_id    String          @db.Uuid
+  receipt_date      DateTime        @db.Date
+  received_by       String
+  bill_number       String?
+  amount            Decimal?        @db.Decimal(10, 2)
+  created_at        DateTime?       @default(now()) @db.Timestamptz(6)
+  return_requests   return_requests @relation(fields: [return_request_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([return_request_id], map: "idx_return_receipts_return_request")
+  @@index([store_owner_id], map: "idx_return_receipts_store_owner")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model return_requests {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  store_owner_id  String            @db.Uuid
+  supplier_id     String            @db.Uuid
+  return_date     DateTime          @db.Date
+  invoice_date    DateTime?         @db.Date
+  invoice_number  String?
+  given_through   String?
+  return_type     String
+  details         String
+  amount          Decimal?          @db.Decimal(10, 2)
+  status          String            @default("pending")
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  return_receipts return_receipts[]
+  suppliers       suppliers         @relation(fields: [supplier_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_return_requests_status")
+  @@index([store_owner_id], map: "idx_return_requests_store_owner")
+  @@index([supplier_id], map: "idx_return_requests_supplier")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model store_profiles {
+  id                   String         @id @default(dbgenerated("auth.uid()")) @db.Uuid
+  user_id              String         @unique(map: "store_profiles_user_id_unique") @default(dbgenerated("auth.uid()")) @db.Uuid
+  name                 String?
+  num_vacancies        Int?
+  experience_required  String?
+  store_name           String?
+  contact_person       String?
+  latitude             Float?
+  longitude            Float?
+  store_timings        String?
+  license_url          String?
+  is_verified          Boolean?       @default(false)
+  is_training_eligible Boolean?       @default(false)
+  verification_status  String?        @default("pending")
+  verification_remark  String?
+  phone                String?
+  address              String?
+  appointments         appointments[]
+  jobs                 jobs[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model suppliers {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  store_owner_id  String            @db.Uuid
+  name            String
+  address         String?
+  phone           String?
+  contact_person  String?
+  created_at      DateTime?         @default(now()) @db.Timestamptz(6)
+  area            String?
+  return_requests return_requests[]
+
+  @@index([store_owner_id], map: "idx_suppliers_store_owner")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model training_requests {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pharmacist_id       String?         @db.Uuid
+  store_owner_id      String?         @db.Uuid
+  created_at          DateTime?       @default(now()) @db.Timestamptz(6)
+  appointment_at      DateTime?       @db.Timestamp(6)
+  pharmacist_response String?         @default("pending")
+  status              String?         @default("pending")
+  slot_id             String?         @db.Uuid
+  training_slots      training_slots? @relation(fields: [slot_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model training_slots {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  store_owner_id    String              @db.Uuid
+  month             String
+  slot_number       Int
+  status            String?             @default("available")
+  created_at        DateTime?           @default(now()) @db.Timestamptz(6)
+  training_requests training_requests[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model user_roles {
+  user_id    String    @id @db.Uuid
+  role       String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model vacancies {
+  id                   String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  pharmacy_id          String?     @db.Uuid
+  posted_by            String?
+  preferred_experience String?
+  preferred_shift      String?
+  is_active            Boolean?    @default(true)
+  created_at           DateTime?   @default(now()) @db.Timestamp(6)
+  pharmacies           pharmacies? @relation(fields: [pharmacy_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MediCLan Khaata Models — multi-tenant accounts management system
+// All queries are filtered by storeOwnerId (= Supabase auth user.id)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AppSettings {
+  id           Int    @id @default(autoincrement())
+  storeOwnerId String @unique
+  companyName  String @default("MediCLan")
+  gstin        String @default("")
+  address      String @default("")
+  state        String @default("Maharashtra")
+}
+
+model BankAccount {
+  id                 Int              @id @default(autoincrement())
+  storeOwnerId       String
+  name               String
+  accountNo          String?
+  ifscCode           String?
+  accountType        String?
+  openingBalance     Float            @default(0)
+  openingBalanceDate DateTime?
+  isDefault          Boolean          @default(false)
+  isActive           Boolean          @default(true)
+  bankDeposits       BankDeposit[]
+  cheques            Cheque[]
+  bankCharges        BankCharge[]
+  rdRedemptions      RDRedemption[]
+  cardSettlements    CardSettlement[]
+  expenses           Expense[]
+
+  @@unique([name, storeOwnerId])
+}
+
+model DailyLedger {
+  id             Int      @id @default(autoincrement())
+  storeOwnerId   String
+  date           DateTime
+  openingBalance Float
+  closingBalance Float
+  totalIn        Float
+  totalOut       Float
+
+  @@unique([date, storeOwnerId])
+}
+
+model Purchase {
+  id            Int      @id @default(autoincrement())
+  storeOwnerId  String
+  date          DateTime
+  supplierName  String
+  invoiceNumber String
+  invoiceAmount Float
+  paymentType   String
+  chequeId      Int?
+  cheque        Cheque?  @relation(fields: [chequeId], references: [id])
+}
+
+model Cheque {
+  id            Int          @id @default(autoincrement())
+  storeOwnerId  String
+  chequeNumber  String
+  chequeDate    DateTime
+  bankName      String
+  amount        Float
+  status        String
+  supplierName  String
+  paymentMode   String?
+  bankCharge    Float?
+  bankAccountId Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  purchases     Purchase[]
+  partyType     String       @default("Supplier")
+  customerId    Int?
+  customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model KhataSupplier {
+  id           Int     @id @default(autoincrement())
+  storeOwnerId String
+  name         String
+  area         String  @default("")
+  phone        String?
+  dealsIn      String?
+  gstNumber    String?
+
+  @@unique([name, storeOwnerId])
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  storeOwnerId String
+  date         DateTime
+  amount       Float
+  payee        String
+  type         String
+  description  String?
+}
+
+model Expense {
+  id            Int          @id @default(autoincrement())
+  storeOwnerId  String
+  date          DateTime
+  amount        Float
+  category      String
+  narration     String
+  paymentMode   String       @default("Cash")
+  bankAccountId Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+}
+
+model BankDeposit {
+  id            Int          @id @default(autoincrement())
+  storeOwnerId  String
+  date          DateTime
+  amount        Float
+  bankName      String
+  reference     String?
+  narration     String?
+  isRD          Boolean      @default(false)
+  maturityDate  DateTime?
+  bankAccountId Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+}
+
+model RDRedemption {
+  id                Int          @id @default(autoincrement())
+  storeOwnerId      String
+  date              DateTime
+  amount            Float
+  redemptionType    String
+  bankAccountId     Int?
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
+  originalDepositId Int?
+  maturityDate      DateTime?
+  narration         String?
+}
+
+model BankCharge {
+  id            Int         @id @default(autoincrement())
+  storeOwnerId  String
+  date          DateTime
+  amount        Float
+  bankAccountId Int
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  chargeType    String
+  narration     String?
+}
+
+model CardSettlement {
+  id            Int         @id @default(autoincrement())
+  storeOwnerId  String
+  date          DateTime
+  amount        Float
+  bankAccountId Int
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
+  salesDate     DateTime?
+  narration     String?
+}
+
+model DailySales {
+  id             Int      @id @default(autoincrement())
+  storeOwnerId   String
+  date           DateTime
+  cashSales      Float    @default(0)
+  upiSales       Float    @default(0)
+  swipeSales     Float    @default(0)
+  upiAccountId   Int?
+  swipeAccountId Int?
+
+  @@unique([date, storeOwnerId])
+}
+
+model Customer {
+  id           Int                   @id @default(autoincrement())
+  storeOwnerId String
+  customerId   String
+  name         String
+  phone        String
+  address      String?               @default("")
+  createdAt    DateTime              @default(now())
+  transactions CustomerTransaction[]
+  cheques      Cheque[]
+
+  @@unique([customerId, storeOwnerId])
+}
+
+model CustomerTransaction {
+  id            Int      @id @default(autoincrement())
+  storeOwnerId  String
+  customerId    Int
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type          String
+  date          DateTime
+  amount        Float
+  narration     String?
+  invoiceNumber String?
+  createdAt     DateTime @default(now())
+}
+

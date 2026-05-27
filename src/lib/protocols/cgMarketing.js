@@ -79,7 +79,10 @@
         if (!productName) continue
 
         const pack = extractPack(descTokens)
-        const qty = num(pcsToken)
+        const pcs = num(pcsToken)
+        const cs = num(csToken)
+        // When Pcs=0 (wholesale/carton-only line), fall back to Cs count as qty
+        const qty = pcs > 0 ? pcs : cs
         const rate = num(pcPriceToken)
         const mrp = num(mrpToken)
         const gstPer = num(gstPerToken)
