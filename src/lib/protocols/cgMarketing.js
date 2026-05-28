@@ -103,6 +103,8 @@
           hsn,
           expiry: '00/00',
           discountPer: grossPercent(num(grossAmtToken), discAmt),
+          discAmt,
+          taxable: num(taxableAmtToken),
           cgstAmt,
           sgstAmt,
           gstPer

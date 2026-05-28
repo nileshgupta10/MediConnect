@@ -98,6 +98,9 @@ const { generateStableId } = require('../../utils/stableId')
         const productName = productTokens.join(' ').trim()
         const hsn = tokens[0]
 
+        const gross = qty * rate;
+        const discAmt = gross > amount ? gross - amount : 0;
+
         items.push({
           productName: productName.substring(0, 30),
           prodCode: generateStableId('401', hsn, productName),
@@ -111,6 +114,8 @@ const { generateStableId } = require('../../utils/stableId')
           hsn,
           expiry: normalizeExpiry(exp),
           discountPer: discPer || 0,
+          discAmt,
+          taxable: amount,
           cgstAmt: +(amount * (gstPer / 200)).toFixed(2),
           sgstAmt: +(amount * (gstPer / 200)).toFixed(2),
           gstPer: gstPer || 0

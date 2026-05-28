@@ -102,6 +102,9 @@
         const taxAmt = amount * (gstPer / 100);
         const prodCode = generateStableId('858', hsn, productName);
 
+        const gross = qty * rate;
+        const discAmt = gross > amount ? gross - amount : 0;
+
         items.push({
           productName: productName.substring(0, 30),
           prodCode,
@@ -114,6 +117,8 @@
           hsn: hsn || '30049099',
           expiry: '00/00',
           discountPer,
+          discAmt,
+          taxable: amount,
           cgstAmt: taxAmt / 2,
           sgstAmt: taxAmt / 2,
           gstPer: gstPer || 18

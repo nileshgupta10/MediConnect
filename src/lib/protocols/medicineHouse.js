@@ -66,6 +66,11 @@ function parseRows(lines) {
     const gstPer = cleanNum(gstPerToken) || 0
     const gstAmt = cleanNum(gstAmtToken)
 
+    const taxable = cleanNum(taxableToken)
+    const gross = qty * rate
+    const totalDiscAmt = gross > taxable ? gross - taxable : 0
+    const discountPer = gross > 0 ? +((totalDiscAmt / gross) * 100).toFixed(4) : 0
+
     items.push({
       productName: productName.substring(0, 30),
       prodCode: generateStableId('2276', hsn, productName),
@@ -78,7 +83,9 @@ function parseRows(lines) {
       mrp: mrp || rate,
       hsn,
       expiry: '00/00',
-      discountPer: 0,
+      discountPer: discountPer,
+      discAmt: totalDiscAmt,
+      taxable: taxable,
       cgstAmt: +(gstAmt / 2).toFixed(3),
       sgstAmt: +(gstAmt / 2).toFixed(3),
       gstPer

@@ -42,7 +42,8 @@
           mrp: parseFloat(row.mrp || 0),
           hsn: row.hsncode || '',
           expiry: expiry,
-          discountPer: parseFloat(row.cdper || 0),
+          discountPer: (parseFloat(row.cdper || 0) + parseFloat(row.schper || 0) + parseFloat(row.tdper || 0)) || parseFloat(row.discountPer || row.disc || 0),
+          discAmt: parseFloat(row.discamt || row.schamt || row.cdamt || 0),
           gstPer: (parseFloat(row.cgstper || 0) + parseFloat(row.sgstper || 0)) || 12
         };
       }).filter(item => item.productName);

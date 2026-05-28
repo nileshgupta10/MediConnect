@@ -130,7 +130,9 @@ function parseRows(lines) {
       mrp: mrp || unitRate,
       hsn,
       expiry: '00/00',
-      discountPer: schPer || 0,
+      discountPer: gross > 0 ? +((totalDiscAmt / gross) * 100).toFixed(4) : 0,
+      discAmt: totalDiscAmt,
+      taxable: gross - totalDiscAmt,
       cgstAmt: +(taxTotal / 2).toFixed(3),
       sgstAmt: +(taxTotal / 2).toFixed(3),
       gstPer

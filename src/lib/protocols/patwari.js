@@ -56,7 +56,8 @@ const { generateStableId } = require('../../utils/stableId')
           }
           return '12/30'
         })(),
-        discountPer: 0,
+        discountPer: cleanNum(row.discper || row.disc || row.schper || row.cdper || 0),
+        discAmt: cleanNum(row.discamt || row.disc_amt || row.schamt || row.cdamt || 0),
         cgstAmt: cleanNum(row.cgstamt),
         sgstAmt: cleanNum(row.sgstamt),
         gstPer: (cleanNum(row.cgstper) + cleanNum(row.sgstper)) || 12
@@ -206,7 +207,7 @@ const { generateStableId } = require('../../utils/stableId')
         mrp,
         hsn: taxHsnBatch.hsn || '',
         expiry: normalizeExpiry(tokens[expiryIdx]),
-        discountPer: 0,
+        discountPer: amountScheme?.scheme || 0,
         cgstAmt: +(taxHsnBatch.gstAmt / 2).toFixed(2),
         sgstAmt: +(taxHsnBatch.gstAmt / 2).toFixed(2),
         gstPer: cleanNum(tokens[gstIdx]) || 5,
