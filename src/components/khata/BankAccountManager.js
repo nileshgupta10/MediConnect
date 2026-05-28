@@ -7,13 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { khataFetch } from '../../lib/khata-utils';
 
 const PRIMARY_BTN =
-  'bg-brand-teal hover:bg-brand-teal/90 text-white rounded-full font-bold border-0';
+  'bg-brand-teal hover:bg-brand-teal/90 text-white rounded-lg font-bold border-0';
 
-const CARD_CLASS = 'rounded-2xl border-slate-200/80 shadow-sm';
+const CARD_CLASS = 'rounded-xl border-slate-200/80 shadow-sm';
 const CARD_HEADER_CLASS = 'bg-slate-50/40 border-b border-slate-100 py-4 px-5';
 const CARD_TITLE_CLASS = 'text-sm font-bold text-brand-navy uppercase tracking-wide';
 const LABEL_CLASS = 'text-xs font-bold text-slate-500 uppercase tracking-wider';
-const INPUT_CLASS = 'rounded-full px-4';
+const INPUT_CLASS = 'rounded-lg px-3';
 
 const EMPTY_ADD_FORM = {
   name: '',
@@ -371,7 +371,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="rounded-full border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:border-brand-teal hover:text-brand-teal"
+                                  className="rounded-lg border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:border-brand-teal hover:text-brand-teal"
                                   onClick={() => handleSetDefault(account.id)}
                                 >
                                   Set as Default
@@ -381,7 +381,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="rounded-full border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:border-brand-teal hover:text-brand-teal"
+                                className="rounded-lg border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:border-brand-teal hover:text-brand-teal"
                                 onClick={() => openEdit(account)}
                               >
                                 Edit
@@ -390,7 +390,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="rounded-full border-slate-200 px-3 text-xs font-semibold text-red-500 hover:border-red-450 hover:text-red-650"
+                                className="rounded-lg border-slate-200 px-3 text-xs font-semibold text-red-500 hover:border-red-450 hover:text-red-650"
                                 onClick={() => handleDeactivate(account.id)}
                               >
                                 Remove
@@ -408,7 +408,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
 
           {/* ── ADD DIALOG ──────────────────────────────────────────────────── */}
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogContent className="max-w-md rounded-2xl bg-white p-5 border border-slate-150 shadow-lg">
+            <DialogContent className="max-w-md rounded-xl bg-white p-5 border border-slate-150 shadow-lg">
               <DialogHeader>
                 <DialogTitle className={CARD_TITLE_CLASS}>Add Bank Account</DialogTitle>
               </DialogHeader>
@@ -460,7 +460,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
                     </Label>
                     <select
                       id="add-type"
-                      className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-transparent px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-800 bg-white"
+                      className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-800 bg-white"
                       value={addForm.accountType}
                       onChange={(e) => setAddForm((f) => ({ ...f, accountType: e.target.value }))}
                     >
@@ -532,7 +532,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
 
           {/* ── EDIT DIALOG ─────────────────────────────────────────────────── */}
           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogContent className="max-w-md rounded-2xl bg-white p-5 border border-slate-150 shadow-lg">
+            <DialogContent className="max-w-md rounded-xl bg-white p-5 border border-slate-150 shadow-lg">
               <DialogHeader>
                 <DialogTitle className={CARD_TITLE_CLASS}>Edit Bank Account</DialogTitle>
               </DialogHeader>
@@ -591,7 +591,7 @@ export function BankAccountManager({ onlySettings = false } = {}) {
                       </Label>
                       <select
                         id="edit-type"
-                        className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-transparent px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-800 bg-white"
+                        className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-800 bg-white"
                         value={editingAccount.accountType ?? 'Savings'}
                         onChange={(e) =>
                           setEditingAccount((a) => ({ ...a, accountType: e.target.value }))

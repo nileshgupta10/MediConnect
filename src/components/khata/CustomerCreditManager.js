@@ -21,7 +21,7 @@ import {
   TrendingDown 
 } from 'lucide-react';
 
-const INPUT_STYLE = "flex h-10 w-full rounded-full border border-brand-light-teal bg-white dark:bg-slate-900/50 dark:border-slate-800 px-4 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-50 font-semibold text-brand-navy dark:text-slate-200";
+const INPUT_STYLE = "flex h-10 w-full rounded-lg border border-brand-light-teal bg-white dark:bg-slate-900/50 dark:border-slate-800 px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-50 font-semibold text-brand-navy dark:text-slate-200";
 
 export function CustomerCreditManager() {
   const [customers, setCustomers] = useState([]);
@@ -360,7 +360,7 @@ export function CustomerCreditManager() {
     <div className="space-y-6">
       
       {/* Sleek Gradient Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-16 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -377,9 +377,9 @@ export function CustomerCreditManager() {
       </div>
 
       {/* ── Summary stat strip ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-5">
         {/* Total Outstanding Dues */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">⏳ Total Customer Dues</div>
@@ -389,7 +389,7 @@ export function CustomerCreditManager() {
         </div>
 
         {/* Active Debtors Count */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">👤 Active Debtors</div>
@@ -399,7 +399,7 @@ export function CustomerCreditManager() {
         </div>
 
         {/* Registered Customers */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">👥 Registered Registry</div>
@@ -409,11 +409,11 @@ export function CustomerCreditManager() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-5">
       
         {/* LEFT COLUMN: Customer Directory */}
         <div className="lg:col-span-1 space-y-4">
-          <Card className="rounded-3xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex flex-col h-[700px]">
+          <Card className="rounded-xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex flex-col h-[700px]">
             
             <CardHeader className="py-4 px-5 border-b border-slate-100 bg-slate-50/40 space-y-3 shrink-0">
               <div className="flex items-center justify-between">
@@ -423,7 +423,7 @@ export function CustomerCreditManager() {
                 </CardTitle>
                 <Button
                   onClick={() => setIsAddCustOpen(true)}
-                  className="h-8 rounded-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold text-xs gap-1 cursor-pointer border-0 shadow-xs px-3.5"
+                  className="h-8 rounded-lg bg-brand-teal hover:bg-brand-teal/90 text-white font-bold text-xs gap-1 cursor-pointer border-0 shadow-xs px-3.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Customer
@@ -438,7 +438,7 @@ export function CustomerCreditManager() {
                   placeholder="Search by name, ID, or phone..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="rounded-full pl-9 pr-4 h-9 bg-white font-semibold border-brand-light-teal text-xs"
+                  className="rounded-lg pl-9 pr-4 h-9 bg-white font-semibold border-brand-light-teal text-xs"
                 />
               </div>
             </CardHeader>
@@ -505,7 +505,7 @@ export function CustomerCreditManager() {
         {/* RIGHT COLUMN: Outstanding Ledger and Transactions */}
         <div className="lg:col-span-2 space-y-4">
           {activeCustomer ? (
-            <Card className="rounded-3xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex flex-col h-[700px]">
+            <Card className="rounded-xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex flex-col h-[700px]">
               
               {/* Customer Header Details Card */}
               <CardHeader className="py-4 px-5 border-b border-slate-100 bg-slate-50/40 space-y-3.5 shrink-0">
@@ -546,14 +546,14 @@ export function CustomerCreditManager() {
                         setIsEditCustOpen(true);
                       }}
                       variant="outline"
-                      className="h-8.5 rounded-full text-xs font-bold border-brand-light-teal hover:bg-brand-soft-teal/50 hover:text-brand-teal text-slate-650 cursor-pointer"
+                      className="h-8.5 rounded-lg text-xs font-bold border-brand-light-teal hover:bg-brand-soft-teal/50 hover:text-brand-teal text-slate-650 cursor-pointer"
                     >
                       Edit Details
                     </Button>
                     <Button
                       onClick={() => handleDeleteCustomer(activeCustomer.id)}
                       variant="ghost"
-                      className="h-8.5 w-8.5 p-0 rounded-full hover:bg-rose-50 hover:text-rose-600 text-slate-400 cursor-pointer"
+                      className="h-8.5 w-8.5 p-0 rounded-lg hover:bg-rose-50 hover:text-rose-600 text-slate-400 cursor-pointer"
                       title="Delete Customer"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -563,7 +563,7 @@ export function CustomerCreditManager() {
                 </div>
 
                 {/* Balances & Add Transactions Panel */}
-                <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4 bg-white p-3 rounded-2xl border border-brand-light-teal/50 shadow-2xs">
+                <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4 bg-white p-3 rounded-xl border border-brand-light-teal/50 shadow-2xs">
                   
                   {/* Outstanding Box */}
                   <div className="md:col-span-1 border-r-0 md:border-r border-slate-100 pr-0 md:pr-4 flex items-center justify-between md:justify-start gap-4">
@@ -582,7 +582,7 @@ export function CustomerCreditManager() {
                     
                     <Button
                       onClick={handleWhatsAppDispatch}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
                     >
                       <Send className="w-3.5 h-3.5" />
                       WhatsApp Ledger
@@ -590,7 +590,7 @@ export function CustomerCreditManager() {
                     
                     <Button
                       onClick={() => setIsLogSaleOpen(true)}
-                      className="bg-rose-600 hover:bg-rose-700 text-white rounded-full font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
+                      className="bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
                     >
                       <TrendingUp className="w-3.5 h-3.5" />
                       + Credit Sale
@@ -598,7 +598,7 @@ export function CustomerCreditManager() {
 
                     <Button
                       onClick={() => setIsLogPayOpen(true)}
-                      className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-full font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
+                      className="bg-brand-teal hover:bg-brand-teal/90 text-white rounded-lg font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
                     >
                       <TrendingDown className="w-3.5 h-3.5" />
                       + Log Payment
@@ -620,7 +620,7 @@ export function CustomerCreditManager() {
                         type="date"
                         value={startDate}
                         onChange={e => setStartDate(e.target.value)}
-                        className="h-7 text-[10px] font-extrabold rounded-full w-28 px-2.5 border-slate-200 focus-visible:ring-brand-teal bg-white shadow-2xs text-brand-navy"
+                        className="h-7 text-[10px] font-extrabold rounded-lg w-28 px-2.5 border-slate-200 focus-visible:ring-brand-teal bg-white shadow-2xs text-brand-navy"
                       />
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -629,7 +629,7 @@ export function CustomerCreditManager() {
                         type="date"
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
-                        className="h-7 text-[10px] font-extrabold rounded-full w-28 px-2.5 border-slate-200 focus-visible:ring-brand-teal bg-white shadow-2xs text-brand-navy"
+                        className="h-7 text-[10px] font-extrabold rounded-lg w-28 px-2.5 border-slate-200 focus-visible:ring-brand-teal bg-white shadow-2xs text-brand-navy"
                       />
                     </div>
                     {(startDate || endDate) && (
@@ -639,7 +639,7 @@ export function CustomerCreditManager() {
                           setStartDate('');
                           setEndDate('');
                         }}
-                        className="h-7 rounded-full px-3 text-[9px] font-extrabold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 cursor-pointer"
+                        className="h-7 rounded-lg px-3 text-[9px] font-extrabold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 cursor-pointer"
                       >
                         Clear
                       </Button>
@@ -743,7 +743,7 @@ export function CustomerCreditManager() {
 
             </Card>
           ) : (
-            <Card className="rounded-3xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex items-center justify-center h-[700px]">
+            <Card className="rounded-xl border border-brand-light-teal/30 bg-white shadow-sm overflow-hidden flex items-center justify-center h-[700px]">
               <div className="text-center text-slate-400 space-y-2">
                 <User className="w-12 h-12 mx-auto opacity-20" />
                 <p className="text-sm font-bold uppercase tracking-wider">Select a Customer</p>
@@ -756,7 +756,7 @@ export function CustomerCreditManager() {
 
       {/* --- REGISTER CUSTOMER MODAL --- */}
       <Dialog open={isAddCustOpen} onOpenChange={setIsAddCustOpen}>
-        <DialogContent className="max-w-md rounded-3xl border border-slate-150 p-5 bg-white shadow-lg">
+        <DialogContent className="max-w-md rounded-xl border border-slate-150 p-5 bg-white shadow-lg">
           <DialogHeader><DialogTitle className="text-brand-navy font-bold text-lg">Register Credit Customer</DialogTitle></DialogHeader>
           <form onSubmit={handleAddCustomerSubmit} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -765,7 +765,7 @@ export function CustomerCreditManager() {
                 value={custForm.name} 
                 onChange={e => setCustForm({ ...custForm, name: e.target.value })} 
                 placeholder="e.g. Ramesh Kumar" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -775,7 +775,7 @@ export function CustomerCreditManager() {
                 value={custForm.phone} 
                 onChange={e => setCustForm({ ...custForm, phone: e.target.value })} 
                 placeholder="e.g. 9876543210" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -785,7 +785,7 @@ export function CustomerCreditManager() {
                 value={custForm.address} 
                 onChange={e => setCustForm({ ...custForm, address: e.target.value })} 
                 placeholder="e.g. Flat 302, Green Avenue, Mumbai" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
             </div>
             <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-11 mt-2 rounded-full shadow-sm cursor-pointer border-0">
@@ -797,7 +797,7 @@ export function CustomerCreditManager() {
 
       {/* --- EDIT CUSTOMER MODAL --- */}
       <Dialog open={isEditCustOpen} onOpenChange={setIsEditCustOpen}>
-        <DialogContent className="max-w-md rounded-3xl border border-slate-150 p-5 bg-white shadow-lg">
+        <DialogContent className="max-w-md rounded-xl border border-slate-150 p-5 bg-white shadow-lg">
           <DialogHeader><DialogTitle className="text-brand-navy font-bold text-lg">Edit Customer Registry</DialogTitle></DialogHeader>
           <form onSubmit={handleEditCustomerSubmit} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -806,7 +806,7 @@ export function CustomerCreditManager() {
                 value={editCustForm.name} 
                 onChange={e => setEditCustForm({ ...editCustForm, name: e.target.value })} 
                 placeholder="Name" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -816,7 +816,7 @@ export function CustomerCreditManager() {
                 value={editCustForm.phone} 
                 onChange={e => setEditCustForm({ ...editCustForm, phone: e.target.value })} 
                 placeholder="Phone" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -826,7 +826,7 @@ export function CustomerCreditManager() {
                 value={editCustForm.address} 
                 onChange={e => setEditCustForm({ ...editCustForm, address: e.target.value })} 
                 placeholder="Address" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
             </div>
             <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-11 mt-2 rounded-full shadow-sm cursor-pointer border-0">
@@ -838,7 +838,7 @@ export function CustomerCreditManager() {
 
       {/* --- LOG CREDIT SALE MODAL --- */}
       <Dialog open={isLogSaleOpen} onOpenChange={setIsLogSaleOpen}>
-        <DialogContent className="max-w-md rounded-3xl border border-slate-150 p-5 bg-white shadow-lg">
+        <DialogContent className="max-w-md rounded-xl border border-slate-150 p-5 bg-white shadow-lg">
           <DialogHeader><DialogTitle className="text-brand-navy font-bold text-lg flex items-center gap-2 text-rose-600"><TrendingUp className="w-5 h-5" /> Record Credit Purchase (Sale)</DialogTitle></DialogHeader>
           <form onSubmit={handleLogSaleSubmit} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -847,7 +847,7 @@ export function CustomerCreditManager() {
                 type="date"
                 value={saleForm.date} 
                 onChange={e => setSaleForm({ ...saleForm, date: e.target.value })} 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -858,7 +858,7 @@ export function CustomerCreditManager() {
                 value={saleForm.amount} 
                 onChange={e => setSaleForm({ ...saleForm, amount: e.target.value })} 
                 placeholder="0.00" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
                 required 
               />
             </div>
@@ -868,7 +868,7 @@ export function CustomerCreditManager() {
                 value={saleForm.invoiceNumber} 
                 onChange={e => setSaleForm({ ...saleForm, invoiceNumber: e.target.value })} 
                 placeholder="e.g. INV-1002" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
               />
             </div>
             <div className="space-y-2">
@@ -877,7 +877,7 @@ export function CustomerCreditManager() {
                 value={saleForm.narration} 
                 onChange={e => setSaleForm({ ...saleForm, narration: e.target.value })} 
                 placeholder="e.g. 5x Tablets, 10x Injections" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
             </div>
             <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 mt-2 rounded-full shadow-sm cursor-pointer border-0">
@@ -889,7 +889,7 @@ export function CustomerCreditManager() {
 
       {/* --- LOG PAYMENT MODAL --- */}
       <Dialog open={isLogPayOpen} onOpenChange={setIsLogPayOpen}>
-        <DialogContent className="max-w-md rounded-3xl border border-slate-150 p-5 bg-white shadow-lg">
+        <DialogContent className="max-w-md rounded-xl border border-slate-150 p-5 bg-white shadow-lg">
           <DialogHeader><DialogTitle className="text-brand-navy font-bold text-lg flex items-center gap-2 text-emerald-650"><TrendingDown className="w-5 h-5" /> Record Payment Received</DialogTitle></DialogHeader>
           <form onSubmit={handleLogPaySubmit} className="space-y-4 pt-2">
             
@@ -899,7 +899,7 @@ export function CustomerCreditManager() {
                 type="date"
                 value={payForm.date} 
                 onChange={e => setPayForm({ ...payForm, date: e.target.value })} 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                 required 
               />
             </div>
@@ -926,7 +926,7 @@ export function CustomerCreditManager() {
                     value={payForm.chequeNumber} 
                     onChange={e => setPayForm({ ...payForm, chequeNumber: e.target.value })} 
                     placeholder="e.g. CHQ-55694" 
-                    className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
+                    className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
                     required 
                   />
                 </div>
@@ -936,7 +936,7 @@ export function CustomerCreditManager() {
                     type="date"
                     value={payForm.chequeDate} 
                     onChange={e => setPayForm({ ...payForm, chequeDate: e.target.value })} 
-                    className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                    className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
                     required 
                   />
                 </div>
@@ -964,7 +964,7 @@ export function CustomerCreditManager() {
                 value={payForm.amount} 
                 onChange={e => setPayForm({ ...payForm, amount: e.target.value })} 
                 placeholder="0.00" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs font-mono"
                 required 
               />
             </div>
@@ -975,7 +975,7 @@ export function CustomerCreditManager() {
                 value={payForm.narration} 
                 onChange={e => setPayForm({ ...payForm, narration: e.target.value })} 
                 placeholder="e.g. GPay, cash drawer collection, part collection" 
-                className="rounded-full h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
+                className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
             </div>
 

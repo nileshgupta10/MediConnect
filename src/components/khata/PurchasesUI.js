@@ -196,7 +196,7 @@ export function PurchasesUI() {
     <div className="space-y-6">
       
       {/* Log Purchase Invoice Card */}
-      <Card className="border-slate-200/80 bg-white/70 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-slate-200/80 bg-white/70 shadow-sm rounded-xl overflow-hidden">
         <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 px-5 border-b border-slate-100 bg-slate-50/40">
           <div className="space-y-1">
             <CardTitle className="text-sm font-bold text-brand-navy tracking-wide uppercase flex items-center gap-2">
@@ -215,7 +215,7 @@ export function PurchasesUI() {
                 + Add New Supplier
               </Button>
             } />
-            <DialogContent className="max-w-md rounded-2xl bg-white border border-slate-150 p-5 shadow-lg">
+            <DialogContent className="max-w-md rounded-xl bg-white border border-slate-150 p-5 shadow-lg">
               <DialogHeader>
                 <DialogTitle className="text-brand-navy font-bold">Register Supplier</DialogTitle>
               </DialogHeader>
@@ -226,7 +226,7 @@ export function PurchasesUI() {
                     value={newSupplierName} 
                     onChange={e => setNewSupplierName(e.target.value)} 
                     placeholder="Enter supplier name..." 
-                    className="rounded-full bg-white font-semibold"
+                    className="rounded-lg bg-white font-semibold"
                     required 
                   />
                 </div>
@@ -242,12 +242,12 @@ export function PurchasesUI() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Date</Label>
-                <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-full bg-white font-semibold" required />
+                <Input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="rounded-lg bg-white font-semibold" required />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-555 uppercase tracking-wider">Supplier</Label>
                 <select 
-                  className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                  className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                   value={formData.supplierName} 
                   onChange={e => setFormData({...formData, supplierName: e.target.value})}
                   required
@@ -262,16 +262,16 @@ export function PurchasesUI() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Invoice Number</Label>
-                <Input value={formData.invoiceNumber} onChange={e => setFormData({...formData, invoiceNumber: e.target.value})} placeholder="e.g. INV-1004" className="rounded-full bg-white font-semibold" required />
+                <Input value={formData.invoiceNumber} onChange={e => setFormData({...formData, invoiceNumber: e.target.value})} placeholder="e.g. INV-1004" className="rounded-lg bg-white font-semibold" required />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Invoice Amount (₹)</Label>
-                <Input type="number" value={formData.invoiceAmount} onChange={e => setFormData({...formData, invoiceAmount: e.target.value})} placeholder="0.00" className="rounded-full bg-white font-semibold" required />
+                <Input type="number" value={formData.invoiceAmount} onChange={e => setFormData({...formData, invoiceAmount: e.target.value})} placeholder="0.00" className="rounded-lg bg-white font-semibold" required />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Payment Type</Label>
                 <select 
-                  className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                  className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                   value={formData.paymentType} 
                   onChange={e => setFormData({...formData, paymentType: e.target.value})}
                   required
@@ -299,15 +299,15 @@ export function PurchasesUI() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl border border-brand-light-teal/50 bg-brand-soft-teal/30 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-500">Cheque Number</Label>
-                  <Input value={formData.chequeNumber} onChange={e => setFormData({...formData, chequeNumber: e.target.value})} placeholder="e.g. 100405" className="rounded-full bg-white font-semibold" required={hasCheque} />
+                  <Input value={formData.chequeNumber} onChange={e => setFormData({...formData, chequeNumber: e.target.value})} placeholder="e.g. 100405" className="rounded-lg bg-white font-semibold" required={hasCheque} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-500">Cheque Date / PDC Date</Label>
-                  <Input type="date" value={formData.chequeDate} onChange={e => setFormData({...formData, chequeDate: e.target.value})} className="rounded-full bg-white font-semibold" required={hasCheque} />
+                  <Input type="date" value={formData.chequeDate} onChange={e => setFormData({...formData, chequeDate: e.target.value})} className="rounded-lg bg-white font-semibold" required={hasCheque} />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-500">Bank Name</Label>
-                  <Input value={formData.chequeBank} onChange={e => setFormData({...formData, chequeBank: e.target.value})} placeholder="e.g. HDFC Bank" className="rounded-full bg-white font-semibold" required={hasCheque} />
+                  <Input value={formData.chequeBank} onChange={e => setFormData({...formData, chequeBank: e.target.value})} placeholder="e.g. HDFC Bank" className="rounded-lg bg-white font-semibold" required={hasCheque} />
                 </div>
               </div>
             )}
@@ -320,7 +320,7 @@ export function PurchasesUI() {
       </Card>
 
       {/* Invoices Log Card */}
-      <Card className="border-slate-200/80 bg-white/70 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-slate-200/80 bg-white/70 shadow-sm rounded-xl overflow-hidden">
         <CardHeader className="py-4 px-5 border-b border-slate-100 bg-slate-50/40 flex justify-between items-center flex-row">
           <CardTitle className="text-sm font-bold text-brand-navy tracking-wide uppercase flex items-center gap-2">
             <span>📅</span> Purchase Invoices Log
@@ -379,7 +379,7 @@ export function PurchasesUI() {
                         variant="outline" 
                         size="sm" 
                         onClick={() => handleEditClick(p)}
-                        className="h-8 px-3 rounded-full hover:bg-slate-100 border-slate-200 font-bold text-xs text-slate-600 cursor-pointer"
+                        className="h-8 px-3 rounded-lg hover:bg-slate-100 border-slate-200 font-bold text-xs text-slate-600 cursor-pointer"
                       >
                         <svg className="w-3 h-3 text-slate-450 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -402,7 +402,7 @@ export function PurchasesUI() {
 
       {/* Modern Dialog for editing purchase */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl bg-white border border-slate-150 p-5 shadow-lg">
+        <DialogContent className="max-w-md rounded-xl bg-white border border-slate-150 p-5 shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-brand-navy font-bold">Edit Purchase Invoice</DialogTitle>
           </DialogHeader>
@@ -414,14 +414,14 @@ export function PurchasesUI() {
                   type="date" 
                   value={editingPurchase.date} 
                   onChange={e => setEditingPurchase({...editingPurchase, date: e.target.value})} 
-                  className="rounded-full bg-white font-semibold"
+                  className="rounded-lg bg-white font-semibold"
                   required 
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Supplier</Label>
                 <select 
-                  className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                  className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                   value={editingPurchase.supplierName} 
                   onChange={e => setEditingPurchase({...editingPurchase, supplierName: e.target.value})}
                   required
@@ -436,7 +436,7 @@ export function PurchasesUI() {
                 <Input 
                   value={editingPurchase.invoiceNumber} 
                   onChange={e => setEditingPurchase({...editingPurchase, invoiceNumber: e.target.value})} 
-                  className="rounded-full bg-white font-semibold"
+                  className="rounded-lg bg-white font-semibold"
                   required 
                 />
               </div>
@@ -446,14 +446,14 @@ export function PurchasesUI() {
                   type="number" 
                   value={editingPurchase.invoiceAmount} 
                   onChange={e => setEditingPurchase({...editingPurchase, invoiceAmount: e.target.value})} 
-                  className="rounded-full bg-white font-semibold"
+                  className="rounded-lg bg-white font-semibold"
                   required 
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-bold text-slate-550 uppercase tracking-wider">Payment Type</Label>
                 <select 
-                  className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                  className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                   value={editingPurchase.paymentType} 
                   onChange={e => setEditingPurchase({...editingPurchase, paymentType: e.target.value})}
                   required
@@ -468,7 +468,7 @@ export function PurchasesUI() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-slate-550 uppercase tracking-wider">Payment Mode</Label>
                     <select 
-                      className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                      className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                       value={editingPurchase.paymentMode || 'Cash'} 
                       onChange={e => setEditingPurchase({ ...editingPurchase, paymentMode: e.target.value })}
                       required
@@ -486,7 +486,7 @@ export function PurchasesUI() {
                       <div className="space-y-1.5">
                         <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Bank Account</Label>
                         <select 
-                          className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                          className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                           value={editingPurchase.bankAccountId || ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, bankAccountId: e.target.value })}
                           required={editingPurchase.paymentMode !== 'Cash'}
@@ -504,7 +504,7 @@ export function PurchasesUI() {
                           value={editingPurchase.chequeNumber || ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, chequeNumber: e.target.value })} 
                           placeholder={editingPurchase.paymentMode === 'Cheque' ? 'e.g. 123456' : 'e.g. TXN9876543'} 
-                          className="rounded-full bg-white font-semibold"
+                          className="rounded-lg bg-white font-semibold"
                         />
                       </div>
 
@@ -514,7 +514,7 @@ export function PurchasesUI() {
                           type="date" 
                           value={editingPurchase.chequeDate ? new Date(editingPurchase.chequeDate).toISOString().split('T')[0] : ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, chequeDate: e.target.value })} 
-                          className="rounded-full bg-white font-semibold"
+                          className="rounded-lg bg-white font-semibold"
                         />
                       </div>
 
@@ -525,7 +525,7 @@ export function PurchasesUI() {
                           value={editingPurchase.bankCharge || ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, bankCharge: e.target.value })} 
                           placeholder="0.00" 
-                          className="rounded-full bg-white font-semibold"
+                          className="rounded-lg bg-white font-semibold"
                         />
                       </div>
                     </>
@@ -559,7 +559,7 @@ export function PurchasesUI() {
                       <div className="space-y-1.5">
                         <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Bank Account</Label>
                         <select 
-                          className="flex h-9 w-full rounded-full border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                          className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
                           value={editingPurchase.bankAccountId || ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, bankAccountId: e.target.value })}
                           required={editingPurchase.paymentMode === 'Cheque'}
@@ -577,7 +577,7 @@ export function PurchasesUI() {
                           value={editingPurchase.chequeNumber || ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, chequeNumber: e.target.value })} 
                           placeholder="e.g. 504932" 
-                          className="rounded-full bg-white font-semibold"
+                          className="rounded-lg bg-white font-semibold"
                           required={editingPurchase.paymentMode === 'Cheque'}
                         />
                       </div>
@@ -588,7 +588,7 @@ export function PurchasesUI() {
                           type="date" 
                           value={editingPurchase.chequeDate ? new Date(editingPurchase.chequeDate).toISOString().split('T')[0] : ''} 
                           onChange={e => setEditingPurchase({ ...editingPurchase, chequeDate: e.target.value })} 
-                          className="rounded-full bg-white font-semibold"
+                          className="rounded-lg bg-white font-semibold"
                           required={editingPurchase.paymentMode === 'Cheque'}
                         />
                       </div>
@@ -602,13 +602,13 @@ export function PurchasesUI() {
                   type="button" 
                   variant="destructive" 
                   onClick={() => handleDelete(editingPurchase.id)}
-                  className="bg-rose-650 hover:bg-rose-700 text-white font-bold rounded-full px-5 cursor-pointer"
+                  className="bg-rose-650 hover:bg-rose-700 text-white font-bold rounded-lg px-4 cursor-pointer"
                 >
                   Delete Invoice
                 </Button>
                 <div className="space-x-2">
-                  <Button type="button" variant="outline" className="rounded-full px-4" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-full px-5 border-0 cursor-pointer">Save Changes</Button>
+                  <Button type="button" variant="outline" className="rounded-lg px-3" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-lg px-4 border-0 cursor-pointer">Save Changes</Button>
                 </div>
               </div>
             </form>

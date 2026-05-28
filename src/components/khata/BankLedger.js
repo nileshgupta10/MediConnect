@@ -162,7 +162,7 @@ export function BankLedger() {
   return (
     <div className="space-y-6">
       {/* ── Filter Bar ──────────────────────────────────────────────────── */}
-      <div className="bg-white p-6 rounded-3xl border border-brand-light-teal/30 shadow-sm">
+      <div className="bg-white p-6 rounded-xl border border-brand-light-teal/30 shadow-sm">
         <div className="flex flex-wrap items-end gap-4">
           {/* Bank Account Selector */}
           <div className="flex flex-col gap-1.5 min-w-[200px]">
@@ -170,7 +170,7 @@ export function BankLedger() {
             <select
               value={pendingAccountId}
               onChange={(e) => setPendingAccountId(e.target.value)}
-              className="rounded-full px-4 h-9 border border-slate-200 font-semibold text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/30"
+              className="rounded-lg px-3 h-9 border border-slate-200 font-semibold text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-teal/30"
             >
               <option value="">All Accounts</option>
               {accounts.map((acc) => (
@@ -188,7 +188,7 @@ export function BankLedger() {
               type="date"
               value={pendingStart}
               onChange={(e) => setPendingStart(e.target.value)}
-              className="rounded-full px-4 h-9 border-slate-200 font-semibold text-sm w-[160px]"
+              className="rounded-lg px-3 h-9 border-slate-200 font-semibold text-sm w-[160px]"
             />
           </div>
 
@@ -199,7 +199,7 @@ export function BankLedger() {
               type="date"
               value={pendingEnd}
               onChange={(e) => setPendingEnd(e.target.value)}
-              className="rounded-full px-4 h-9 border-slate-200 font-semibold text-sm w-[160px]"
+              className="rounded-lg px-3 h-9 border-slate-200 font-semibold text-sm w-[160px]"
             />
           </div>
 
@@ -217,21 +217,21 @@ export function BankLedger() {
       {/* ── KPI Summary Cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Total Credits */}
-        <div className="bg-white rounded-2xl border border-emerald-100 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-emerald-100 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Total Credits</p>
           <p className="text-2xl font-extrabold text-emerald-600">₹{formatAmount(totalCredit)}</p>
           <div className="mt-2 h-1 w-10 rounded-full bg-emerald-400 opacity-60" />
         </div>
 
         {/* Total Debits */}
-        <div className="bg-white rounded-2xl border border-rose-100 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-rose-100 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Total Debits</p>
           <p className="text-2xl font-extrabold text-rose-600">₹{formatAmount(totalDebit)}</p>
           <div className="mt-2 h-1 w-10 rounded-full bg-rose-400 opacity-60" />
         </div>
 
         {/* Net Balance */}
-        <div className="bg-white rounded-2xl border border-teal-100 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-teal-100 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Net Balance</p>
           <p
             className={`text-2xl font-extrabold ${
@@ -248,7 +248,7 @@ export function BankLedger() {
         </div>
 
         {/* Transactions Count */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Transactions</p>
           <p className="text-2xl font-extrabold text-slate-700">{rows.length}</p>
           <div className="mt-2 h-1 w-10 rounded-full bg-slate-400 opacity-60" />
@@ -256,7 +256,7 @@ export function BankLedger() {
       </div>
 
       {/* ── Main Ledger Table Card ───────────────────────────────────────── */}
-      <Card className="rounded-2xl border-slate-200/80 shadow-sm">
+      <Card className="rounded-xl border-slate-200/80 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3 pb-4 border-b border-slate-100 bg-slate-50/40">
           <CardTitle className="text-brand-navy font-extrabold text-lg flex items-center gap-2">
             <FileText className="w-5 h-5 text-brand-teal" />
@@ -265,14 +265,14 @@ export function BankLedger() {
           <div className="flex items-center gap-2">
             <Button
               onClick={handleExcelDownload}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-bold text-xs px-4 h-9 gap-1.5"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs px-4 h-9 gap-1.5"
             >
               <Download className="w-3.5 h-3.5" />
               Download Excel
             </Button>
             <Button
               onClick={handleTallyExport}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-xs px-4 h-9 gap-1.5"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs px-4 h-9 gap-1.5"
             >
               <FileText className="w-3.5 h-3.5" />
               Convert to Excel (CA)

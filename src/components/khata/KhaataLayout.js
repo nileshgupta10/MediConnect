@@ -27,15 +27,18 @@ export function KhaataLayout({ user }) {
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] transition-colors duration-300 bg-[#f0fdfd] font-sans">
+    <div 
+      className="flex flex-col lg:flex-row min-h-[calc(100vh-48px)] transition-colors duration-300 bg-[#f0fdfd]"
+      style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+    >
       
       {/* Premium Sidebar Nav (Sticky below the top navbar) */}
-      <aside className="w-full lg:w-72 bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-200/60 dark:border-slate-800/60 p-6 flex flex-col justify-between shrink-0 lg:sticky lg:top-[48px] lg:h-[calc(100vh-48px)] z-20 select-none">
+      <aside className="w-full lg:w-64 bg-white dark:bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-200/60 dark:border-slate-800/60 p-5 flex flex-col justify-between shrink-0 lg:sticky lg:top-[48px] lg:h-[calc(100vh-48px)] z-20 select-none">
         
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Branded Logo & Header */}
           <div className="space-y-4">
-            <div className="p-1.5 bg-white border border-slate-200 rounded-2xl shadow-xs inline-flex items-center justify-center h-12 w-16">
+            <div className="p-1.5 bg-white border border-slate-200 rounded-xl shadow-xs inline-flex items-center justify-center h-12 w-16">
               <img src="/mediclan-logo-emblem.png" className="max-h-10 max-w-full object-contain select-none" alt="MediCLan Logo" />
             </div>
             <div className="space-y-1">
@@ -50,14 +53,14 @@ export function KhaataLayout({ user }) {
               </p>
             </div>
             
-            <div className="inline-flex items-center gap-1.5 bg-brand-soft-teal dark:bg-brand-teal/10 px-3 py-1 rounded-full border border-brand-light-teal/50 dark:border-brand-teal/20">
+            <div className="inline-flex items-center gap-1.5 bg-brand-soft-teal dark:bg-brand-teal/10 px-3 py-1 rounded-lg border border-brand-light-teal/50 dark:border-brand-teal/20">
               <span className="h-1.5 w-1.5 rounded-full bg-[#0e9090] animate-pulse" />
               <span className="text-[8px] uppercase font-extrabold tracking-wider text-[#0e9090]">
                 Live DB Connected
               </span>
             </div>
           </div>
-
+ 
           {/* Vertical Tab Navigation list */}
           <nav className="space-y-1">
             <span className="text-[9px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-550 block px-3 mb-2">OPERATIONS MENU</span>
@@ -69,9 +72,9 @@ export function KhaataLayout({ user }) {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-start gap-3 py-2.5 px-4 rounded-full text-xs font-extrabold transition-all border-0 text-left cursor-pointer outline-none ${
+                    className={`w-full flex items-center justify-start gap-3 py-2 px-3 rounded-lg text-xs font-extrabold transition-all border-0 text-left cursor-pointer outline-none ${
                       isActive 
-                        ? 'bg-[#0e9090] text-white shadow-md shadow-teal-700/20' 
+                        ? 'bg-[#0e9090] text-white shadow-sm shadow-teal-700/20' 
                         : 'text-slate-650 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
@@ -99,8 +102,8 @@ export function KhaataLayout({ user }) {
       </aside>
 
       {/* Spacious Main Contents Container */}
-      <div className="flex-1 p-6 md:p-10 lg:p-12">
-        <main className="max-w-[1360px] mx-auto space-y-8 px-2 md:px-4">
+      <div className="flex-1 p-4 md:p-6 lg:p-8">
+        <main className="max-w-[1360px] mx-auto space-y-6 px-2 md:px-4">
           <div className="animate-fadeIn duration-300">
             {activeTab === 'purchases' && <DailyDashboard mode="purchases" />}
             {activeTab === 'ledger' && <SupplierLedger />}

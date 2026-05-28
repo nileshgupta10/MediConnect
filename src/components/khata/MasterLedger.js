@@ -180,7 +180,7 @@ export function MasterLedger() {
     <div className="space-y-6">
 
       {/* Sleek Gradient Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-16 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -220,7 +220,7 @@ export function MasterLedger() {
 
           <button
             onClick={handleTallyExport}
-            className="bg-white/15 hover:bg-white/25 text-white rounded-full font-black text-xs px-5 h-9 gap-1.5 cursor-pointer flex items-center shadow-xs border-0 transition-all duration-155 active:scale-[0.98]"
+            className="bg-white/15 hover:bg-white/25 text-white rounded-lg font-black text-xs px-5 h-9 gap-1.5 cursor-pointer flex items-center shadow-xs border-0 transition-all duration-155 active:scale-[0.98]"
           >
             <FileText className="w-3.5 h-3.5 text-brand-mint" />
             <span>Export to Excel (CA)</span>
@@ -237,7 +237,7 @@ export function MasterLedger() {
             <button
               key={tab.value}
               onClick={() => setActiveSubTab(tab.value)}
-              className={`w-full text-left px-4 py-3 rounded-2xl border transition-all duration-200 flex items-center justify-between cursor-pointer ${
+              className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 flex items-center justify-between cursor-pointer ${
                 activeSubTab === tab.value
                   ? 'bg-brand-teal border-brand-teal text-white font-bold shadow-sm'
                   : 'bg-white border-slate-200/50 hover:bg-brand-soft-teal hover:text-brand-teal text-slate-600'
@@ -258,7 +258,7 @@ export function MasterLedger() {
 
         {/* Content Area */}
         <div className="lg:col-span-3">
-          <Card className="border-brand-light-teal/30 shadow-xs bg-white rounded-3xl overflow-hidden">
+          <Card className="border-brand-light-teal/30 shadow-xs bg-white rounded-xl overflow-hidden">
             <CardHeader className="py-4 px-6 border-b border-brand-light-teal/50 bg-slate-50/60">
               <CardTitle className="text-base font-bold text-brand-navy tracking-wide uppercase">
                 {activeSubTab === 'purchases' && '📋 Purchase Ledger'}
@@ -315,7 +315,7 @@ export function MasterLedger() {
                             <ChevronDown className="w-3 h-3" />
                           </button>
                           {isSupplierFilterOpen && (
-                            <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
+                            <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-150">
                               <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                                 <span className="text-xs font-bold text-brand-navy uppercase">Filter Suppliers</span>
                                 <button onClick={() => setIsSupplierFilterOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer border-0 bg-transparent">
@@ -326,7 +326,7 @@ export function MasterLedger() {
                                 placeholder="Search suppliers..."
                                 value={supplierFilter}
                                 onChange={e => setSupplierFilter(e.target.value)}
-                                className="h-8 rounded-full px-3 text-xs bg-slate-50 border-slate-200 focus-visible:ring-1 focus-visible:ring-brand-teal"
+                                className="h-8 rounded-lg px-3 text-xs bg-slate-50 border-slate-200 focus-visible:ring-1 focus-visible:ring-brand-teal"
                               />
                               <div className="flex gap-2 justify-between">
                                 <button onClick={() => setSelectedSuppliers(uniqueSuppliers)} className="text-[10px] font-extrabold text-brand-teal hover:underline cursor-pointer bg-transparent border-0">Select All</button>
@@ -508,7 +508,7 @@ export function MasterLedger() {
                           <h3 className="text-sm font-black text-amber-700 uppercase tracking-widest">Open Credit Invoices (Unpaid)</h3>
                           <span className="text-xs bg-amber-100 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-bold">{openCreditPurchases.length}</span>
                         </div>
-                        <div className="border border-amber-100 rounded-2xl overflow-hidden">
+                        <div className="border border-amber-100 rounded-xl overflow-hidden">
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-amber-50/80 hover:bg-transparent border-b border-amber-100">
@@ -556,7 +556,7 @@ export function MasterLedger() {
                           <h3 className="text-sm font-black text-rose-700 uppercase tracking-widest">Uncleared Issued Cheques</h3>
                           <span className="text-xs bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold">{pendingOutwardCheques.length}</span>
                         </div>
-                        <div className="border border-rose-100 rounded-2xl overflow-hidden">
+                        <div className="border border-rose-100 rounded-xl overflow-hidden">
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-rose-50/80 hover:bg-transparent border-b border-rose-100">

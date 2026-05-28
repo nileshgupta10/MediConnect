@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { khataFetch } from '../../lib/khata-utils';
 
-const INPUT_STYLE = "flex h-10 w-full rounded-full border border-brand-light-teal bg-white dark:bg-slate-900/50 dark:border-slate-800 px-4 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-50 font-semibold text-brand-navy dark:text-slate-200";
+const INPUT_STYLE = "flex h-10 w-full rounded-lg border border-brand-light-teal bg-white dark:bg-slate-900/50 dark:border-slate-800 px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-50 font-semibold text-brand-navy dark:text-slate-200";
 
 const isPDC = (c) => {
   if (!c) return false;
@@ -589,7 +589,7 @@ export function PDCChequeLedger() {
 
   if (!isUnlocked) {
     return (
-      <Card className="border-slate-200/80 bg-white/70 shadow-md rounded-2xl overflow-hidden max-w-sm mx-auto my-12">
+      <Card className="border-slate-200/80 bg-white/70 shadow-md rounded-xl overflow-hidden max-w-sm mx-auto my-12">
         <CardHeader className="py-4 px-5 border-b border-slate-100 bg-gradient-to-r from-brand-navy to-slate-800 text-center">
           <CardTitle className="text-sm font-black text-white tracking-wide uppercase flex items-center justify-center gap-2">
             🔒 PDC Cheque Flow Lock
@@ -611,10 +611,10 @@ export function PDCChequeLedger() {
                   value={passwordInput} 
                   onChange={e => setPasswordInput(e.target.value)} 
                   placeholder="Enter passcode..." 
-                  className={`${INPUT_STYLE} rounded-full`} 
+                  className={`${INPUT_STYLE} rounded-lg`} 
                   required
                 />
-                <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 rounded-full px-6 shadow-xs border-0 cursor-pointer">
+                <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 rounded-lg px-5 shadow-xs border-0 cursor-pointer">
                   Unlock
                 </Button>
               </div>
@@ -629,7 +629,7 @@ export function PDCChequeLedger() {
     <div className="space-y-5">
       
       {/* Top Controller Panel - Premium Dark Gradient Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Decorative blobs */}
         <div className="absolute top-0 right-0 w-48 h-48 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-16 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -659,7 +659,7 @@ export function PDCChequeLedger() {
               variant="ghost" 
               size="icon" 
               onClick={() => handleShiftDate(-7)} 
-              className="h-7 w-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer"
+              className="h-7 w-7 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer"
               title="Previous Week"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -676,7 +676,7 @@ export function PDCChequeLedger() {
               variant="ghost" 
               size="icon" 
               onClick={() => handleShiftDate(7)} 
-              className="h-7 w-7 rounded-full hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer"
+              className="h-7 w-7 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white cursor-pointer"
               title="Next Week"
             >
               <ChevronRight className="w-4 h-4" />
@@ -687,7 +687,7 @@ export function PDCChequeLedger() {
             variant="ghost" 
             size="sm" 
             onClick={handleJumpToToday}
-            className="h-9 text-xs font-black bg-white/10 hover:bg-white/20 border-0 text-white cursor-pointer rounded-full px-4"
+            className="h-9 text-xs font-black bg-white/10 hover:bg-white/20 border-0 text-white cursor-pointer rounded-lg px-3"
           >
             Today
           </Button>
@@ -697,7 +697,7 @@ export function PDCChequeLedger() {
             <select
               value={selectedBankAccountId}
               onChange={e => setSelectedBankAccountId(e.target.value)}
-              className="flex h-9 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-3.5 py-1 text-xs font-black text-white focus:outline-none cursor-pointer [&>option]:text-slate-800"
+              className="flex h-9 rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-3.5 py-1 text-xs font-black text-white focus:outline-none cursor-pointer [&>option]:text-slate-800"
             >
               {bankAccounts.map(acc => (
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -710,7 +710,7 @@ export function PDCChequeLedger() {
             <select
               value={numDays}
               onChange={e => setNumDays(Number(e.target.value))}
-              className="flex h-9 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm px-3.5 py-1 text-xs font-black text-white focus:outline-none cursor-pointer [&>option]:text-slate-800"
+              className="flex h-9 rounded-lg border border-white/20 bg-white/10 backdrop-blur-sm px-3.5 py-1 text-xs font-black text-white focus:outline-none cursor-pointer [&>option]:text-slate-800"
             >
               <option value={5}>5 Days</option>
               <option value={7}>7 Days (Weekly)</option>
@@ -733,9 +733,9 @@ export function PDCChequeLedger() {
       </div>
 
       {/* ── Summary stat strip ────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-5">
         {/* Total Inward Pending Cheques */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">📥 Inward Pending Cheques</div>
@@ -745,7 +745,7 @@ export function PDCChequeLedger() {
         </div>
 
         {/* Total Outward Pending Cheques */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">📤 Outward Issued Cheques</div>
@@ -755,7 +755,7 @@ export function PDCChequeLedger() {
         </div>
 
         {/* Total Cleared Cheques */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">✅ Total Cleared Cheques</div>
@@ -766,7 +766,7 @@ export function PDCChequeLedger() {
       </div>
 
       {/* Grid Sheet Board */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-100/60 shadow-sm bg-slate-50/20">
+      <div className="overflow-x-auto rounded-xl border border-slate-100/60 shadow-sm bg-slate-50/20">
         
         {/* Main Grid Wrapper */}
         <div 
@@ -863,7 +863,7 @@ export function PDCChequeLedger() {
             return (
               <div 
                 key={col.dateStr} 
-                className={`flex flex-col rounded-2xl border transition-all duration-200 ${
+                className={`flex flex-col rounded-xl border transition-all duration-200 ${
                   isOver 
                     ? 'border-brand-teal bg-brand-teal/[0.04] ring-1 ring-brand-teal/10' 
                     : col.isToday 
@@ -1050,7 +1050,7 @@ export function PDCChequeLedger() {
 
       {/* ── Add Customer Cheque Dialog ────────────────────────── */}
       <Dialog open={isCustomerChqDialogOpen} onOpenChange={setIsCustomerChqDialogOpen}>
-        <DialogContent className="max-w-md rounded-2xl border-slate-200/85 bg-white p-6 shadow-xl border">
+        <DialogContent className="max-w-md rounded-xl border-slate-200/85 bg-white p-6 shadow-xl border">
           <DialogHeader className="pb-3 border-b border-slate-100">
             <DialogTitle className="text-sm font-black text-brand-navy uppercase tracking-wide flex items-center gap-2">
               📥 Add Customer Cheque Payment
@@ -1154,7 +1154,7 @@ export function PDCChequeLedger() {
               <select
                 value={customerChqForm.bankAccountId}
                 onChange={e => setCustomerChqForm(prev => ({ ...prev, bankAccountId: e.target.value }))}
-                className="flex h-10 w-full rounded-full border border-brand-light-teal bg-white px-4 py-1 text-sm font-semibold text-brand-navy focus:outline-none"
+                className="flex h-10 w-full rounded-lg border border-brand-light-teal bg-white px-4 py-1 text-sm font-semibold text-brand-navy focus:outline-none"
                 required
               >
                 <option value="" disabled>Select bank account...</option>
@@ -1182,7 +1182,7 @@ export function PDCChequeLedger() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsCustomerChqDialogOpen(false)}
-                className="flex-1 rounded-full h-10 text-xs font-bold text-slate-500 hover:bg-slate-50 border-slate-200 cursor-pointer"
+                className="flex-1 rounded-lg h-10 text-xs font-bold text-slate-500 hover:bg-slate-50 border-slate-200 cursor-pointer"
               >
                 Cancel
               </Button>

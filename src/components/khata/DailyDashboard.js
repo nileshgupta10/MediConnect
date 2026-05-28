@@ -22,7 +22,7 @@ import {
   TrendingUp,
   TrendingDown
 } from "lucide-react";
-const INPUT_STYLE = "flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-transparent px-4 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold";
+const INPUT_STYLE = "flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold";
 export function DailyDashboard({ mode = "dashboard" }) {
   const todayLocal = (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
   const [selectedDate, setSelectedDate] = useState(todayLocal);
@@ -874,7 +874,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       {
     /* Date Navigation Bar — rich gradient style */
   }
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
         {
     /* Decorative blobs */
   }
@@ -951,7 +951,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       setAddPdcDetails(false);
       setIsPurchaseAddOpen(true);
     }}
-    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 px-5 text-xs gap-1.5 rounded-full shadow-md"
+    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 px-5 text-xs gap-1.5 rounded-lg shadow-sm"
   >
             <Plus className="w-4 h-4" /> Add Purchase
           </Button>
@@ -966,7 +966,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Cash stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">💵 Cash Purchases</div>
@@ -978,7 +978,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Credit stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">📋 Credit Purchases</div>
@@ -990,7 +990,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Grand Total stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Total Purchased</div>
@@ -1008,7 +1008,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Cash Purchases Column */
   }
-          <div className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900/60 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900/60 rounded-xl overflow-hidden shadow-sm">
             {
     /* Column header */
   }
@@ -1064,7 +1064,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Credit Purchases Column */
   }
-          <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/60 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-900/60 rounded-xl overflow-hidden shadow-sm">
             {
     /* Column header */
   }
@@ -1123,7 +1123,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       </>}
 
 
-      {mode === "dashboard" && (!isUnlocked ? <Card className="border-slate-200/80 dark:border-slate-850 bg-white/70 dark:bg-slate-900/70 shadow-md rounded-2xl overflow-hidden max-w-sm mx-auto my-8">
+      {mode === "dashboard" && (!isUnlocked ? <Card className="border-slate-200/80 dark:border-slate-850 bg-white/70 dark:bg-slate-900/70 shadow-md rounded-xl overflow-hidden max-w-sm mx-auto my-8">
             <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-850 bg-gradient-to-r from-brand-navy to-slate-800 text-center">
               <CardTitle className="text-sm font-black text-white tracking-wide uppercase flex items-center justify-center gap-2">
                 🔒 Daily Dashboard Lock
@@ -1145,10 +1145,10 @@ export function DailyDashboard({ mode = "dashboard" }) {
     value={passwordInput}
     onChange={(e) => setPasswordInput(e.target.value)}
     placeholder="Enter Password..."
-    className={`${INPUT_STYLE} rounded-full`}
+    className={`${INPUT_STYLE} rounded-lg`}
     required
   />
-                    <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 rounded-full px-6 shadow-xs border-0 cursor-pointer">
+                    <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 rounded-lg px-5 shadow-xs border-0 cursor-pointer">
                       Unlock
                     </Button>
                   </div>
@@ -1159,7 +1159,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* --- Side-by-Side Expenses --- */
   }
-            <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
+            <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-xl">
         <CardHeader className="py-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">💸</span>
@@ -1181,7 +1181,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       });
       setIsExpenseAddOpen(true);
     }}
-    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-full"
+    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg"
   >
             <Plus className="w-3.5 h-3.5" /> Add Expense
           </Button>
@@ -1192,7 +1192,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Shop Expenses Column */
   }
-            <div className="bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
               <div>
                 <div className="bg-blue-500/15 dark:bg-blue-900/40 border-b-2 border-blue-200 dark:border-blue-900/60 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1238,7 +1238,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Home Expenses Column */
   }
-            <div className="bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-200 dark:border-purple-900/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-200 dark:border-purple-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
               <div>
                 <div className="bg-purple-500/15 dark:bg-purple-900/40 border-b-2 border-purple-200 dark:border-purple-900/60 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1288,7 +1288,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       {
     /* --- Side-by-Side Deposits --- */
   }
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl">
+      <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-xl">
         <CardHeader className="py-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">🏦</span>
@@ -1310,7 +1310,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       });
       setIsDepositAddOpen(true);
     }}
-    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-full"
+    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg"
   >
             <Plus className="w-3.5 h-3.5" /> Add Deposit
           </Button>
@@ -1322,7 +1322,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Standard Bank Deposits Column */
   }
-            <div className="bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-200 dark:border-cyan-900/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-200 dark:border-cyan-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
               <div>
                 <div className="bg-cyan-500/15 dark:bg-cyan-900/40 border-b-2 border-cyan-200 dark:border-cyan-900/60 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1370,7 +1370,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Recurring Deposits (RD) Column */
   }
-            <div className="bg-sky-50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-900/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
+            <div className="bg-sky-50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
               <div>
                 <div className="bg-sky-500/15 dark:bg-sky-900/40 border-b-2 border-sky-200 dark:border-sky-900/60 px-5 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
@@ -1426,7 +1426,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       {
     /* --- Inward Collection Ledger Zone --- */
   }
-      <Card className="border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden">
         <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
           <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase">
             Inward Collection Ledger
@@ -1439,16 +1439,16 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* Sub-tab Pill Switcher */
   }
               <div className="flex justify-center">
-                <div className="flex p-1 bg-slate-100 dark:bg-slate-850 rounded-full border border-slate-200/50 dark:border-slate-800 max-w-md w-full">
+                <div className="flex p-1 bg-slate-100 dark:bg-slate-850 rounded-lg border border-slate-200/50 dark:border-slate-800 max-w-md w-full">
                   <button
     onClick={() => setUnlockedTab("daily")}
-    className={`flex-1 py-2 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${unlockedTab === "daily" ? "bg-brand-teal text-white shadow-xs" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
+    className={`flex-1 py-2 text-xs sm:text-sm font-extrabold rounded-lg transition-all cursor-pointer ${unlockedTab === "daily" ? "bg-brand-teal text-white shadow-xs" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
   >
                     Daily Entry & Net Cash Flow
                   </button>
                   <button
     onClick={() => setUnlockedTab("custom-sales")}
-    className={`flex-1 py-2 text-xs sm:text-sm font-extrabold rounded-full transition-all cursor-pointer ${unlockedTab === "custom-sales" ? "bg-brand-teal text-white shadow-xs" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
+    className={`flex-1 py-2 text-xs sm:text-sm font-extrabold rounded-lg transition-all cursor-pointer ${unlockedTab === "custom-sales" ? "bg-brand-teal text-white shadow-xs" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"}`}
   >
                     Custom Sales Report
                   </button>
@@ -1816,7 +1816,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       type="date"
       value={customSalesStartDate}
       onChange={(e) => setCustomSalesStartDate(e.target.value)}
-      className={`${INPUT_STYLE} pl-9 font-extrabold rounded-full bg-white dark:bg-slate-950`}
+      className={`${INPUT_STYLE} pl-9 font-extrabold rounded-lg bg-white dark:bg-slate-950`}
     />
                         <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-slate-450" />
                       </div>
@@ -1828,7 +1828,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       type="date"
       value={customSalesEndDate}
       onChange={(e) => setCustomSalesEndDate(e.target.value)}
-      className={`${INPUT_STYLE} pl-9 font-extrabold rounded-full bg-white dark:bg-slate-950`}
+      className={`${INPUT_STYLE} pl-9 font-extrabold rounded-lg bg-white dark:bg-slate-950`}
     />
                         <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-slate-450" />
                       </div>
@@ -1993,7 +1993,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- ADD PURCHASE DIALOG --- */
   }
       <Dialog open={isPurchaseAddOpen} onOpenChange={setIsPurchaseAddOpen}>
-        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md rounded-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Register New Purchase</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPurchase} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -2243,7 +2243,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- EDIT PURCHASE DIALOG --- */
   }
       <Dialog open={isPurchaseEditOpen} onOpenChange={setIsPurchaseEditOpen}>
-        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md rounded-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Purchase Details</DialogTitle></DialogHeader>
           {editingPurchase && <form onSubmit={handleEditPurchaseSubmit} className="space-y-4 pt-2">
               <div className="space-y-2">
@@ -2417,7 +2417,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- ADD EXPENSE DIALOG --- */
   }
       <Dialog open={isExpenseAddOpen} onOpenChange={setIsExpenseAddOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Add Daily Expense</DialogTitle></DialogHeader>
           <form onSubmit={handleAddExpense} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -2492,7 +2492,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- EDIT EXPENSE DIALOG --- */
   }
       <Dialog open={isExpenseEditOpen} onOpenChange={setIsExpenseEditOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Expense Details</DialogTitle></DialogHeader>
           {editingExpense && <form onSubmit={handleEditExpenseSubmit} className="space-y-4 pt-2">
               <div className="space-y-2">
@@ -2574,7 +2574,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- ADD DEPOSIT DIALOG --- */
   }
       <Dialog open={isDepositAddOpen} onOpenChange={setIsDepositAddOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Log Daily Deposit</DialogTitle></DialogHeader>
           <form onSubmit={handleAddDeposit} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -2646,7 +2646,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- EDIT DEPOSIT DIALOG --- */
   }
       <Dialog open={isDepositEditOpen} onOpenChange={setIsDepositEditOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Deposit Details</DialogTitle></DialogHeader>
           {editingDeposit && <form onSubmit={handleEditDepositSubmit} className="space-y-4 pt-2">
               <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
@@ -2725,7 +2725,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- RD REDEMPTION DIALOG --- */
   }
       <Dialog open={isRdRedeemOpen} onOpenChange={setIsRdRedeemOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Redeem RD Deposit</DialogTitle></DialogHeader>
           <form
     onSubmit={async (e) => {
@@ -2758,16 +2758,16 @@ export function DailyDashboard({ mode = "dashboard" }) {
   >
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Redemption Date</Label>
-              <Input type="date" value={rdRedeemForm.date} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, date: e.target.value })} className="rounded-full px-4" required />
+              <Input type="date" value={rdRedeemForm.date} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, date: e.target.value })} className="rounded-lg px-3" required />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Amount Redeemed (&#x20b9;)</Label>
-              <Input type="number" value={rdRedeemForm.amount} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, amount: e.target.value })} className="rounded-full px-4" required />
+              <Input type="number" value={rdRedeemForm.amount} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, amount: e.target.value })} className="rounded-lg px-3" required />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Redemption Mode</Label>
               <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     value={rdRedeemForm.redemptionType}
     onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, redemptionType: e.target.value })}
   >
@@ -2778,7 +2778,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {rdRedeemForm.redemptionType === "Account" && <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase">Credit to Bank Account</Label>
                 <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     value={rdRedeemForm.bankAccountId}
     onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, bankAccountId: e.target.value })}
   >
@@ -2788,7 +2788,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
               </div>}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Narration (Optional)</Label>
-              <Input value={rdRedeemForm.narration} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, narration: e.target.value })} placeholder="e.g. RD matured after 12 months" className="rounded-full px-4" />
+              <Input value={rdRedeemForm.narration} onChange={(e) => setRdRedeemForm({ ...rdRedeemForm, narration: e.target.value })} placeholder="e.g. RD matured after 12 months" className="rounded-lg px-3" />
             </div>
             <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0">
               Confirm RD Redemption
@@ -2801,7 +2801,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- CARD SETTLEMENT DIALOG --- */
   }
       <Dialog open={isCardSettlementOpen} onOpenChange={setIsCardSettlementOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Log Card Settlement (T+1)</DialogTitle></DialogHeader>
           <p className="text-xs text-slate-400 font-medium -mt-2 pb-1">Enter the actual amount credited by the bank (net of any MDR charges).</p>
           <form
@@ -2835,20 +2835,20 @@ export function DailyDashboard({ mode = "dashboard" }) {
   >
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Settlement Received Date</Label>
-              <Input type="date" value={cardSettlementForm.date} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, date: e.target.value })} className="rounded-full px-4" required />
+              <Input type="date" value={cardSettlementForm.date} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, date: e.target.value })} className="rounded-lg px-3" required />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Original Card Sales Date</Label>
-              <Input type="date" value={cardSettlementForm.salesDate} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, salesDate: e.target.value })} className="rounded-full px-4" />
+              <Input type="date" value={cardSettlementForm.salesDate} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, salesDate: e.target.value })} className="rounded-lg px-3" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Actual Amount Received (&#x20b9;)</Label>
-              <Input type="number" value={cardSettlementForm.amount} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, amount: e.target.value })} placeholder="Net amount after MDR deduction" className="rounded-full px-4" required />
+              <Input type="number" value={cardSettlementForm.amount} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, amount: e.target.value })} placeholder="Net amount after MDR deduction" className="rounded-lg px-3" required />
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Bank Account</Label>
               <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     value={cardSettlementForm.bankAccountId}
     onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, bankAccountId: e.target.value })}
     required
@@ -2859,7 +2859,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             </div>
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-500 uppercase">Narration (Optional)</Label>
-              <Input value={cardSettlementForm.narration} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, narration: e.target.value })} placeholder="e.g. POS settlement HDFC" className="rounded-full px-4" />
+              <Input value={cardSettlementForm.narration} onChange={(e) => setCardSettlementForm({ ...cardSettlementForm, narration: e.target.value })} placeholder="e.g. POS settlement HDFC" className="rounded-lg px-3" />
             </div>
             <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0">
               Log Card Settlement
@@ -2872,7 +2872,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- QUICK BANK REGISTER DIALOG --- */
   }
       <Dialog open={isQuickBankOpen} onOpenChange={setIsQuickBankOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-xl">
           <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Quick Add Bank Account</DialogTitle></DialogHeader>
           <form onSubmit={handleQuickBankSubmit} className="space-y-4 pt-2">
             <div className="space-y-2">
@@ -2949,7 +2949,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* --- MANAGE BANK ACCOUNTS DIALOG --- */
   }
       <Dialog open={isManageBanksOpen} onOpenChange={setIsManageBanksOpen}>
-        <DialogContent className="max-w-lg rounded-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg rounded-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">
               {editingBankId ? "Edit Bank Account Details" : "Manage Registered Bank Accounts"}
@@ -3105,7 +3105,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
                 <Button
       type="button"
       variant="outline"
-      className="rounded-full h-9 text-xs"
+      className="rounded-lg h-9 text-xs"
       onClick={() => setIsManageBanksOpen(false)}
     >
                   Close Manager

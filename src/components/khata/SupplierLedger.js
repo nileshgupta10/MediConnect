@@ -536,7 +536,7 @@ export function SupplierLedger() {
       {
     /* Sleek Gradient Header Banner */
   }
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-2xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
         {
     /* Decorative blobs */
   }
@@ -557,11 +557,11 @@ export function SupplierLedger() {
       {
     /* ── Summary stat strip ─────────────────────────────────── */
   }
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-5">
         {
     /* Total Period Purchases */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Period Purchases</div>
@@ -573,7 +573,7 @@ export function SupplierLedger() {
         {
     /* Outstanding Balance */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-650 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-650 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">⏳ Outstanding Balance</div>
@@ -585,7 +585,7 @@ export function SupplierLedger() {
         {
     /* Settled Payments */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">🟢 Settled Payments</div>
@@ -598,7 +598,7 @@ export function SupplierLedger() {
       {
     /* Sleek, Premium Quick Payment Entry Card */
   }
-      <Card className="border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden">
         <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
           <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase flex items-center gap-2">
             💸 Quick Payments Entry Portal
@@ -614,7 +614,7 @@ export function SupplierLedger() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Party (Supplier)</Label>
                 <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
     value={selectedSupplier}
     onChange={(e) => setSelectedSupplier(e.target.value)}
     required
@@ -633,7 +633,7 @@ export function SupplierLedger() {
                   <button
     type="button"
     onClick={() => setIsVoucherDropdownOpen(!isVoucherDropdownOpen)}
-    className="flex h-9 w-full items-center justify-between rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-850 dark:text-slate-200 cursor-pointer"
+    className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-850 dark:text-slate-200 cursor-pointer"
   >
                     <span className="truncate">
                       {selectedPurchaseIds.length === 0 ? "Auto-Settle (All Unpaid)" : `${selectedPurchaseIds.length} Voucher${selectedPurchaseIds.length > 1 ? "s" : ""} Selected`}
@@ -641,7 +641,7 @@ export function SupplierLedger() {
                     <span className="text-[10px] text-slate-400">▼</span>
                   </button>
 
-                  {isVoucherDropdownOpen && <div className="absolute left-0 mt-1 z-50 w-full md:w-[350px] max-h-80 overflow-y-auto space-y-1.5 p-3 rounded-2xl border bg-white dark:bg-slate-900 shadow-xl border-slate-150 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
+                  {isVoucherDropdownOpen && <div className="absolute left-0 mt-1 z-50 w-full md:w-[350px] max-h-80 overflow-y-auto space-y-1.5 p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-xl border-slate-150 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
                       <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
                         <span className="text-[10px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-wider">Pending Credit Invoices</span>
                         <button
@@ -703,7 +703,7 @@ export function SupplierLedger() {
                   <Input
     type="number"
     placeholder="0.00"
-    className="pl-7 h-9 font-extrabold text-sm rounded-full bg-white dark:bg-slate-950 font-semibold px-4"
+    className="pl-7 h-9 font-extrabold text-sm rounded-lg bg-white dark:bg-slate-950 font-semibold px-4"
     value={customAmount}
     onChange={(e) => setCustomAmount(e.target.value)}
     required
@@ -717,7 +717,7 @@ export function SupplierLedger() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Mode</Label>
                 <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
     value={settlementMode}
     onChange={(e) => setSettlementMode(e.target.value)}
     required
@@ -744,7 +744,7 @@ export function SupplierLedger() {
             {
     /* Inline dynamic fields for Cheque / Bank / UPI details */
   }
-            {(settlementMode !== "Cash" || selectedPurchaseIds.length > 0 || parseFloat(customAmount) > 0) && <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-250/60 dark:border-slate-800/80 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+            {(settlementMode !== "Cash" || selectedPurchaseIds.length > 0 || parseFloat(customAmount) > 0) && <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-250/60 dark:border-slate-800/80 space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                   
                   {
@@ -752,7 +752,7 @@ export function SupplierLedger() {
   }
                   <div className="space-y-1.5">
                     <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Payment / PDC Date</Label>
-                    <Input type="date" value={chequeForm.chequeDate} onChange={(e) => setChequeForm({ ...chequeForm, chequeDate: e.target.value })} className="rounded-full px-4 h-9 font-semibold text-xs" required />
+                    <Input type="date" value={chequeForm.chequeDate} onChange={(e) => setChequeForm({ ...chequeForm, chequeDate: e.target.value })} className="rounded-lg px-3 h-9 font-semibold text-xs" required />
                   </div>
 
                   {
@@ -761,7 +761,7 @@ export function SupplierLedger() {
                   {settlementMode !== "Cash" && <div className="space-y-1.5">
                       <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Select Bank Account</Label>
                       <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
     value={chequeForm.bankAccountId || ""}
     onChange={(e) => {
       const bankId = e.target.value;
@@ -784,28 +784,28 @@ export function SupplierLedger() {
   }
                   {settlementMode === "Cheque" && <div className="space-y-1.5">
                       <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cheque Number</Label>
-                      <Input value={chequeForm.chequeNumber} onChange={(e) => setChequeForm({ ...chequeForm, chequeNumber: e.target.value })} placeholder="e.g. 504932" className="rounded-full px-4 h-9 font-semibold text-xs animate-in fade-in duration-250" required />
+                      <Input value={chequeForm.chequeNumber} onChange={(e) => setChequeForm({ ...chequeForm, chequeNumber: e.target.value })} placeholder="e.g. 504932" className="rounded-lg px-3 h-9 font-semibold text-xs animate-in fade-in duration-250" required />
                     </div>}
 
                   {settlementMode === "UPI" && <div className="space-y-1.5">
                       <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">UPI Ref Number (Optional)</Label>
-                      <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. UTR-123456" className="rounded-full px-4 h-9 font-semibold text-xs animate-in fade-in duration-250" />
+                      <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. UTR-123456" className="rounded-lg px-3 h-9 font-semibold text-xs animate-in fade-in duration-250" />
                     </div>}
 
                   {(settlementMode === "NEFT" || settlementMode === "IMPS") && <>
                       <div className="space-y-1.5">
                         <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Transfer Ref UTR</Label>
-                        <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. UTR-987654" className="rounded-full px-4 h-9 font-semibold text-xs animate-in fade-in duration-250" />
+                        <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. UTR-987654" className="rounded-lg px-3 h-9 font-semibold text-xs animate-in fade-in duration-250" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Bank Transfer Charges (₹)</Label>
-                        <Input type="number" step="0.01" value={neftBankCharge} onChange={(e) => setNeftBankCharge(e.target.value)} placeholder="0.00" className="rounded-full px-4 h-9 font-semibold text-xs animate-in fade-in duration-250" />
+                        <Input type="number" step="0.01" value={neftBankCharge} onChange={(e) => setNeftBankCharge(e.target.value)} placeholder="0.00" className="rounded-lg px-3 h-9 font-semibold text-xs animate-in fade-in duration-250" />
                       </div>
                     </>}
 
                   {settlementMode === "Cash" && <div className="space-y-1.5 col-span-2">
                       <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Voucher / Receipt Ref (Optional)</Label>
-                      <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. Receipt-102" className="rounded-full px-4 h-9 font-semibold text-xs animate-in fade-in duration-250" />
+                      <Input value={chequeForm.reference} onChange={(e) => setChequeForm({ ...chequeForm, reference: e.target.value })} placeholder="e.g. Receipt-102" className="rounded-lg px-3 h-9 font-semibold text-xs animate-in fade-in duration-250" />
                     </div>}
 
                 </div>
@@ -830,7 +830,7 @@ export function SupplierLedger() {
       {
     /* Dynamic Filter Panel with Confirmation Button */
   }
-      <Card className="border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-xs rounded-2xl overflow-hidden">
+      <Card className="border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-xs rounded-xl overflow-hidden">
         <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
           <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase flex items-center gap-2">
             Statements &amp; Payments History Filters
@@ -841,7 +841,7 @@ export function SupplierLedger() {
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Supplier</Label>
               <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
     value={selectedSupplier}
     onChange={(e) => setSelectedSupplier(e.target.value)}
     required
@@ -871,7 +871,7 @@ export function SupplierLedger() {
     /* Full-width Purchase Ledgers List */
   }
         <div className="lg:col-span-3 space-y-6">
-          <Card className="border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-2xl overflow-hidden">
+          <Card className="border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden">
             <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
               <div className="space-y-1">
                 <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase">Payments &amp; Purchases Ledger History</CardTitle>
@@ -882,7 +882,7 @@ export function SupplierLedger() {
               <div className="flex flex-wrap items-center gap-4 lg:gap-6 self-stretch lg:self-auto justify-between lg:justify-end">
                 <Button
     onClick={handleTallyExport}
-    className="bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold text-xs px-4 h-9 gap-1.5 cursor-pointer flex items-center shadow-xs border-0"
+    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs px-4 h-9 gap-1.5 cursor-pointer flex items-center shadow-xs border-0"
   >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1200,7 +1200,7 @@ export function SupplierLedger() {
               <div className="space-y-2">
                 <Label>Payment Mode</Label>
                 <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
     value={editingCheque.paymentMode || "Cheque"}
     onChange={(e) => {
       const mode = e.target.value;
@@ -1235,7 +1235,7 @@ export function SupplierLedger() {
               {editingCheque.paymentMode !== "Cash" && <div className="space-y-2">
                   <Label>Select Bank Account</Label>
                   <select
-    className="flex h-9 w-full rounded-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
     value={editingCheque.bankAccountId || ""}
     onChange={(e) => {
       const bankId = e.target.value;
@@ -1284,10 +1284,10 @@ export function SupplierLedger() {
     /* Unified Edit Selection Dialog */
   }
       <Dialog open={isEditSelectionDialogOpen} onOpenChange={setIsEditSelectionDialogOpen}>
-        <DialogContent className="sm:max-w-7xl sm:w-[94vw] sm:h-[88vh] sm:max-h-[900px] w-full h-[95vh] flex flex-col bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-3xl p-6 md:p-10 transition-all duration-300 ease-out">
+        <DialogContent className="sm:max-w-7xl sm:w-[94vw] sm:h-[88vh] sm:max-h-[900px] w-full h-[95vh] flex flex-col bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-xl p-6 md:p-10 transition-all duration-300 ease-out">
           <DialogHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-5 shrink-0">
             <DialogTitle className="text-2xl font-black text-slate-850 dark:text-slate-100 flex items-center gap-3">
-              <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-600 dark:text-blue-400 shadow-2xs">
+              <div className="p-3 bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400 shadow-2xs">
                 <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -1312,7 +1312,7 @@ export function SupplierLedger() {
                 {
     /* Purchase Details Column */
   }
-                <div className="flex flex-col p-6 md:p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10 shadow-xs">
+                <div className="flex flex-col p-6 md:p-8 rounded-xl border border-slate-200/50 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10 shadow-xs">
                   <div className="space-y-6 flex-1 flex flex-col min-h-0">
                     <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div className="p-2.5 bg-blue-500/8 dark:bg-blue-400/10 rounded-xl text-blue-600 dark:text-blue-400">
@@ -1323,7 +1323,7 @@ export function SupplierLedger() {
                       <h3 className="font-black text-lg text-slate-850 dark:text-slate-150">Purchase Bill Parts</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
+                    <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
                       <div className="space-y-1">
                         <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Invoice No</span>
                         <span className="font-mono font-black text-slate-850 dark:text-slate-100 text-sm">#{selectedGroupForEdit.invoiceNumber || "N/A"}</span>
@@ -1347,7 +1347,7 @@ export function SupplierLedger() {
                       <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin min-h-[300px] max-h-[580px]">
                         {selectedGroupForEdit.purchases.map((pur, idx) => <div
     key={pur.id}
-    className={`flex items-center justify-between p-5 rounded-2xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-blue-50/20 dark:bg-blue-950/10 border-blue-100/50 dark:border-blue-900/30"}`}
+    className={`flex items-center justify-between p-5 rounded-xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-blue-50/20 dark:bg-blue-950/10 border-blue-100/50 dark:border-blue-900/30"}`}
   >
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
@@ -1372,7 +1372,7 @@ export function SupplierLedger() {
       setIsEditSelectionDialogOpen(false);
       handleEditBillClick(pur);
     }}
-    className="rounded-full h-10 text-xs font-extrabold text-brand-teal hover:text-white bg-brand-soft-teal hover:bg-brand-teal dark:bg-brand-teal/20 dark:text-brand-mint dark:hover:bg-brand-teal border border-brand-teal/20 px-4 py-2 cursor-pointer transition-all shadow-xs"
+    className="rounded-lg h-10 text-xs font-extrabold text-brand-teal hover:text-white bg-brand-soft-teal hover:bg-brand-teal dark:bg-brand-teal/20 dark:text-brand-mint dark:hover:bg-brand-teal border border-brand-teal/20 px-4 py-2 cursor-pointer transition-all shadow-xs"
   >
                               Edit Bill Details
                             </Button>
@@ -1385,7 +1385,7 @@ export function SupplierLedger() {
                 {
     /* Settlement/Payment Details Column */
   }
-                <div className="flex flex-col p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-brand-soft-teal/10 dark:bg-slate-900/10 shadow-xs">
+                <div className="flex flex-col p-6 md:p-8 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-brand-soft-teal/10 dark:bg-slate-900/10 shadow-xs">
                   <div className="space-y-6 flex-1 flex flex-col min-h-0">
                     <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div className="p-2.5 bg-emerald-500/8 dark:bg-emerald-400/10 rounded-xl text-emerald-600 dark:text-emerald-400">
@@ -1396,7 +1396,7 @@ export function SupplierLedger() {
                       <h3 className="font-black text-lg text-slate-850 dark:text-slate-150">Settlements & Payments</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
+                    <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
                       <div className="space-y-1">
                         <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Paid Amount</span>
                         <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono text-lg">₹{selectedGroupForEdit.paidAmount.toLocaleString("en-IN")}</span>
@@ -1414,7 +1414,7 @@ export function SupplierLedger() {
                       <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin min-h-[300px] max-h-[580px]">
                         {selectedGroupForEdit.cheques.map((chq, idx) => <div
     key={chq.id}
-    className={`flex flex-col gap-3.5 p-5 rounded-2xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-100/50 dark:border-emerald-900/30"}`}
+    className={`flex flex-col gap-3.5 p-5 rounded-xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-100/50 dark:border-emerald-900/30"}`}
   >
                             <div className="flex items-center justify-between">
                               <span className="font-black text-emerald-600 dark:text-emerald-400 text-base font-mono flex items-center">
@@ -1442,12 +1442,12 @@ export function SupplierLedger() {
       setIsEditSelectionDialogOpen(false);
       handleEditChequeClick(chq);
     }}
-    className="rounded-full h-10 text-xs font-extrabold text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-650 dark:bg-emerald-950/20 dark:text-emerald-450 dark:hover:bg-emerald-600 border border-emerald-100/50 dark:border-emerald-900/50 px-4 py-2 w-full mt-1 cursor-pointer transition-all shadow-xs"
+    className="rounded-lg h-10 text-xs font-extrabold text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-650 dark:bg-emerald-950/20 dark:text-emerald-450 dark:hover:bg-emerald-600 border border-emerald-100/50 dark:border-emerald-900/50 px-4 py-2 w-full mt-1 cursor-pointer transition-all shadow-xs"
   >
                               Edit Settlement Details
                             </Button>
                           </div>)}
-                        {selectedGroupForEdit.cheques.length === 0 && <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-white/40 dark:bg-slate-900/20 text-center">
+                        {selectedGroupForEdit.cheques.length === 0 && <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/40 dark:bg-slate-900/20 text-center">
                             <svg className="w-10 h-10 text-slate-355 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -1468,7 +1468,7 @@ export function SupplierLedger() {
     variant="outline"
     type="button"
     onClick={() => setIsEditSelectionDialogOpen(false)}
-    className="rounded-full text-xs font-black px-6 py-3 border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-800 dark:hover:text-slate-200 transition-all shadow-2xs cursor-pointer"
+    className="rounded-lg text-xs font-black px-5 py-2.5 border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-800 dark:hover:text-slate-200 transition-all shadow-2xs cursor-pointer"
   >
               Close Editor Panel
             </Button>
