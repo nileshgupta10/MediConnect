@@ -35,8 +35,8 @@ export function KhaataLayout({ user }) {
         <div className="space-y-8">
           {/* Branded Logo & Header */}
           <div className="space-y-4">
-            <div className="p-1.5 bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs inline-flex items-center justify-center h-12 w-16">
-              <MediClanLogo className="h-10 w-12 object-contain select-none" />
+            <div className="p-1.5 bg-white border border-slate-200 rounded-2xl shadow-xs inline-flex items-center justify-center h-12 w-16">
+              <img src="/mediclan-logo-emblem.png" className="max-h-10 max-w-full object-contain select-none" alt="MediCLan Logo" />
             </div>
             <div className="space-y-1">
               <h1 className="text-xl font-black tracking-tight text-[#0f3460] dark:text-white leading-none">
@@ -100,7 +100,7 @@ export function KhaataLayout({ user }) {
 
       {/* Spacious Main Contents Container */}
       <div className="flex-1 p-4 md:p-8 overflow-y-auto lg:h-[calc(100vh-48px)] scrollbar-thin">
-        <main className="max-w-6xl mx-auto space-y-6">
+        <main className="max-w-full mx-auto space-y-6 px-2">
           <div className="animate-fadeIn duration-300">
             {activeTab === 'purchases' && <DailyDashboard mode="purchases" />}
             {activeTab === 'ledger' && <SupplierLedger />}
