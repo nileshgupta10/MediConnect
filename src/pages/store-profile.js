@@ -24,6 +24,7 @@ export default function StoreProfile() {
   const [ownerFirstName, setOwnerFirstName] = useState('')
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
+  const storeNameInputRef = useRef(null)
 
   useEffect(() => {
     if (window.google) { setMapsLoaded(true); return }
@@ -61,6 +62,15 @@ export default function StoreProfile() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    if (editing && !loading) {
+      const timer = setTimeout(() => {
+        storeNameInputRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [editing, loading])
+
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
@@ -80,6 +90,11 @@ export default function StoreProfile() {
       setLongitude(data.longitude ?? null)
       setAddress(data.address || '')
       setAddressInput(data.address || '')
+      if (!data.store_name) {
+        setEditing(true)
+      }
+    } else {
+      setEditing(true)
     }
     setLoading(false)
   }
@@ -189,13 +204,13 @@ export default function StoreProfile() {
 
               {/* License section in view mode */}
               <div style={s.licenseSection}>
-                <span style={s.licenseSectionLabel}>STORE LICENSE</span>
+                <span style={s.licenseSectionLabel}>STORE LICENSE (OPTIONAL)</span>
                 <div style={s.licenseBox}>
                   {profile?.license_url ? (
                     <span style={s.licenseOk}>
                       ✓ Uploaded — {profile.verification_status === 'approved' ? 'Verified ✓' : profile.verification_status === 'rejected' ? 'Rejected — please re-upload' : 'Awaiting verification'}
                     </span>
-                  ) : <span style={s.licenseNone}>⚠️ No license uploaded yet — required for verification</span>}
+                  ) : <span style={s.licenseNone}>⚠️ No license uploaded yet — (Optional)</span>}
                 </div>
                 <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
                 <input type="file" accept="image/*" ref={galleryInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
@@ -218,7 +233,13 @@ export default function StoreProfile() {
           ) : (
             <div style={s.editMode}>
               <IL text="Store Name *" />
-              <input style={s.input} placeholder="Your pharmacy store name" value={storeName} onChange={e => setStoreName(e.target.value)} />
+              <input
+                ref={storeNameInputRef}
+                style={s.input}
+                placeholder="Your pharmacy store name"
+                value={storeName}
+                onChange={e => setStoreName(e.target.value)}
+              />
 
               <IL text="Phone Number" />
               <input style={s.input} placeholder="Contact number" value={phone} onChange={e => setPhone(e.target.value)} />
