@@ -99,8 +99,8 @@ export function KhaataLayout({ user }) {
       </aside>
 
       {/* Spacious Main Contents Container */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto lg:h-[calc(100vh-48px)] scrollbar-thin">
-        <main className="max-w-full mx-auto space-y-6 px-2">
+      <div className="flex-1 p-6 md:p-10 lg:p-12">
+        <main className="max-w-[1360px] mx-auto space-y-8 px-2 md:px-4">
           <div className="animate-fadeIn duration-300">
             {activeTab === 'purchases' && <DailyDashboard mode="purchases" />}
             {activeTab === 'ledger' && <SupplierLedger />}

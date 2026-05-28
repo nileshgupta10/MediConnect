@@ -961,12 +961,12 @@ export function DailyDashboard({ mode = "dashboard" }) {
         {
     /* ── Summary stat strip ─────────────────────────────────── */
   }
-        <div className="space-y-5">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8">
           {
     /* Cash stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">💵 Cash Purchases</div>
@@ -978,7 +978,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Credit stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">📋 Credit Purchases</div>
@@ -990,7 +990,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           {
     /* Grand Total stat */
   }
-          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-5 shadow-md">
+          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
             <div className="relative z-10">
               <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Total Purchased</div>
@@ -1003,7 +1003,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
         {
     /* ── Two-column purchase lists ─────────────────────────── */
   }
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
 
           {
     /* Cash Purchases Column */
@@ -1186,8 +1186,8 @@ export function DailyDashboard({ mode = "dashboard" }) {
             <Plus className="w-3.5 h-3.5" /> Add Expense
           </Button>
         </CardHeader>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
             
             {
     /* Shop Expenses Column */
@@ -1316,8 +1316,8 @@ export function DailyDashboard({ mode = "dashboard" }) {
           </Button>
 
         </CardHeader>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
             
             {
     /* Standard Bank Deposits Column */
@@ -1432,7 +1432,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             Inward Collection Ledger
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-5">
+        <CardContent className="p-6">
             <div className="space-y-6 animate-in fade-in duration-500">
               
               {
@@ -1455,7 +1455,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
                 </div>
               </div>
 
-              {unlockedTab === "daily" ? <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
+              {unlockedTab === "daily" ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 animate-in fade-in duration-300">
                   
                   {
     /* 1. Daily Sales Ledger */

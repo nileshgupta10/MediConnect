@@ -557,11 +557,11 @@ export function SupplierLedger() {
       {
     /* ── Summary stat strip ─────────────────────────────────── */
   }
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
         {
     /* Total Period Purchases */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-5 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-2xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Period Purchases</div>
@@ -573,7 +573,7 @@ export function SupplierLedger() {
         {
     /* Outstanding Balance */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-650 rounded-2xl p-5 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-650 rounded-2xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">⏳ Outstanding Balance</div>
@@ -585,7 +585,7 @@ export function SupplierLedger() {
         {
     /* Settled Payments */
   }
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 shadow-md">
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-6 shadow-md">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
           <div className="relative z-10">
             <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">🟢 Settled Payments</div>
