@@ -874,22 +874,22 @@ export function DailyDashboard({ mode = "dashboard" }) {
       {
     /* Date Navigation Bar — rich gradient style */
   }
-      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 p-5 rounded-xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="relative overflow-hidden bg-gradient-to-r from-brand-navy via-slate-800 to-slate-900 py-8 px-8 rounded-xl border border-slate-700/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
         {
     /* Decorative blobs */
   }
         <div className="absolute top-0 right-0 w-48 h-48 bg-brand-teal/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-16 w-32 h-32 bg-violet-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-2.5 bg-brand-teal/20 border border-brand-teal/30 rounded-xl">
-            <Calendar className="w-5 h-5 text-brand-mint" />
+        <div className="flex items-center gap-6 relative z-10 ml-4">
+          <div className="p-3 bg-brand-teal/20 border border-brand-teal/30 rounded-xl">
+            <Calendar className="w-7 h-7 text-brand-mint" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white tracking-tight">
+            <h2 className="text-2xl font-black text-white tracking-tight">
               {mode === "purchases" ? "Purchase Ledger" : "Daily Accounting Dashboard"}
             </h2>
-            <p className="text-xs text-slate-400 font-medium">
+            <p className="text-sm text-slate-400 font-medium mt-1">
               {mode === "purchases" ? "Track daily cash & credit purchases by date" : "Consolidated dashboard for cash drawer flows, bank deposits, and daily sales"}
             </p>
           </div>
@@ -920,12 +920,50 @@ export function DailyDashboard({ mode = "dashboard" }) {
           </Button>
         </div>
       </div>
-
       {mode === "purchases" && <>
-        {
-    /* Add Purchase floating action row */
-  }
-        <div className="flex justify-end">
+
+        {/* ── Summary stat strip ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+
+          {/* Cash stat */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl shadow-md">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+            <div className="relative z-10 flex items-center justify-between px-6 py-5">
+              <div>
+                <div className="text-xs font-extrabold text-emerald-100 uppercase tracking-widest mb-2">💵 Cash Purchases</div>
+                <div className="text-[11px] text-emerald-200 font-semibold">{cashPurchases.length} bill{cashPurchases.length !== 1 ? "s" : ""} today</div>
+              </div>
+              <div className="text-3xl font-black text-white font-mono">₹{totalCashPurchases.toLocaleString("en-IN")}</div>
+            </div>
+          </div>
+
+          {/* Credit stat */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-md">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+            <div className="relative z-10 flex items-center justify-between px-6 py-5">
+              <div>
+                <div className="text-xs font-extrabold text-amber-100 uppercase tracking-widest mb-2">📋 Credit Purchases</div>
+                <div className="text-[11px] text-amber-200 font-semibold">{creditPurchases.length} bill{creditPurchases.length !== 1 ? "s" : ""} today</div>
+              </div>
+              <div className="text-3xl font-black text-white font-mono">₹{totalCreditPurchases.toLocaleString("en-IN")}</div>
+            </div>
+          </div>
+
+          {/* Grand Total stat */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl shadow-md">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
+            <div className="relative z-10 flex items-center justify-between px-6 py-5">
+              <div>
+                <div className="text-xs font-extrabold text-slate-300 uppercase tracking-widest mb-2">🧾 Total Purchased</div>
+                <div className="text-[11px] text-slate-400 font-semibold">{datePurchases.length} bill{datePurchases.length !== 1 ? "s" : ""} total</div>
+              </div>
+              <div className="text-3xl font-black text-white font-mono">₹{(totalCashPurchases + totalCreditPurchases).toLocaleString("en-IN")}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Add Purchase — centred above tables ── */}
+        <div className="flex justify-center py-4">
           <Button
     size="sm"
     onClick={() => {
@@ -951,59 +989,16 @@ export function DailyDashboard({ mode = "dashboard" }) {
       setAddPdcDetails(false);
       setIsPurchaseAddOpen(true);
     }}
-    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-9 px-5 text-xs gap-1.5 rounded-lg shadow-sm"
+    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 px-10 text-sm gap-2 rounded-lg shadow-sm"
   >
             <Plus className="w-4 h-4" /> Add Purchase
           </Button>
         </div>
 
 
-        {
-    /* ── Summary stat strip ─────────────────────────────────── */
-  }
-        <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 lg:gap-8">
-          {
-    /* Cash stat */
-  }
-          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
-            <div className="relative z-10">
-              <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">💵 Cash Purchases</div>
-              <div className="text-2xl font-black text-white font-mono">₹{totalCashPurchases.toLocaleString("en-IN")}</div>
-              <div className="text-[10px] text-emerald-200 font-semibold mt-1">{cashPurchases.length} bill{cashPurchases.length !== 1 ? "s" : ""} today</div>
-            </div>
-          </div>
+        {/* Two-column purchase lists */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-          {
-    /* Credit stat */
-  }
-          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 shadow-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
-            <div className="relative z-10">
-              <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">📋 Credit Purchases</div>
-              <div className="text-2xl font-black text-white font-mono">₹{totalCreditPurchases.toLocaleString("en-IN")}</div>
-              <div className="text-[10px] text-amber-200 font-semibold mt-1">{creditPurchases.length} bill{creditPurchases.length !== 1 ? "s" : ""} today</div>
-            </div>
-          </div>
-
-          {
-    /* Grand Total stat */
-  }
-          <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
-            <div className="relative z-10">
-              <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Total Purchased</div>
-              <div className="text-2xl font-black text-white font-mono">₹{(totalCashPurchases + totalCreditPurchases).toLocaleString("en-IN")}</div>
-              <div className="text-[10px] text-slate-400 font-semibold mt-1">{datePurchases.length} bill{datePurchases.length !== 1 ? "s" : ""} total</div>
-            </div>
-          </div>
-        </div>
-
-        {
-    /* ── Two-column purchase lists ─────────────────────────── */
-  }
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
 
           {
     /* Cash Purchases Column */
@@ -1030,7 +1025,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Items */
   }
-            <div className="p-4 space-y-2.5 min-h-40 max-h-80 overflow-y-auto">
+            <div className="p-4 space-y-2.5 min-h-[480px]">
               {cashPurchases.map((p, idx) => <div key={p.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-emerald-950/30" : "bg-emerald-50/80 dark:bg-emerald-950/20"}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-sm">🏢</div>
@@ -1086,7 +1081,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
             {
     /* Items */
   }
-            <div className="p-4 space-y-2.5 min-h-40 max-h-80 overflow-y-auto">
+            <div className="p-4 space-y-2.5 min-h-[480px]">
               {creditPurchases.map((p, idx) => <div key={p.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-amber-200/60 dark:border-amber-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-amber-950/30" : "bg-amber-50/80 dark:bg-amber-950/20"}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-sm">🏢</div>
@@ -1119,7 +1114,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
           </div>
 
         </div>
-        </div>
+
       </>}
 
 
