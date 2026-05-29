@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import https from 'https'
 import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 
@@ -135,24 +136,48 @@ Represent the output exactly in the requested JSON structure.`
       }
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-    
-    const response = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-        'Authorization': '' // Explicitly clear any inherited/forwarded Authorization header
-      },
-      body: JSON.stringify(payload)
+    const postData = JSON.stringify(payload)
+    const apiResponse = await new Promise((resolve) => {
+      const options = {
+        hostname: 'generativelanguage.googleapis.com',
+        port: 443,
+        path: '/v1/models/gemini-2.5-flash:generateContent',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        }
+      }
+
+      const request = https.request(options, (response) => {
+        let data = ''
+        response.on('data', (chunk) => { data += chunk })
+        response.on('end', () => {
+          resolve({
+            ok: response.statusCode >= 200 && response.statusCode < 300,
+            status: response.statusCode,
+            body: data
+          })
+        })
+      })
+
+      request.on('error', (e) => {
+        resolve({
+          ok: false,
+          status: 500,
+          body: JSON.stringify({ error: { message: e.message } })
+        })
+      })
+
+      request.write(postData)
+      request.end()
     })
 
-    if (!response.ok) {
-      const errText = await response.text()
-      return res.status(500).json({ error: `Gemini API call failed: ${errText}` })
+    if (!apiResponse.ok) {
+      return res.status(500).json({ error: `Gemini API call failed: ${apiResponse.body}` })
     }
 
-    const resJson = await response.json()
+    const resJson = JSON.parse(apiResponse.body)
     const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text
     if (!responseText) {
       return res.status(500).json({ error: 'Gemini returned empty content.' })
