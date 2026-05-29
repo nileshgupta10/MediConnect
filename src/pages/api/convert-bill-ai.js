@@ -174,7 +174,8 @@ Represent the output exactly in the requested JSON structure.`
     })
 
     if (!apiResponse.ok) {
-      return res.status(500).json({ error: `Gemini API call failed: ${apiResponse.body}` })
+      const maskedKey = apiKey ? `${apiKey.substring(0, 6)}...${apiKey.substring(apiKey.length - 6)} (len: ${apiKey.length})` : 'undefined'
+      return res.status(500).json({ error: `Gemini API call failed. Masked Key: ${maskedKey}. Response: ${apiResponse.body}` })
     }
 
     const resJson = JSON.parse(apiResponse.body)
