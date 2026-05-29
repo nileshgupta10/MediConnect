@@ -252,7 +252,7 @@ function parseSection(lines, items) {
 
 module.exports = {
   name: 'Manshi Agencies PDF',
-  identifyPatterns: ['MANSHI AGENCIES', 'CC-'],
+  identifyPatterns: ['MANSHI AGENCIES'],
 
   getMetadata: (lines) => {
     const arr = Array.isArray(lines) ? lines : String(lines || '').split('\n')
@@ -263,7 +263,7 @@ module.exports = {
       text.match(/(\d{2}-[A-Za-z]{3}-\d{4})/i) ||
       text.match(/(\d{2}-\d{2}-\d{4})/)
     return {
-      partyCode: 'MAN',
+      partyCode: 'MNS',
       partyName: 'MANSHI AGENCIES',
       invoiceNo: invMatch ? String(invMatch[1]).replace(/\D/g, '') : '000000',
       date: dateMatch ? dateMatch[1] : ''

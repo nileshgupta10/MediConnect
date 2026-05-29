@@ -294,7 +294,7 @@ function extractPack(text) {
 
 module.exports = {
   name: 'Manshi Leap PDF',
-  identifyPatterns: ['PRODUCT DESCRIPTION', 'HIMALAYA WELLNESS COMPANY', 'INVOICE NO:'],
+  identifyPatterns: ['HIMALAYA WELLNESS COMPANY', 'STOCKIST FOR HIMALAYA'],
 
   getMetadata: (lines) => {
     const arr = Array.isArray(lines) ? lines : String(lines || '').split('\n')
@@ -309,7 +309,7 @@ module.exports = {
     const invoiceRaw = invoiceMatch ? String(invoiceMatch[1]).trim() : '000000'
 
     return {
-      partyCode: 'MAN',
+      partyCode: 'MNS',
       partyName: 'MANSHI AGENCIES',
       invoiceNo: (invoiceRaw.replace(/\D/g, '') || '000000').slice(-6),
       sourceInvoiceNo: invoiceRaw,
