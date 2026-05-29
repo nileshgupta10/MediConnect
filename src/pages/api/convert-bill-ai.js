@@ -65,10 +65,12 @@ export default async function handler(req, res) {
       mimeType = 'image/webp'
     }
 
-    const apiKey = process.env.GEMINI_API_KEY
+    let apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       return res.status(500).json({ error: 'Gemini API key is not configured in .env.local' })
     }
+    // Clean key from quotes or trailing whitespaces
+    apiKey = apiKey.replace(/['"]/g, '').trim()
 
     const promptText = `You are a highly precise pharmaceutical invoice data extractor. 
 Locate the invoice's line items table and extract all items.
@@ -138,7 +140,9 @@ Represent the output exactly in the requested JSON structure.`
     const response = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+        'Authorization': '' // Explicitly clear any inherited/forwarded Authorization header
       },
       body: JSON.stringify(payload)
     })
