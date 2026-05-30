@@ -158,7 +158,7 @@ function parseRows(lines) {
 
 module.exports = {
   name: 'AB Marketing',
-  identifyPatterns: ['RATAN STORES', 'A B MARKETING', 'ABFFA9104P1Z3'],
+  identifyPatterns: ['A B MARKETING', 'ABFFA9104P1Z3'],
   getMetadata: (input) => parseMetadata(input),
   mapRows: (input) => parseRows(input)
 }

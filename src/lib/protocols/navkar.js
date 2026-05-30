@@ -33,7 +33,7 @@ const { generateStableId } = require('../../utils/stableId')
 
   module.exports = {
     name: 'Navkar Cosmetics PDF',
-    identifyPatterns: ['NAVKAR COSMETICS', 'GST TAX INVOICE', 'Inv. No : CR/'],
+    identifyPatterns: ['NAVKAR COSMETICS'],
 
     getMetadata: (lines) => {
       if (!Array.isArray(lines)) lines = String(lines || '').split('\n')

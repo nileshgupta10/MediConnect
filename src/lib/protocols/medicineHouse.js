@@ -97,7 +97,7 @@ function parseRows(lines) {
 
 module.exports = {
   name: 'Medicine House',
-  identifyPatterns: ['MEDICINE HOUSE', 'GST INVOICE', '27BIGPS8329M2ZF'],
+  identifyPatterns: ['MEDICINE HOUSE', '27BIGPS8329M2ZF'],
   getMetadata: (input) => parseMetadata(input),
   mapRows: (input) => parseRows(input)
 }
