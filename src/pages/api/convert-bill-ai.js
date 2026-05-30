@@ -141,7 +141,7 @@ Represent the output exactly in the requested JSON structure.`
       const options = {
         hostname: 'generativelanguage.googleapis.com',
         port: 443,
-        path: '/v1/models/gemini-2.5-flash:generateContent',
+        path: '/v1beta/models/gemini-2.5-flash:generateContent',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
