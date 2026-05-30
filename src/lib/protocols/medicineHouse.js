@@ -6,11 +6,35 @@ function cleanLines(input) {
 }
 
 function cleanNum(value) {
-  return parseFloat(String(value || '').replace(/,/g, '').trim()) || 0
+  return parseFloat(String(value || '').replace(/%/g, '').replace(/,/g, '').trim()) || 0
+}
+
+function isRowStart(line) {
+  return /^\d+\s+\d{8}\s+/.test(String(line || '').trim())
 }
 
 function isStopLine(line) {
-  return /^(Rs\.\s+Five\b|CLASS\b|TOTAL\b|GRAND TOTAL\b|BANK DETAILS\b|A\/C NO\b|CHECK RETURNED\b)/i.test(String(line || '').trim())
+  return /^(Rs\.\s+Four\b|Rs\.\s+Five\b|CLASS\b|TOTAL\b|GRAND TOTAL\b|BANK DETAILS\b|A\/C NO\b|CHECK RETURNED\b)/i.test(String(line || '').trim())
+}
+
+function mergeRows(lines) {
+  const rows = []
+  let current = ''
+
+  for (const line of lines) {
+    if (isStopLine(line)) break
+
+    if (isRowStart(line)) {
+      if (current) rows.push(current)
+      current = line
+      continue
+    }
+
+    if (current) current += ` ${line}`
+  }
+
+  if (current) rows.push(current)
+  return rows
 }
 
 function parseMetadata(lines) {
@@ -19,7 +43,7 @@ function parseMetadata(lines) {
   const dateMatch = text.match(/Bill Date\s*:\s*(\d{2}[/-]\d{2}[/-]\d{4})/i)
 
   return {
-    partyCode: 'MED',
+    partyCode: 'MDH',
     partyName: 'MEDICINE HOUSE',
     invoiceNo: invoiceMatch ? invoiceMatch[1].trim() : '000000',
     date: dateMatch ? dateMatch[1].trim() : ''
@@ -28,13 +52,11 @@ function parseMetadata(lines) {
 
 function parseRows(lines) {
   const cleaned = cleanLines(lines)
+  const rows = mergeRows(cleaned)
   const items = []
 
-  for (const line of cleaned) {
-    if (isStopLine(line)) break
-    if (!/^\d+\s+\d{8}\s+/.test(line)) continue
-
-    const tokens = line.split(/\s+/)
+  for (const row of rows) {
+    const tokens = row.split(/\s+/)
     if (tokens.length < 11) continue
 
     const seq = tokens[0]
@@ -42,7 +64,8 @@ function parseRows(lines) {
     if (!/^\d+$/.test(seq) || !/^\d{8}$/.test(hsn)) continue
 
     const tail = tokens.slice(-10)
-    if (tail.length < 10 || tail.some(token => !/^[\d.]+$/.test(token))) continue
+    // Relaxed validation regex: allows percent signs, commas, and negative signs
+    if (tail.length < 10 || tail.some(token => !/^[-]?[\d.,%]+$/.test(token))) continue
 
     const [
       qtyToken,
@@ -97,7 +120,7 @@ function parseRows(lines) {
 
 module.exports = {
   name: 'Medicine House',
-  identifyPatterns: ['MEDICINE HOUSE', '27BIGPS8329M2ZF'],
+  identifyPatterns: ['MEDICINE HOUSE', '27BIGPS8329M2ZF', 'medicinehousepune@gmail.com'],
   getMetadata: (input) => parseMetadata(input),
   mapRows: (input) => parseRows(input)
 }
