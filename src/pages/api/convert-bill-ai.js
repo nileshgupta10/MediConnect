@@ -73,9 +73,16 @@ export default async function handler(req, res) {
     // Clean key from quotes or trailing whitespaces
     apiKey = apiKey.replace(/['"]/g, '').trim()
 
-    const promptText = `You are a highly precise pharmaceutical invoice data extractor. 
+    const promptText = `You are a highly precise pharmaceutical invoice data extractor.
 Locate the invoice's line items table and extract all items.
-Extract the Product Name (max 30 characters), Quantity, Free Quantity, Unit Purchase Rate/PTR (pre-discount), MRP, HSN code, Expiry (MM/YY), Discount %, GST %, Taxable Amount, and Net Amount.
+IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
+1. Product Volume / Sizes: Products with different volume sizes (e.g. 50ML, 80ML, 100ML, 30ML, 15GM) MUST be treated as completely separate, unique products. Capture their full names including the brand, volume, and size (e.g. "FT GOLDEN HOUR GLOW SUNSCREEN 50ML" and "FT GOLDEN HOUR GLOW SUNSCREEN 80ML").
+2. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
+3. Discount vs GST Column Alignment: Locate "Sch. %" (Scheme Discount %), "Rs.Disc" (Rupee Discount), and "C.Disc %" (Cash Discount %) columns. Sum them up or extract the primary discount to "discountPer".
+   - ⚠️ DANGER: Locate the "GST %" column (normally values like 5, 12, 18, 28) and extract it to "gstPer".
+   - ⚠️ NEVER confuse "GST %" (18%) with the discount columns. The discount in this invoice is the "Sch. %" column (which is 11%), not the "GST %" column (which is 18%).
+4. Pack Size: Extract the pack size (e.g. "50ML", "80ML", "30ML", "100ML", "10T") to the "pack" field.
+
 For the metadata, extract the distributor's name, invoice number, and invoice date.
 Represent the output exactly in the requested JSON structure.`
 
@@ -113,17 +120,17 @@ Represent the output exactly in the requested JSON structure.`
               items: {
                 type: "OBJECT",
                 properties: {
-                  productName: { type: "STRING", description: "Product Name (max 30 characters)" },
-                  qty: { type: "NUMBER", description: "Billed Quantity" },
-                  freeQty: { type: "NUMBER", description: "Free Quantity if any" },
+                  productName: { type: "STRING", description: "Full Product Name including size and volume (e.g. FT GOLDEN HOUR GLOW SUNSCREEN 50ML)" },
+                  qty: { type: "NUMBER", description: "Billed Quantity from Qty column (do not mix with Free Qty)" },
+                  freeQty: { type: "NUMBER", description: "Free Quantity from Free column (default to 0 if empty or none)" },
                   rate: { type: "NUMBER", description: "Unit Purchase Rate/PTR pre-discount" },
                   rawRate: { type: "NUMBER", description: "Unit Purchase Rate/PTR pre-discount (raw list rate)" },
                   mrp: { type: "NUMBER", description: "MRP per unit" },
-                  pack: { type: "STRING", description: "Pack size (e.g. 10T, 15GM, 1N)" },
+                  pack: { type: "STRING", description: "Pack size / volume extracted from item description (e.g. 50ML, 80ML, 30ML, 10T)" },
                   hsn: { type: "STRING", description: "HSN Code" },
                   expiry: { type: "STRING", description: "Expiry Date (MM/YY)" },
-                  discountPer: { type: "NUMBER", description: "Discount percentage" },
-                  gstPer: { type: "NUMBER", description: "GST percentage" },
+                  discountPer: { type: "NUMBER", description: "Total discount percentage from Sch. % or C.Disc % columns (e.g. 11.0). Must NEVER contain the GST percentage (e.g. 18.0)!" },
+                  gstPer: { type: "NUMBER", description: "GST percentage (e.g. 18.0) from the GST % column" },
                   taxable: { type: "NUMBER", description: "Taxable amount" },
                   netAmt: { type: "NUMBER", description: "Net amount" }
                 },

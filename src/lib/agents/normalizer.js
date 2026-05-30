@@ -19,7 +19,18 @@
       return rawItems.map((item) => {
         const productName = String(item.productName || '').trim().toUpperCase()
 
-        let prodCode = item.prodCode || productName.replace(/\s+/g, '').substring(0, 10)
+        let prodCode = item.prodCode
+        if (!prodCode) {
+          const cleanName = productName.replace(/[^A-Z0-9]/g, '')
+          const pack = String(item.pack || '').replace(/[^A-Z0-9]/g, '').toUpperCase()
+          
+          if (pack && pack.length > 0 && pack.length < 10) {
+            const nameLen = 10 - pack.length
+            prodCode = cleanName.substring(0, nameLen) + pack
+          } else {
+            prodCode = cleanName.substring(0, 10)
+          }
+        }
         if (prodCode.length > 10) prodCode = prodCode.substring(0, 10)
 
         const finalBatch = (item.batch && String(item.batch).trim())
