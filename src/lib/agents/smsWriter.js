@@ -44,7 +44,8 @@ class SMSWriter {
         strVal = String(val).substring(0, len).padEnd(len, ' ')
       } else if (type === 'N') {
         const num = parseFloat(String(val).replace(/,/g, '')) || 0
-        strVal = num.toFixed(dec).padStart(len, ' ')
+        const padChar = name === 'VOU_NO' ? '0' : ' '
+        strVal = num.toFixed(dec).padStart(len, padChar)
       } else if (type === '0') {
         offset += len
         continue
