@@ -112,7 +112,7 @@ Represent the output exactly in the requested JSON structure.`
               properties: {
                 partyCode: { 
                   type: "STRING", 
-                  description: "3-letter uppercase CARE party code. If the distributor is 'MEDICINE HOUSE' use 'MED'. If 'A B MARKETING' use 'ABM'. If 'MANSHI AGENCIES' use 'MNS'. If 'PATWARI PHARMA' use 'PWP'. If 'PREM AGENCY' or 'MEDICA' use 'PPH'. If 'C G MARKETING' use 'CGM'. If 'BEAUTY COSMETICS' use 'BCS'. If 'NAVKAR' use 'NVK'." 
+                  description: "3-letter uppercase CARE party code. If the distributor is 'MEDICINE HOUSE' use 'MDH'. If 'A B MARKETING' use 'ABM'. If 'MANSHI AGENCIES' use 'MNS'. If 'PATWARI PHARMA' use 'PWP'. If 'PREM AGENCY' or 'MEDICA' use 'PPH'. If 'C G MARKETING' use 'CGM'. If 'BEAUTY COSMETICS' use 'BCS'. If 'NAVKAR' use 'NVK'." 
                 },
                 partyName: { 
                   type: "STRING", 
@@ -204,9 +204,19 @@ Represent the output exactly in the requested JSON structure.`
       return res.status(400).json({ error: 'No items were parsed from this invoice by the AI.' })
     }
 
+    let finalPartyCode = String(parsedData.metadata.partyCode || 'MNS').toUpperCase().substring(0, 3)
+    if (req.query.randomParty === 'true') {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      let randCode = ''
+      for (let i = 0; i < 3; i++) {
+        randCode += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+      finalPartyCode = randCode
+    }
+
     // Normalize through standard billing normalizer agent
     const normalizedRecords = normalizer.normalize(parsedData.items, {
-      partyCode: parsedData.metadata.partyCode || 'MNS',
+      partyCode: finalPartyCode,
       partyName: parsedData.metadata.partyName || 'MANSHI AGENCIES',
       invoiceNo: parsedData.metadata.invoiceNo || '000000',
       date: parsedData.metadata.date || ''
@@ -218,7 +228,6 @@ Represent the output exactly in the requested JSON structure.`
     const smsBuffer = smsWriter.generate(normalizedRecords, templateBuffer)
 
     const invNo = String(parsedData.metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
-    const finalPartyCode = String(parsedData.metadata.partyCode || 'MNS').toUpperCase().substring(0, 3)
     const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
     res.setHeader('Content-Type', 'application/octet-stream')

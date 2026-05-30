@@ -76,7 +76,7 @@ const taxableAmt = parseFloat(item.taxable) > 0
           PARTYCODE: String(partyCode || 'GEN').substring(0, 3).toUpperCase(),
           NAME: String(partyName || 'GENERIC DISTRIBUTOR').substring(0, 40).toUpperCase(),
           ADD1: 'INDIA',
-          VOU_NO: vouNo.padStart(6, ' '),
+          VOU_NO: vouNo.padStart(6, '0'),
           VOU_TYPE: 'CRB',
           TR_DATE: formattedDate,
           DUE_DATE: formattedDate,
