@@ -76,12 +76,14 @@ export default async function handler(req, res) {
     const promptText = `You are a highly precise pharmaceutical invoice data extractor.
 Locate the invoice's line items table and extract all items.
 IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
-1. Product Volume / Sizes: Products with different volume sizes (e.g. 50ML, 80ML, 100ML, 30ML, 15GM) MUST be treated as completely separate, unique products. Capture their full names including the brand, volume, and size (e.g. "FT GOLDEN HOUR GLOW SUNSCREEN 50ML" and "FT GOLDEN HOUR GLOW SUNSCREEN 80ML").
-2. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
-3. Discount vs GST Column Alignment: Locate "Sch. %" (Scheme Discount %), "Rs.Disc" (Rupee Discount), and "C.Disc %" (Cash Discount %) columns. Sum them up or extract the primary discount to "discountPer".
+1. Distributor (Seller) Disambiguation: Identify the DISTRIBUTOR (the company SELLING the products, e.g. "MEDICINE HOUSE" or "A B MARKETING"). This is always the main company branding at the very top of the invoice.
+   - ⚠️ NEVER confuse this with the Customer/Buyer (e.g. "RATAN MEDICAL" or "RATAN STORES") which is listed in the "To" / "Ship To" billing section. 
+2. Product Volume / Sizes: Products with different volume sizes (e.g. 50ML, 80ML, 100ML, 30ML, 15GM) MUST be treated as completely separate, unique products. Capture their full names including the brand, volume, and size (e.g. "FT GOLDEN HOUR GLOW SUNSCREEN 50ML" and "FT GOLDEN HOUR GLOW SUNSCREEN 80ML").
+3. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
+4. Discount vs GST Column Alignment: Locate "Sch. %" (Scheme Discount %), "Rs.Disc" (Rupee Discount), and "C.Disc %" (Cash Discount %) columns. Sum them up or extract the primary discount to "discountPer".
    - ⚠️ DANGER: Locate the "GST %" column (normally values like 5, 12, 18, 28) and extract it to "gstPer".
    - ⚠️ NEVER confuse "GST %" (18%) with the discount columns. The discount in this invoice is the "Sch. %" column (which is 11%), not the "GST %" column (which is 18%).
-4. Pack Size: Extract the pack size (e.g. "50ML", "80ML", "30ML", "100ML", "10T") to the "pack" field.
+5. Pack Size: Extract the pack size (e.g. "50ML", "80ML", "30ML", "100ML", "10T") to the "pack" field.
 
 For the metadata, extract the distributor's name, invoice number, and invoice date.
 Represent the output exactly in the requested JSON structure.`
@@ -108,8 +110,14 @@ Represent the output exactly in the requested JSON structure.`
             metadata: {
               type: "OBJECT",
               properties: {
-                partyCode: { type: "STRING", description: "3-letter uppercase CARE party code if recognized (e.g. MNS for Manshi, PWP for Patwari, etc.), otherwise default to MNS" },
-                partyName: { type: "STRING", description: "Distributor Name" },
+                partyCode: { 
+                  type: "STRING", 
+                  description: "3-letter uppercase CARE party code. If the distributor is 'MEDICINE HOUSE' use 'MED'. If 'A B MARKETING' use 'ABM'. If 'MANSHI AGENCIES' use 'MNS'. If 'PATWARI PHARMA' use 'PWP'. If 'PREM AGENCY' or 'MEDICA' use 'PPH'. If 'C G MARKETING' use 'CGM'. If 'BEAUTY COSMETICS' use 'BCS'. If 'NAVKAR' use 'NVK'." 
+                },
+                partyName: { 
+                  type: "STRING", 
+                  description: "Distributor (Seller) Name. E.g. 'MEDICINE HOUSE' or 'A B MARKETING'. Do NOT use the buyer/customer name ('RATAN MEDICAL' or 'RATAN STORES')." 
+                },
                 invoiceNo: { type: "STRING", description: "Invoice Number" },
                 date: { type: "STRING", description: "Invoice Date (DD/MM/YYYY or original)" }
               },
