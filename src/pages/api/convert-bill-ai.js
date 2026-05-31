@@ -4,6 +4,35 @@ import https from 'https'
 import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 
+async function fetchWithRetry(options, postData, maxRetries = 3) {
+  let attempt = 0
+  while (attempt < maxRetries) {
+    attempt++
+    const response = await new Promise((resolve) => {
+      const request = https.request(options, (res) => {
+        let data = ''
+        res.on('data', chunk => { data += chunk })
+        res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, body: data }))
+      })
+      request.on('error', e => resolve({ ok: false, status: 500, body: JSON.stringify({ error: { message: e.message } }) }))
+      request.write(postData)
+      request.end()
+    })
+
+    if (response.ok) return response
+
+    // Retry on 503 (temporary high demand) or 429 (rate limit)
+    if ((response.status === 503 || response.status === 429) && attempt < maxRetries) {
+      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500
+      console.warn(`[Gemini API] Attempt ${attempt} failed with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      continue
+    }
+    return response
+  }
+}
+
+
 export const config = {
   api: {
     bodyParser: false,
@@ -152,41 +181,17 @@ Represent the output exactly in the requested JSON structure.`
     }
 
     const postData = JSON.stringify(payload)
-    const apiResponse = await new Promise((resolve) => {
-      const options = {
-        hostname: 'generativelanguage.googleapis.com',
-        port: 443,
-        path: '/v1beta/models/gemini-2.5-flash:generateContent',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        }
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      port: 443,
+      path: '/v1beta/models/gemini-2.5-flash:generateContent',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
       }
-
-      const request = https.request(options, (response) => {
-        let data = ''
-        response.on('data', (chunk) => { data += chunk })
-        response.on('end', () => {
-          resolve({
-            ok: response.statusCode >= 200 && response.statusCode < 300,
-            status: response.statusCode,
-            body: data
-          })
-        })
-      })
-
-      request.on('error', (e) => {
-        resolve({
-          ok: false,
-          status: 500,
-          body: JSON.stringify({ error: { message: e.message } })
-        })
-      })
-
-      request.write(postData)
-      request.end()
-    })
+    }
+    const apiResponse = await fetchWithRetry(options, postData)
 
     if (!apiResponse.ok) {
       const maskedKey = apiKey ? `${apiKey.substring(0, 6)}...${apiKey.substring(apiKey.length - 6)} (len: ${apiKey.length})` : 'undefined'
