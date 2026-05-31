@@ -177,7 +177,7 @@ Represent the output exactly in the requested JSON structure.`
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
   const templateBuffer = fs.readFileSync(templatePath)
   const smsBuffer = smsWriter.generate(normalizedRecords, templateBuffer)
-  const invNo = String(parsedData.metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+  const invNo = String(parsedData.metadata.invoiceNo).replace(/[^0-9]/g, '')
   const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
   res.setHeader('Content-Type', 'application/octet-stream')
@@ -286,7 +286,7 @@ export default async function handler(req, res) {
       const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
       const templateBuffer = fs.readFileSync(templatePath)
       const smsBuffer = smsWriter.generate(records, templateBuffer)
-      const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+      const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '')
       const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
       res.setHeader('Content-Type', 'application/octet-stream')
@@ -318,7 +318,7 @@ async function generateSMS(protocol, rows, res, randomParty) {
 
   const smsBuffer = smsWriter.generate(records, templateBuffer)
 
-  const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+  const invNo = String(metadata.invoiceNo).replace(/[^0-9]/g, '')
   const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
   res.setHeader('Content-Type', 'application/octet-stream')

@@ -227,7 +227,7 @@ Represent the output exactly in the requested JSON structure.`
 
     const smsBuffer = smsWriter.generate(normalizedRecords, templateBuffer)
 
-    const invNo = String(parsedData.metadata.invoiceNo).replace(/[^0-9]/g, '').padStart(6, '0')
+    const invNo = String(parsedData.metadata.invoiceNo).replace(/[^0-9]/g, '')
     const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
     res.setHeader('Content-Type', 'application/octet-stream')
