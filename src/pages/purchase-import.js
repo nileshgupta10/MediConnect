@@ -332,10 +332,22 @@ export default function PurchaseImport() {
           images: pages.map(p => ({ base64: p.base64, mimeType: 'image/jpeg' })),
           storeOwnerId: user.id,
         }),
-      })
-      const json = await res.json()
-      if (!res.ok) {
-        setMessage(json.error || 'Could not read bill. Try a clearer photo.')
+      const contentType = res.headers.get('Content-Type') || ''
+      let json = {}
+      if (res.ok && contentType.includes('application/json')) {
+        json = await res.json()
+      } else {
+        let errMsg = 'Could not read bill. Try a clearer photo.'
+        try {
+          const err = await res.json()
+          errMsg = err.error || errMsg
+        } catch (_) {
+          try {
+            const text = await res.text()
+            errMsg = text.substring(0, 150) || errMsg
+          } catch (_) {}
+        }
+        setMessage('Error: ' + errMsg)
         setUploading(false)
         return
       }

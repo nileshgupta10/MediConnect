@@ -40,9 +40,20 @@ export default function BillConverter() {
         body: formData
       })
 
-      if (!res.ok) {
-        const err = await res.json()
-        setStatus('Error: ' + err.error)
+      const contentType = res.headers.get('Content-Type') || ''
+
+      if (!res.ok || contentType.includes('application/json')) {
+        let errMsg = 'Unknown error'
+        try {
+          const err = await res.json()
+          errMsg = err.error || errMsg
+        } catch (_) {
+          try {
+            const text = await res.text()
+            errMsg = text.substring(0, 150) || errMsg
+          } catch (_) {}
+        }
+        setStatus('Error: ' + errMsg)
         setLoading(false)
         return
       }

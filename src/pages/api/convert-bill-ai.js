@@ -155,7 +155,7 @@ Represent the output exactly in the requested JSON structure.`
                 invoiceNo: { type: "STRING", description: "Invoice Number" },
                 date: { type: "STRING", description: "Invoice Date (DD/MM/YYYY or original)" }
               },
-              required: ["partyName", "invoiceNo", "date"]
+              required: ["partyCode", "partyName", "invoiceNo", "date"]
             },
             items: {
               type: "ARRAY",
