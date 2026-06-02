@@ -289,7 +289,10 @@ export default async function handler(req, res) {
     // For CSVs — parse into rows
     let rows
     if (isPDF) {
-      const lines = textContent.split('\n').map(l => l.trim()).filter(l => l)
+      // NOTE: Do NOT filter out blank lines here!
+      // Manshi and ManshiLeap parsers use blank lines as field separators.
+      // Only trim each line — keep empty lines as empty strings.
+      const lines = textContent.split('\n').map(l => l.trim())
       if (protocol.mapPDF) {
         rows = protocol.mapPDF(lines)
       } else if (protocol.mapRows) {
@@ -307,7 +310,8 @@ export default async function handler(req, res) {
       const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
       const templateBuffer = fs.readFileSync(templatePath)
       const smsBuffer = smsWriter.generate(records, templateBuffer)
-      const invNo = String(parseInt(metadata.invoiceNo.replace(/[^0-9]/g, '')) || 0)
+      const rawInvNo = String(metadata.invoiceNo || '0').replace(/[^0-9]/g, '')
+      const invNo = rawInvNo ? rawInvNo.slice(-6) : '000000'
       const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
       res.setHeader('Content-Type', 'application/octet-stream')

@@ -148,15 +148,15 @@ export default async function handler(req, res) {
   try {
     // Single page → Haiku. Multiple pages → Sonnet directly (needs more power)
     if (images.length > 1) {
-      data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)
+      data = await callClaude(images, 'claude-sonnet-4-5', process.env.ANTHROPIC_API_KEY)
       usedSonnet = true
     } else {
-      data = await callClaude(images, 'claude-haiku-4-5-20251001', process.env.ANTHROPIC_API_KEY)
+      data = await callClaude(images, 'claude-haiku-4-5', process.env.ANTHROPIC_API_KEY)
 
       // If Haiku says low confidence OR fewer than 1 item extracted → retry with Sonnet
       if (data.confidence === 'low' || !data.items?.length) {
         console.log('Haiku low confidence, retrying with Sonnet')
-        data = await callClaude(images, 'claude-sonnet-4-6', process.env.ANTHROPIC_API_KEY)
+        data = await callClaude(images, 'claude-sonnet-4-5', process.env.ANTHROPIC_API_KEY)
         usedSonnet = true
       }
     }

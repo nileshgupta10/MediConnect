@@ -81,11 +81,17 @@ export default async function handler(req, res) {
 
     if (!fileBuffer) return res.status(400).json({ error: 'No file received.' })
 
+    const lowerName = fileName.toLowerCase()
+
+    // Guard: AI scan only works on PDF or image files — not CSV
+    if (lowerName.endsWith('.csv') || lowerName.endsWith('.txt')) {
+      return res.status(400).json({ error: 'AI Scan does not support CSV files. Please use the Protocol (⚡ Convert) button for CSV bills.' })
+    }
+
     const base64Data = fileBuffer.toString('base64')
     
     // Determine mimeType
     let mimeType = 'image/jpeg'
-    const lowerName = fileName.toLowerCase()
     if (lowerName.endsWith('.pdf')) {
       mimeType = 'application/pdf'
     } else if (lowerName.endsWith('.png')) {
@@ -198,7 +204,18 @@ Represent the output exactly in the requested JSON structure.`
     }
 
     const resJson = JSON.parse(apiResponse.body)
-    const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text
+    const candidate = resJson.candidates?.[0]
+    const finishReason = candidate?.finishReason || 'UNKNOWN'
+
+    // finishReason "OTHER" or "SAFETY" means Gemini stopped without producing content
+    if (!candidate?.content) {
+      const promptFeedback = resJson.promptFeedback?.blockReason || ''
+      return res.status(500).json({
+        error: `Gemini could not process this file (finishReason: ${finishReason}${promptFeedback ? ', blockReason: ' + promptFeedback : ''}). Try a different file or use the Protocol scan.`
+      })
+    }
+
+    const responseText = candidate.content?.parts?.[0]?.text
     if (!responseText) {
       return res.status(500).json({ error: 'Gemini returned empty content.' })
     }
@@ -221,7 +238,7 @@ Represent the output exactly in the requested JSON structure.`
     // Normalize through standard billing normalizer agent
     const normalizedRecords = normalizer.normalize(parsedData.items, {
       partyCode: finalPartyCode,
-      partyName: parsedData.metadata.partyName || 'MANSHI AGENCIES',
+      partyName: parsedData.metadata.partyName || 'UNKNOWN DISTRIBUTOR',
       invoiceNo: parsedData.metadata.invoiceNo || '000000',
       date: parsedData.metadata.date || ''
     })
@@ -231,7 +248,8 @@ Represent the output exactly in the requested JSON structure.`
 
     const smsBuffer = smsWriter.generate(normalizedRecords, templateBuffer)
 
-    const invNo = String(parseInt(parsedData.metadata.invoiceNo.replace(/[^0-9]/g, '')) || 0)
+    const rawInvNo = String(parsedData.metadata.invoiceNo || '0').replace(/[^0-9]/g, '')
+    const invNo = rawInvNo ? rawInvNo.slice(-6) : '000000'
     const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
 
     res.setHeader('Content-Type', 'application/octet-stream')

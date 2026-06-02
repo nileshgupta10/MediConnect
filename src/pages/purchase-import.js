@@ -162,7 +162,7 @@ function buildRecords(header, items) {
       NAME:       header.distName || '',
       ADD1:       header.address  || '',
       VOU_NO:     0,                                        // always 0 — CARE assigns its own number
-      VOU_TYPE:   'PCS',                                    // always PCS — confirmed working
+      VOU_TYPE:   'CRB',                                    // CRB = Purchase Register (matches protocol files)
       TR_DATE:    header.billDate || '',
       DUE_DATE:   header.dueDate  || header.billDate || '',
       PROD_CODE:  prodCode,                                 // batch code if present, else name-derived
@@ -389,7 +389,7 @@ export default function PurchaseImport() {
     try {
       const records = buildRecords(header, validItems)
       const buf     = generateDBF(records)
-      const fname   = `${header.partyCode.toUpperCase()}_NO${header.billNo.replace(/[^a-zA-Z0-9]/g, '')}.SMS`
+      const fname   = `RATADEH_${header.partyCode.toUpperCase()}CRB${header.billNo.replace(/[^a-zA-Z0-9]/g, '').slice(-6)}.SMS`
       downloadSMS(buf, fname)
       setMessage(`✓ ${fname} downloaded! Copy to C:\\download\\ on CARE PC, then click DwnLd Purch.`)
       setStep('done')
