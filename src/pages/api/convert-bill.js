@@ -90,7 +90,6 @@ function generateRandomPartyCode() {
   return code
 }
 
-// ── Gemini AI fallback when protocol detection fails ──────────────────────────
 async function convertViaGemini(fileBuffer, mimeType, fileName, randomParty, res) {
   let apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured — cannot auto-identify distributor.' })
@@ -205,6 +204,8 @@ Represent the output exactly in the requested JSON structure.`
   return res.send(smsBuffer)
 }
 
+
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -251,12 +252,7 @@ export default async function handler(req, res) {
 
     if (!fileBuffer) return res.status(400).json({ error: 'No file received.' })
 
-    // ── Determine mimeType for Gemini fallback ──
-    let mimeType = 'image/jpeg'
-    const lowerName = fileName.toLowerCase()
-    if (lowerName.endsWith('.pdf')) mimeType = 'application/pdf'
-    else if (lowerName.endsWith('.png')) mimeType = 'image/png'
-    else if (lowerName.endsWith('.webp')) mimeType = 'image/webp'
+
 
     let textContent = ''
 
@@ -281,6 +277,11 @@ export default async function handler(req, res) {
     // ── AUTO-FALLBACK: If no protocol matched (e.g. image-based PDF logo), use Gemini AI ──
     if (!protocol) {
       console.log('[convert-bill] Protocol not identified — auto-routing to Gemini AI fallback')
+      let mimeType = 'image/jpeg'
+      const lowerName = fileName.toLowerCase()
+      if (lowerName.endsWith('.pdf')) mimeType = 'application/pdf'
+      else if (lowerName.endsWith('.png')) mimeType = 'image/png'
+      else if (lowerName.endsWith('.webp')) mimeType = 'image/webp'
       return await convertViaGemini(fileBuffer, mimeType, fileName, randomParty, res)
     }
 

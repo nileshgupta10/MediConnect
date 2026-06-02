@@ -32,7 +32,6 @@ async function fetchWithRetry(options, postData, maxRetries = 3) {
   }
 }
 
-
 export const config = {
   api: {
     bodyParser: false,
