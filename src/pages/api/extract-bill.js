@@ -22,7 +22,7 @@ CRITICAL COLUMN MAPPING RULES:
 - "EA" or "Pcs" or "Qty" = the QTY field (individual units/pieces)
 - "Gross.Amt" or "Gross Amount" = GROS_AMT (qty x rate)
 - "Net.Amt" or "Net Amount" = the net payable per line
-- "*Disc+Gst Benefit" or "CD/RD/WSH" = IGNORE these columns entirely, set disc=0
+- "*Disc+Gst Benefit" or "RD/WSH" = IGNORE these columns, but the CD% column (Cash Discount %) MUST be extracted into the disc field. For this invoice CD=7.18 means disc=7.18.
 - "CGST%" and "SGST%" = these together make total GST (add both for gst field)
 - "MNF B.Code" or "Batch" = batch number
 - "HSN Code" = hsn field
@@ -38,7 +38,7 @@ FOR QTY: use the EA/Pcs/individual unit column only. If only cases (CS) column e
 
 FOR RATE: use S.Rate column. This is per individual unit, not per case.
 
-FOR DISC: only use clearly labelled discount % column. Ignore GST benefit columns. Default 0.
+FOR DISC: only use clearly labelled discount % column or the CD% column (Cash Discount %). Ignore GST benefit columns. Default 0. The CD% column (Cash Discount %) MUST be extracted into the disc field. For this invoice CD=7.18 means disc=7.18.
 
 Return ONLY valid JSON, no markdown, no explanation:
 

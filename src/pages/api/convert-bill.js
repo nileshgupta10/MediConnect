@@ -104,7 +104,7 @@ IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
    - ⚠️ NEVER confuse this with the Customer/Buyer (e.g. "RATAN MEDICAL" or "RATAN STORES") which is listed in the "To" / "Ship To" billing section.
 2. Product Volume / Sizes: Products with different volume sizes MUST be treated as completely separate, unique products.
 3. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
-4. Discount vs GST Column Alignment: Extract discount % to "discountPer" and GST % to "gstPer". NEVER confuse them.
+4. Discount vs GST Column Alignment: Extract discount % to "discountPer" and GST % to "gstPer". NEVER confuse them. The CD% column (Cash Discount %) MUST be extracted into the discountPer field. For this invoice CD=7.18 means discountPer=7.18.
 5. Pack Size: Extract the pack size to the "pack" field.
 
 For the metadata, extract the distributor's name, invoice number, and invoice date.
@@ -183,7 +183,7 @@ Represent the output exactly in the requested JSON structure.`
     return res.status(400).json({ error: 'No items were parsed from this invoice by the AI.' })
   }
 
-  let finalPartyCode = String(parsedData.metadata.partyCode || 'GEN').toUpperCase().substring(0, 3)
+  let finalPartyCode = String(parsedData.metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
   if (randomParty) finalPartyCode = generateRandomPartyCode()
 
   const normalizedRecords = normalizer.normalize(parsedData.items, {
@@ -192,6 +192,9 @@ Represent the output exactly in the requested JSON structure.`
     invoiceNo: parsedData.metadata.invoiceNo || '000000',
     date: parsedData.metadata.date || ''
   })
+
+  // Force VOU_NO to 0 — CARE assigns its own number
+  normalizedRecords.forEach(r => { r.VOU_NO = 0 })
 
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
   const templateBuffer = fs.readFileSync(templatePath)
@@ -334,9 +337,12 @@ export default async function handler(req, res) {
 async function generateSMS(protocol, rows, res, randomParty) {
   const metadata = protocol.getMetadata(rows)
   const items = protocol.mapRows(rows)
-  let finalPartyCode = String(metadata.partyCode || 'GEN').toUpperCase().substring(0, 3)
+  let finalPartyCode = String(metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
   if (randomParty) finalPartyCode = generateRandomPartyCode()
   const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
+
+  // Force VOU_NO to 0 — CARE assigns its own number
+  records.forEach(r => { r.VOU_NO = 0 })
 
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
   const templateBuffer = fs.readFileSync(templatePath)

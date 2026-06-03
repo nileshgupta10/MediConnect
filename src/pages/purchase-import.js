@@ -151,31 +151,37 @@ function buildRecords(header, items) {
     const net = gross - discAmt
     const sgstAmt = net * sgst / 100, cgstAmt = net * cgst / 100
 
-    // PROD_CODE: use batch code if available, else fallback to first 10 chars of product name
-    // (CARE needs a non-empty PROD_CODE to match/create product — blank causes silent reject)
-    const prodCode = item.batch
-      ? item.batch.slice(0, 10).padEnd(10, ' ')
-      : (item.prodName || '').replace(/\s+/g, '').toUpperCase().slice(0, 10).padEnd(10, ' ')
+    const itemId = String(idx + 1).padStart(5, '0')
+    const pCode = (header.partyCode || '').padEnd(3, ' ').slice(0, 3).toUpperCase()
+    const prodCode = pCode + '  ' + itemId
+
+    const cleanBatch = (item.batch || '').trim()
+    const batchVal = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
+      ? `AUTO${String(idx + 1).padStart(2, '0')}`
+      : cleanBatch.slice(0, 15)
+
+    const rawExp = (item.expiry || '').trim()
+    const expVal = rawExp ? rawExp : '00/00'
 
     return {
-      PARTYCODE:  (header.partyCode || '').slice(0, 3).toUpperCase(),
+      PARTYCODE:  pCode,
       NAME:       header.distName || '',
       ADD1:       header.address  || '',
       VOU_NO:     0,                                        // always 0 — CARE assigns its own number
       VOU_TYPE:   'CRB',                                    // CRB = Purchase Register (matches protocol files)
       TR_DATE:    header.billDate || '',
       DUE_DATE:   header.dueDate  || header.billDate || '',
-      PROD_CODE:  prodCode,                                 // batch code if present, else name-derived
+      PROD_CODE:  prodCode,                                 // party code + 2 spaces + 5-digit index
       PROD_NAME:  item.prodName || '',
       COMP_NAME:  item.company  || '',
       PAK:        item.pack     || '1*10',
       UOM:        1,
-      COMP:       (item.company || '').slice(0, 3).toUpperCase(),
+      COMP:       item.company ? item.company.padEnd(3, ' ').slice(0, 3).toUpperCase() : '   ',
       QTY:        qty,
       QTY_SCM:    0,
       DISC_SCM:   0,
-      PR_BATCHNO: `AUTO${String(idx + 1).padStart(2, '0')}`, // always AUTO01, AUTO02...
-      EXPIRY:     item.expiry || '12/27',
+      PR_BATCHNO: batchVal,
+      EXPIRY:     expVal,
       RATE:       rate,
       MRP:        Number(item.mrp || 0),
       DISCOUNT:   disc,
@@ -332,6 +338,7 @@ export default function PurchaseImport() {
           images: pages.map(p => ({ base64: p.base64, mimeType: 'image/jpeg' })),
           storeOwnerId: user.id,
         }),
+      })
       const contentType = res.headers.get('Content-Type') || ''
       let json = {}
       if (res.ok && contentType.includes('application/json')) {

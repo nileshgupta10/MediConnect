@@ -16,26 +16,17 @@
       const formattedDate = this._formatDate(date)
       const vouNo = String(invoiceNo || '0').replace(/[^0-9]/g, '').substring(0, 6)
 
-      return rawItems.map((item) => {
+      return rawItems.map((item, idx) => {
         const productName = String(item.productName || '').trim().toUpperCase()
 
-        let prodCode = item.prodCode
-        if (!prodCode) {
-          const cleanName = productName.replace(/[^A-Z0-9]/g, '')
-          const pack = String(item.pack || '').replace(/[^A-Z0-9]/g, '').toUpperCase()
-          
-          if (pack && pack.length > 0 && pack.length < 10) {
-            const nameLen = 10 - pack.length
-            prodCode = cleanName.substring(0, nameLen) + pack
-          } else {
-            prodCode = cleanName.substring(0, 10)
-          }
-        }
-        if (prodCode.length > 10) prodCode = prodCode.substring(0, 10)
+        const itemId = String(idx + 1).padStart(5, '0')
+        const pCode = (partyCode || '').padEnd(3, ' ').slice(0, 3).toUpperCase()
+        const prodCode = pCode + '  ' + itemId
 
-        const finalBatch = (item.batch && String(item.batch).trim())
-          ? String(item.batch).trim().substring(0, 15)
-          : '*'
+        const cleanBatch = (item.batch && String(item.batch).trim()) || ''
+        const finalBatch = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
+          ? `AUTO${String(idx + 1).padStart(2, '0')}`
+          : cleanBatch.substring(0, 15)
 
         const qty = parseFloat(item.qty) || 0
         const rate = parseFloat(item.rate) || 0
@@ -59,38 +50,44 @@
         })()
 
         const preDiscRate = parseFloat(item.rawRate) || rate
-const grossAmt = qty * preDiscRate
-const discAmt = parseFloat(item.discAmt) > 0
-  ? parseFloat(item.discAmt)
-  : grossAmt * (parseFloat(item.discountPer || 0) / 100)
-const taxableAmt = parseFloat(item.taxable) > 0
-  ? parseFloat(item.taxable)
-  : grossAmt - discAmt
+        const grossAmt = qty * preDiscRate
+        const discAmt = parseFloat(item.discAmt) > 0
+          ? parseFloat(item.discAmt)
+          : grossAmt * (parseFloat(item.discountPer || 0) / 100)
+        const taxableAmt = parseFloat(item.taxable) > 0
+          ? parseFloat(item.taxable)
+          : grossAmt - discAmt
         let finalCgstAmt = item.cgstAmt !== undefined ? item.cgstAmt : (taxableAmt * (gstPer / 200))
         let finalSgstAmt = item.sgstAmt !== undefined ? item.sgstAmt : (taxableAmt * (gstPer / 200))
 
         if (!isFinite(finalCgstAmt)) finalCgstAmt = 0
         if (!isFinite(finalSgstAmt)) finalSgstAmt = 0
 
+        const compName = item.companyName || item.company || ''
+        const compVal = compName ? compName.replace(/[^A-Za-z0-9]/g, '').padEnd(3, ' ').substring(0, 3).toUpperCase() : '   '
+
+        const rawExp = (item.expiry || '').trim()
+        const expVal = rawExp ? rawExp : '00/00'
+
         return {
-          PARTYCODE: String(partyCode || 'GEN').substring(0, 3).toUpperCase(),
+          PARTYCODE: pCode,
           NAME: String(partyName || 'GENERIC DISTRIBUTOR').substring(0, 40).toUpperCase(),
           ADD1: 'INDIA',
           VOU_NO: vouNo,
           VOU_TYPE: 'CRB',
           TR_DATE: formattedDate,
           DUE_DATE: formattedDate,
-          PROD_CODE: prodCode.toUpperCase().substring(0, 10),
+          PROD_CODE: prodCode,
           PROD_NAME: productName.substring(0, 30),
-          COMP_NAME: String(item.companyName || 'UNKNOWN').substring(0, 30).toUpperCase(),
+          COMP_NAME: String(compName || 'UNKNOWN').substring(0, 30).toUpperCase(),
           PAK: String(item.pack || '10T').substring(0, 6),
-          UOM: '1',
-          COMP: String(partyCode || 'GEN').substring(0, 3).toUpperCase(),
+          UOM: 1,
+          COMP: compVal,
           QTY: qty,
           QTY_SCM: parseFloat(item.freeQty) || 0,
           DISC_SCM: 0,
           PR_BATCHNO: finalBatch,
-          EXPIRY: item.expiry || '00/00',
+          EXPIRY: expVal,
           RATE: preDiscRate,
           MRP: mrp,
           DISCOUNT: discPer,

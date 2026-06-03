@@ -115,6 +115,7 @@ IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
 2. Product Volume / Sizes: Products with different volume sizes (e.g. 50ML, 80ML, 100ML, 30ML, 15GM) MUST be treated as completely separate, unique products. Capture their full names including the brand, volume, and size (e.g. "FT GOLDEN HOUR GLOW SUNSCREEN 50ML" and "FT GOLDEN HOUR GLOW SUNSCREEN 80ML").
 3. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
 4. Discount vs GST Column Alignment: Locate "Sch. %" (Scheme Discount %), "Rs.Disc" (Rupee Discount), and "C.Disc %" (Cash Discount %) columns. Sum them up or extract the primary discount to "discountPer".
+   - ⚠️ CRITICAL: The CD% column (Cash Discount %) MUST be extracted into the discountPer field. For this invoice CD=7.18 means discountPer=7.18.
    - ⚠️ DANGER: Locate the "GST %" column (normally values like 5, 12, 18, 28) and extract it to "gstPer".
    - ⚠️ NEVER confuse "GST %" (18%) with the discount columns. The discount in this invoice is the "Sch. %" column (which is 11%), not the "GST %" column (which is 18%).
 5. Pack Size: Extract the pack size (e.g. "50ML", "80ML", "30ML", "100ML", "10T") to the "pack" field.
@@ -225,7 +226,7 @@ Represent the output exactly in the requested JSON structure.`
       return res.status(400).json({ error: 'No items were parsed from this invoice by the AI.' })
     }
 
-    let finalPartyCode = String(parsedData.metadata.partyCode || 'MNS').toUpperCase().substring(0, 3)
+    let finalPartyCode = String(parsedData.metadata.partyCode || 'MNS').padEnd(3, ' ').toUpperCase().substring(0, 3)
     if (req.query.randomParty === 'true') {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
       let randCode = ''
@@ -242,6 +243,9 @@ Represent the output exactly in the requested JSON structure.`
       invoiceNo: parsedData.metadata.invoiceNo || '000000',
       date: parsedData.metadata.date || ''
     })
+
+    // Force VOU_NO to 0 — CARE assigns its own number
+    normalizedRecords.forEach(r => { r.VOU_NO = 0 })
 
     const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
     const templateBuffer = fs.readFileSync(templatePath)
