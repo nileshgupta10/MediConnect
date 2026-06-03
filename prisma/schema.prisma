@@ -504,3 +504,15 @@ model CustomerTransaction {
   createdAt     DateTime @default(now())
 }
 
+model distributor_formats {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  store_owner_id          String?   @db.Uuid
+  party_code              String
+  party_name              String
+  format_notes            Json      @default("{}")
+  last_successful_invoice String?
+  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([store_owner_id, party_code])
+}
+

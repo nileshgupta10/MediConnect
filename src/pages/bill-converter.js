@@ -10,11 +10,13 @@ export default function BillConverter() {
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [useRandomParty, setUseRandomParty] = useState(false)
+  const [userId, setUserId] = useState('')
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/simple-login'); return }
+      setUserId(user.id)
       setChecking(false)
     }
     checkAuth()
@@ -32,8 +34,11 @@ export default function BillConverter() {
       formData.append('file', file)
 
       let endpoint = useAI ? '/api/convert-bill-ai' : '/api/convert-bill'
-      if (useRandomParty) {
-        endpoint += '?randomParty=true'
+      const queryParams = []
+      if (useRandomParty) queryParams.push('randomParty=true')
+      if (userId) queryParams.push(`storeOwnerId=${userId}`)
+      if (queryParams.length > 0) {
+        endpoint += '?' + queryParams.join('&')
       }
       const res = await fetch(endpoint, {
         method: 'POST',

@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import https from 'https'
+import { createClient } from '@supabase/supabase-js'
 import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 
@@ -107,21 +108,97 @@ export default async function handler(req, res) {
     // Clean key from quotes or trailing whitespaces
     apiKey = apiKey.replace(/['"]/g, '').trim()
 
-    const promptText = `You are a highly precise pharmaceutical invoice data extractor.
-Locate the invoice's line items table and extract all items.
-IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
-1. Distributor (Seller) Disambiguation: Identify the DISTRIBUTOR (the company SELLING the products, e.g. "MEDICINE HOUSE" or "A B MARKETING"). This is always the main company branding at the very top of the invoice.
-   - ⚠️ NEVER confuse this with the Customer/Buyer (e.g. "RATAN MEDICAL" or "RATAN STORES") which is listed in the "To" / "Ship To" billing section. 
-2. Product Volume / Sizes: Products with different volume sizes (e.g. 50ML, 80ML, 100ML, 30ML, 15GM) MUST be treated as completely separate, unique products. Capture their full names including the brand, volume, and size (e.g. "FT GOLDEN HOUR GLOW SUNSCREEN 50ML" and "FT GOLDEN HOUR GLOW SUNSCREEN 80ML").
-3. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
-4. Discount vs GST Column Alignment: Locate "Sch. %" (Scheme Discount %), "Rs.Disc" (Rupee Discount), and "C.Disc %" (Cash Discount %) columns. Sum them up or extract the primary discount to "discountPer".
-   - ⚠️ CRITICAL: The CD% column (Cash Discount %) MUST be extracted into the discountPer field. For this invoice CD=7.18 means discountPer=7.18.
-   - ⚠️ DANGER: Locate the "GST %" column (normally values like 5, 12, 18, 28) and extract it to "gstPer".
-   - ⚠️ NEVER confuse "GST %" (18%) with the discount columns. The discount in this invoice is the "Sch. %" column (which is 11%), not the "GST %" column (which is 18%).
-5. Pack Size: Extract the pack size (e.g. "50ML", "80ML", "30ML", "100ML", "10T") to the "pack" field.
+    // Detect partyCode from filename or text for initial memory note fetching
+    let detectedPartyCode = 'MNS'
+    const upperName = fileName.toUpperCase()
+    if (upperName.includes('MNS') || upperName.includes('MANSHI')) detectedPartyCode = 'MNS'
+    else if (upperName.includes('PWP') || upperName.includes('PATWARI')) detectedPartyCode = 'PWP'
+    else if (upperName.includes('PPH') || upperName.includes('PREM') || upperName.includes('MEDICA')) detectedPartyCode = 'PPH'
+    else if (upperName.includes('BCS') || upperName.includes('BEAUTY')) detectedPartyCode = 'BCS'
+    else if (upperName.includes('NVK') || upperName.includes('NAVKAR')) detectedPartyCode = 'NVK'
+    else if (upperName.includes('MDH') || upperName.includes('MEDICINE')) detectedPartyCode = 'MDH'
+    else if (upperName.includes('ABM') || upperName.includes('ABMARKETING')) detectedPartyCode = 'ABM'
+    else if (upperName.includes('CGM') || upperName.includes('CGMARKETING')) detectedPartyCode = 'CGM'
+    else if (isPDF) {
+      try {
+        const { extractText } = await import('unpdf')
+        const extracted = await extractText(new Uint8Array(fileBuffer))
+        const text = Array.isArray(extracted?.text) ? extracted.text.join('\n') : String(extracted?.text || extracted || '')
+        const upper = text.toUpperCase()
+        if (upper.includes('MANSHI')) detectedPartyCode = 'MNS'
+        else if (upper.includes('PATWARI')) detectedPartyCode = 'PWP'
+        else if (upper.includes('PREM') || upper.includes('MEDICA')) detectedPartyCode = 'PPH'
+        else if (upper.includes('BEAUTY')) detectedPartyCode = 'BCS'
+        else if (upper.includes('NAVKAR')) detectedPartyCode = 'NVK'
+        else if (upper.includes('MEDICINE HOUSE')) detectedPartyCode = 'MDH'
+        else if (upper.includes('A B MARKETING')) detectedPartyCode = 'ABM'
+        else if (upper.includes('C G MARKETING')) detectedPartyCode = 'CGM'
+      } catch (e) {
+        console.warn('Could not extract text to detect partyCode:', e)
+      }
+    }
 
-For the metadata, extract the distributor's name, invoice number, and invoice date.
-Represent the output exactly in the requested JSON structure.`
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+
+    let formatNotes = {}
+    let memoryPartyName = ''
+    if (req.query.storeOwnerId) {
+      try {
+        const { data: fmt } = await supabaseAdmin
+          .from('distributor_formats')
+          .select('format_notes, party_name')
+          .eq('store_owner_id', req.query.storeOwnerId)
+          .eq('party_code', detectedPartyCode)
+          .maybeSingle()
+        if (fmt) {
+          formatNotes = fmt.format_notes || {}
+          memoryPartyName = fmt.party_name || ''
+        }
+      } catch (e) {
+        console.error('Could not query distributor_formats:', e)
+      }
+    }
+
+    const memoryNote = memoryPartyName
+      ? `\nPREVIOUSLY LEARNED ABOUT THIS DISTRIBUTOR (${memoryPartyName}): ${JSON.stringify(formatNotes)}. Apply these known column patterns.`
+      : ''
+
+    const promptText = `You are a highly precise pharmaceutical and FMCG invoice data extractor.
+
+CRITICAL COLUMN READING RULES:
+
+1. DISTRIBUTOR vs CUSTOMER: The DISTRIBUTOR is the company at the TOP of the bill (seller). NEVER use the "To" / "Billed to" / receiver section as the party name.
+
+2. FREE QTY COLUMN (FR column):
+   - The FR column contains only whole numbers like 0, 1, 2, 3.
+   - If a row's FR cell is blank or empty, freeQty = 0. Do NOT default to any other value.
+   - DANGER: The SCH% column (scheme percentage like 10.00, 8.00) is a DIFFERENT column from FR. Never put a SCH% value into freeQty. A value like 10.00 or 8.00 is a percentage — it is NOT a free quantity.
+   - Only read freeQty from the column explicitly labelled FR or Free.
+
+3. QTY COLUMN: Read the Qty value from THIS row only. Do not accidentally read the qty from the row above or below. Each row is independent.
+
+4. SCHEME DISCOUNT — ONE VALUE ONLY:
+   - Some invoices have TWO scheme discount columns: "SCH %" (a percentage) and "SCHM AMT" or "SCH AMT" (a rupee amount).
+   - These represent the SAME discount expressed two ways. Use ONLY the rupee amount (SCHM AMT) as discountAmt. Do NOT apply the SCH% on top of SCHM AMT again — that would double-count the discount.
+   - If only SCH% exists and no rupee amount column, calculate: discountAmt = qty × rate × (SCH% / 100).
+   - If SCHM AMT rupee column exists, use that directly as discountAmt and set discountPer = SCH%.
+
+5. CD% (Cash Discount): This is a separate per-row column. Read it from THIS row's own cell. If blank, CD = 0. Never apply the bill's global CD% to all rows uniformly.
+
+6. RATE COLUMN: Every row must have a rate. If the rate cell appears blank due to image quality, estimate it from: rate = taxable / qty. Never leave rate as 0 if taxable or net amount is non-zero.
+
+7. TAXABLE AMOUNT: taxable = (qty × rate) − discountAmt. This is the pre-GST base. Do not include free qty in taxable calculation.
+
+8. GST: SGST% and CGST% together make total GST. Extract each half separately. If only total GST% shown, split equally (e.g. 18% GST = 9% SGST + 9% CGST).
+
+9. NET AMOUNT: netAmt = taxable × (1 + totalGST/100). Verify your extracted values match the printed Net Amt column within ₹1.
+
+10. PACK SIZE: Extract from the item description (e.g. 10KG, 1KG, 400GM, 80GM, 6KG).
+
+Return output in the exact JSON schema requested.${memoryNote}`
 
     const payload = {
       contents: [
@@ -165,17 +242,15 @@ Represent the output exactly in the requested JSON structure.`
                 properties: {
                   productName: { type: "STRING", description: "Full Product Name including size and volume (e.g. FT GOLDEN HOUR GLOW SUNSCREEN 50ML)" },
                   qty: { type: "NUMBER", description: "Billed Quantity from Qty column (do not mix with Free Qty)" },
-                  freeQty: { type: "NUMBER", description: "Free Quantity from Free column (default to 0 if empty or none)" },
+                  freeQty: { type: "NUMBER", description: "Free quantity from the FR or Free column only. Must be 0 if the FR cell for this row is blank or empty. NEVER use SCH% value as free qty." },
                   rate: { type: "NUMBER", description: "Unit Purchase Rate/PTR pre-discount" },
                   rawRate: { type: "NUMBER", description: "Unit Purchase Rate/PTR pre-discount (raw list rate)" },
                   mrp: { type: "NUMBER", description: "MRP per unit" },
                   pack: { type: "STRING", description: "Pack size / volume extracted from item description (e.g. 50ML, 80ML, 30ML, 10T)" },
                   hsn: { type: "STRING", description: "HSN Code" },
                   expiry: { type: "STRING", description: "Expiry Date (MM/YY)" },
-                  discountPer: { 
-                    type: "NUMBER", 
-                    description: "Discount % for THIS specific line item from the CDA or CD% column. Read the value from this item's own row — do NOT apply a global discount to all rows. If this row's CDA column is blank or 0.00, return 0." 
-                  },
+                  discountPer: { type: "NUMBER", description: "Scheme discount percentage from SCH% column for THIS row. Default 0 if blank." },
+                  discountAmt: { type: "NUMBER", description: "Scheme discount in rupees from SCHM AMT column for THIS row. If only SCH% exists, calculate as qty×rate×(SCH%/100). Default 0." },
                   gstPer: { type: "NUMBER", description: "GST percentage (e.g. 18.0) from the GST % column" },
                   taxable: { type: "NUMBER", description: "Taxable amount" },
                   netAmt: { type: "NUMBER", description: "Net amount" }
@@ -239,8 +314,14 @@ Represent the output exactly in the requested JSON structure.`
       finalPartyCode = randCode
     }
 
+    // Map discountAmt to discAmt for normalizer
+    const itemsWithDiscAmt = parsedData.items.map(it => ({
+      ...it,
+      discAmt: it.discountAmt !== undefined ? it.discountAmt : 0
+    }))
+
     // Normalize through standard billing normalizer agent
-    const normalizedRecords = normalizer.normalize(parsedData.items, {
+    const normalizedRecords = normalizer.normalize(itemsWithDiscAmt, {
       partyCode: finalPartyCode,
       partyName: parsedData.metadata.partyName || 'UNKNOWN DISTRIBUTOR',
       invoiceNo: parsedData.metadata.invoiceNo || '000000',
@@ -249,6 +330,28 @@ Represent the output exactly in the requested JSON structure.`
 
     // Force VOU_NO to 0 — CARE assigns its own number
     normalizedRecords.forEach(r => { r.VOU_NO = 0 })
+
+    // Upsert distributor format notes for memory
+    if (req.query.storeOwnerId) {
+      try {
+        await supabaseAdmin.from('distributor_formats').upsert({
+          store_owner_id: req.query.storeOwnerId,
+          party_code: finalPartyCode,
+          party_name: parsedData.metadata.partyName || 'UNKNOWN DISTRIBUTOR',
+          format_notes: {
+            has_free_qty_column: parsedData.items.some(i => i.freeQty > 0),
+            has_scheme_pct_column: parsedData.items.some(i => i.discountPer > 0),
+            has_schm_amt_column: parsedData.items.some(i => i.discountAmt > 0),
+            has_cd_column: parsedData.items.some(i => i.discountPer > 0),
+            sample_columns_observed: Object.keys(parsedData.items[0] || {}).join(','),
+          },
+          last_successful_invoice: parsedData.metadata.invoiceNo || '000000',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'store_owner_id,party_code' })
+      } catch (err) {
+        console.error('Failed to upsert distributor_formats:', err)
+      }
+    }
 
     const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
     const templateBuffer = fs.readFileSync(templatePath)
