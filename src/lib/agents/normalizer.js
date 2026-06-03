@@ -24,8 +24,8 @@
         const prodCode = pCode + '  ' + itemId
 
         const cleanBatch = (item.batch && String(item.batch).trim()) || ''
-        const finalBatch = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
-          ? `AUTO${String(idx + 1).padStart(2, '0')}`
+        const finalBatch = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch.toUpperCase() === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
+          ? '**'
           : cleanBatch.substring(0, 15)
 
         const qty = parseFloat(item.qty) || 0
@@ -66,8 +66,10 @@
         const compName = item.companyName || item.company || ''
         const compVal = compName ? compName.replace(/[^A-Za-z0-9]/g, '').padEnd(3, ' ').substring(0, 3).toUpperCase() : '   '
 
-        const rawExp = (item.expiry || '').trim()
-        const expVal = rawExp ? rawExp : '00/00'
+        const expVal = (() => {
+          const e = (item.expiry || '').trim()
+          return /^\d{2}\/\d{2}$/.test(e) ? e : '00/00'
+        })()
 
         return {
           PARTYCODE: pCode,

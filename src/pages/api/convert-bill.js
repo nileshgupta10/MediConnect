@@ -145,8 +145,10 @@ Represent the output exactly in the requested JSON structure.`
                 mrp: { type: 'NUMBER' },
                 pack: { type: 'STRING' },
                 hsn: { type: 'STRING' },
-                expiry: { type: 'STRING' },
-                discountPer: { type: 'NUMBER' },
+                discountPer: { 
+                  type: 'NUMBER', 
+                  description: "Discount % for THIS specific line item from the CDA or CD% column. Read the value from this item's own row — do NOT apply a global discount to all rows. If this row's CDA column is blank or 0.00, return 0." 
+                },
                 gstPer: { type: 'NUMBER' },
                 taxable: { type: 'NUMBER' },
                 netAmt: { type: 'NUMBER' }

@@ -144,24 +144,26 @@ function generateDBF(records) {
 
 function buildRecords(header, items) {
   return items.map((item, idx) => {
-    const qty = Number(item.qty || 0), rate = Number(item.rate || 0)
-    const disc = Number(item.disc || 0), gst = Number(item.gst || 5)
+    const qty = Number(item.qty || 0)
+    const rate = Number(item.rate || 0)
+    const disc = Number(item.disc || 0)
+    const gst = Number(item.gst || 5)
     const sgst = gst / 2, cgst = gst / 2
-    const gross = qty * rate, discAmt = gross * disc / 100
-    const net = gross - discAmt
-    const sgstAmt = net * sgst / 100, cgstAmt = net * cgst / 100
+    const gross = qty * rate
+    const discAmt = parseFloat((gross * disc / 100).toFixed(2))
+    const taxable = parseFloat((gross - discAmt).toFixed(2))
+    const sgstAmt = parseFloat((taxable * sgst / 100).toFixed(3))
+    const cgstAmt = parseFloat((taxable * cgst / 100).toFixed(3))
+    const debit   = parseFloat((taxable + sgstAmt + cgstAmt).toFixed(2))
 
     const itemId = String(idx + 1).padStart(5, '0')
     const pCode = (header.partyCode || '').padEnd(3, ' ').slice(0, 3).toUpperCase()
     const prodCode = pCode + '  ' + itemId
 
     const cleanBatch = (item.batch || '').trim()
-    const batchVal = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
-      ? `AUTO${String(idx + 1).padStart(2, '0')}`
+    const batchVal = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch.toUpperCase() === 'ABC')
+      ? '**'
       : cleanBatch.slice(0, 15)
-
-    const rawExp = (item.expiry || '').trim()
-    const expVal = rawExp ? rawExp : '00/00'
 
     return {
       PARTYCODE:  pCode,
@@ -181,7 +183,10 @@ function buildRecords(header, items) {
       QTY_SCM:    0,
       DISC_SCM:   0,
       PR_BATCHNO: batchVal,
-      EXPIRY:     expVal,
+      EXPIRY: (() => {
+        const e = (item.expiry || '').trim()
+        return /^\d{2}\/\d{2}$/.test(e) ? e : '00/00'
+      })(),
       RATE:       rate,
       MRP:        Number(item.mrp || 0),
       DISCOUNT:   disc,
@@ -194,7 +199,7 @@ function buildRecords(header, items) {
       CR_AMT:     0,
       PTS_PER:    0,
       PTS_AMT:    0,
-      DEBIT:      net + sgstAmt + cgstAmt,
+      DEBIT:      debit,
       GROS_AMT:   gross,
       CAT_CODE:   '',
       FREIGHT:    0,

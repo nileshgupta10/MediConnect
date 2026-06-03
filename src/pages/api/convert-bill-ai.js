@@ -172,7 +172,10 @@ Represent the output exactly in the requested JSON structure.`
                   pack: { type: "STRING", description: "Pack size / volume extracted from item description (e.g. 50ML, 80ML, 30ML, 10T)" },
                   hsn: { type: "STRING", description: "HSN Code" },
                   expiry: { type: "STRING", description: "Expiry Date (MM/YY)" },
-                  discountPer: { type: "NUMBER", description: "Total discount percentage from Sch. % or C.Disc % columns (e.g. 11.0). Must NEVER contain the GST percentage (e.g. 18.0)!" },
+                  discountPer: { 
+                    type: "NUMBER", 
+                    description: "Discount % for THIS specific line item from the CDA or CD% column. Read the value from this item's own row — do NOT apply a global discount to all rows. If this row's CDA column is blank or 0.00, return 0." 
+                  },
                   gstPer: { type: "NUMBER", description: "GST percentage (e.g. 18.0) from the GST % column" },
                   taxable: { type: "NUMBER", description: "Taxable amount" },
                   netAmt: { type: "NUMBER", description: "Net amount" }
