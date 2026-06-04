@@ -83,14 +83,7 @@ function parseCSV(csvText) {
   }).filter(row => Object.values(row).some(v => v))
 }
 
-function generateRandomPartyCode() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  let code = ''
-  for (let i = 0; i < 3; i++) code += chars.charAt(Math.floor(Math.random() * chars.length))
-  return code
-}
-
-async function convertViaGemini(fileBuffer, mimeType, fileName, randomParty, res) {
+async function convertViaGemini(fileBuffer, mimeType, fileName, res) {
   let apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured — cannot auto-identify distributor.' })
   apiKey = apiKey.replace(/['"]/g, '').trim()
@@ -186,7 +179,6 @@ Represent the output exactly in the requested JSON structure.`
   }
 
   let finalPartyCode = String(parsedData.metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
-  if (randomParty) finalPartyCode = generateRandomPartyCode()
 
   const normalizedRecords = normalizer.normalize(parsedData.items, {
     partyCode: finalPartyCode,
@@ -221,7 +213,6 @@ export default async function handler(req, res) {
     let fileBuffer = null
     let fileName = ''
     let isPDF = false
-    const randomParty = req.query.randomParty === 'true'
 
     // Parse multipart form data
     if (contentType.includes('multipart/form-data')) {
@@ -251,7 +242,7 @@ export default async function handler(req, res) {
         if (!protocol) return res.status(400).json({ error: 'Could not identify distributor.' })
         const rows = parseCSV(text)
         if (rows.length === 0) return res.status(400).json({ error: 'No data rows found.' })
-        return await generateSMS(protocol, rows, res, randomParty)
+        return await generateSMS(protocol, rows, res)
       }
     }
 
@@ -287,7 +278,7 @@ export default async function handler(req, res) {
       if (lowerName.endsWith('.pdf')) mimeType = 'application/pdf'
       else if (lowerName.endsWith('.png')) mimeType = 'image/png'
       else if (lowerName.endsWith('.webp')) mimeType = 'image/webp'
-      return await convertViaGemini(fileBuffer, mimeType, fileName, randomParty, res)
+      return await convertViaGemini(fileBuffer, mimeType, fileName, res)
     }
 
     // For PDFs — pass raw text to protocol
@@ -310,7 +301,6 @@ export default async function handler(req, res) {
       const metadata = protocol.getMetadata(lines)
       const items = rows
       let finalPartyCode = String(metadata.partyCode || 'GEN').toUpperCase().substring(0, 3)
-      if (randomParty) finalPartyCode = generateRandomPartyCode()
       const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
       const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
       const templateBuffer = fs.readFileSync(templatePath)
@@ -328,7 +318,7 @@ export default async function handler(req, res) {
 
     if (!rows || rows.length === 0) return res.status(400).json({ error: 'No data rows found in file.' })
 
-    return await generateSMS(protocol, rows, res, randomParty)
+    return await generateSMS(protocol, rows, res)
 
   } catch (err) {
     console.error('convert-bill error:', err)
@@ -336,11 +326,10 @@ export default async function handler(req, res) {
   }
 }
 
-async function generateSMS(protocol, rows, res, randomParty) {
+async function generateSMS(protocol, rows, res) {
   const metadata = protocol.getMetadata(rows)
   const items = protocol.mapRows(rows)
   let finalPartyCode = String(metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
-  if (randomParty) finalPartyCode = generateRandomPartyCode()
   const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
 
   // Force VOU_NO to 0 — CARE assigns its own number

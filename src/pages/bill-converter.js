@@ -9,7 +9,6 @@ export default function BillConverter() {
   const [file, setFile] = useState(null)
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
-  const [useRandomParty, setUseRandomParty] = useState(false)
   const [userId, setUserId] = useState('')
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function BillConverter() {
 
       let endpoint = useAI ? '/api/convert-bill-ai' : '/api/convert-bill'
       const queryParams = []
-      if (useRandomParty) queryParams.push('randomParty=true')
       if (userId) queryParams.push(`storeOwnerId=${userId}`)
       if (queryParams.length > 0) {
         endpoint += '?' + queryParams.join('&')
@@ -97,24 +95,6 @@ export default function BillConverter() {
             style={st.input}
           />
           {file && <p style={st.filename}>📄 {file.name}</p>}
-
-          {/* Premium Branded Toggle Card */}
-          <div style={st.toggleCard}>
-            <label style={st.toggleLabel}>
-              <input
-                type="checkbox"
-                checked={useRandomParty}
-                onChange={e => setUseRandomParty(e.target.checked)}
-                style={st.checkbox}
-              />
-              <div style={st.toggleTextContainer}>
-                <span style={st.toggleTitle}>🔗 Force CARE "Party Mapping" Dialog</span>
-                <span style={st.toggleDesc}>
-                  Generates a random party code so CARE asks you to map/link this import to any of your existing suppliers.
-                </span>
-              </div>
-            </label>
-          </div>
           
           <div style={st.btnContainer}>
             <button
@@ -148,46 +128,6 @@ const st = {
   page: { padding: 24, maxWidth: 600, margin: '0 auto', fontFamily: 'system-ui,sans-serif' },
   heading: { fontSize: 24, fontWeight: 700, marginBottom: 8 },
   sub: { color: '#64748b', fontSize: 14, marginBottom: 24 },
-  toggleCard: {
-    background: '#f8fafc',
-    border: '1px dashed #cbd5e1',
-    borderRadius: '10px',
-    padding: '12px 16px',
-    marginBottom: '16px',
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  toggleLabel: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '12px',
-    width: '100%',
-    cursor: 'pointer',
-  },
-  checkbox: {
-    width: '18px',
-    height: '18px',
-    accentColor: '#0e9090',
-    cursor: 'pointer',
-    marginTop: '3px',
-  },
-  toggleTextContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  toggleTitle: {
-    fontSize: '13.5px',
-    fontWeight: '700',
-    color: '#0f3460',
-  },
-  toggleDesc: {
-    fontSize: '11px',
-    color: '#64748b',
-    lineHeight: '1.4',
-  },
   card: { border: '1px solid #e2e8f0', borderRadius: 12, padding: 24, background: 'white', marginBottom: 20 },
   label: { display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' },
   input: { width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, marginBottom: 12, boxSizing: 'border-box' },
