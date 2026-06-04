@@ -32,7 +32,15 @@ const { generateStableId } = require('../../utils/stableId')
       const hsn = row.hsncode || ''
       const grsAmt = cleanNum(row.grsamt)
       const qty = cleanNum(row.qty)
-      const derivedRate = qty > 0 ? (grsAmt / qty) : cleanNum(row.rate)
+
+      const discountPer = cleanNum(row.cdper) || cleanNum(row.discper) || cleanNum(row.disc) || cleanNum(row.schper) || 0
+      const discAmt = cleanNum(row.cdamt) || cleanNum(row.discamt) || cleanNum(row.disc_amt) || cleanNum(row.schamt) || 0
+
+      const rate = cleanNum(row.rate || row.ptr) || (qty > 0 ? (grsAmt / qty) : 0)
+      const rawRate = rate
+
+      // Post-discount taxable base is grsAmt minus discAmt
+      const taxable = grsAmt - discAmt
 
       return {
         productName,
@@ -41,7 +49,8 @@ const { generateStableId } = require('../../utils/stableId')
         batch: row.batchno || '',
         qty,
         freeQty: cleanNum(row.free),
-        rate: derivedRate,
+        rate,
+        rawRate,
         mrp: cleanNum(row.mrp),
         hsn,
         expiry: (() => {
@@ -56,8 +65,9 @@ const { generateStableId } = require('../../utils/stableId')
           }
           return '12/30'
         })(),
-        discountPer: cleanNum(row.discper || row.disc || row.schper || row.cdper || 0),
-        discAmt: cleanNum(row.discamt || row.disc_amt || row.schamt || row.cdamt || 0),
+        discountPer,
+        discAmt,
+        taxable,
         cgstAmt: cleanNum(row.cgstamt),
         sgstAmt: cleanNum(row.sgstamt),
         gstPer: (cleanNum(row.cgstper) + cleanNum(row.sgstper)) || 12
@@ -67,7 +77,9 @@ const { generateStableId } = require('../../utils/stableId')
     if (items.length > 0) {
       const targetTotal = cleanNum(rows[0]?.invamt)
       const currentTotal = items.reduce((sum, item) => {
-        return sum + (item.qty * item.rate) + item.cgstAmt + item.sgstAmt
+        const itemGross = item.qty * item.rate
+        const itemDisc = item.discAmt || (itemGross * (item.discountPer / 100))
+        return sum + (itemGross - itemDisc) + item.cgstAmt + item.sgstAmt
       }, 0)
       const diff = targetTotal - currentTotal
       if (Math.abs(diff) < 1.0 && items[0].qty > 0) {
