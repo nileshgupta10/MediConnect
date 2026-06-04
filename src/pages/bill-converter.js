@@ -86,13 +86,13 @@ export default function BillConverter() {
     <StoreLayout>
       <div style={st.page}>
         <h1 style={st.heading}>📋 Bill Converter</h1>
-        <p style={st.sub}>Upload your distributor bill (CSV, PDF, or image photo) to generate a CARE-compatible .SMS file.</p>
+        <p style={st.sub}>Upload your distributor bill (CSV or PDF) to generate a CARE-compatible .SMS file.</p>
 
         <div style={st.card}>
-          <label style={st.label}>Select Bill File (CSV, PDF, or Photo)</label>
+          <label style={st.label}>Select Bill File (CSV or PDF)</label>
           <input
             type="file"
-            accept=".csv,.CSV,.pdf,.PDF,.jpg,.jpeg,.png,.webp,.JPG,.JPEG,.PNG,.WEBP"
+            accept=".csv,.CSV,.pdf,.PDF"
             onChange={e => { setFile(e.target.files[0]); setStatus('') }}
             style={st.input}
           />
@@ -124,14 +124,6 @@ export default function BillConverter() {
             >
               ⚡ Convert & Download (Protocols)
             </button>
-            
-            <button
-              onClick={() => handleConvert(true)}
-              disabled={loading || !file}
-              style={loading || !file ? st.btnDisabled : st.btnAI}
-            >
-              🤖 AI Scan & Convert (Gemini)
-            </button>
           </div>
 
           {status && (
@@ -143,10 +135,9 @@ export default function BillConverter() {
 
         <div style={st.infoBox}>
           <p style={st.infoTitle}>How to use:</p>
-          <p style={st.infoText}>1. Select any invoice file (PDF/CSV) or upload a direct photo/scan of a printed paper invoice.</p>
+          <p style={st.infoText}>1. Select your distributor bill file (CSV or PDF format).</p>
           <p style={st.infoText}>2. Use <b>Convert & Download (Protocols)</b> for your configured standard distributors.</p>
-          <p style={st.infoText}>3. Use <b>AI Scan & Convert (Gemini)</b> to scan *any* printed invoice or arbitrary distributor bill automatically!</p>
-          <p style={st.infoText}>4. Copy the downloaded file to your CARE PC's <b>C:\download\</b> folder and click <b>DwnLd Purch</b>.</p>
+          <p style={st.infoText}>3. Copy the downloaded file to your CARE PC's <b>C:\download\</b> folder and click <b>DwnLd Purch</b>.</p>
         </div>
       </div>
     </StoreLayout>

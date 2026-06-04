@@ -105,6 +105,10 @@ async function callClaude(images, model, apiKey) {
 }
 
 export default async function handler(req, res) {
+  return res.status(410).json({ error: 'AI Scanner has been disabled.' })
+}
+
+async function originalHandler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.ANTHROPIC_API_KEY) {
