@@ -72,9 +72,6 @@ class SMSWriter {
 
     for (const [name, type, len, dec, required] of this.FIELDS) {
       let raw = data[name]
-      if (name === 'VOU_NO') {
-        raw = 0
-      }
 
       if (type === '0') {
         // NullFlags — write 0x00 (not space)

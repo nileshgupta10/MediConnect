@@ -332,8 +332,6 @@ Return output in the exact JSON schema requested.${memoryNote}`
       date: parsedData.metadata.date || ''
     })
 
-    // Force VOU_NO to 0 — CARE assigns its own number
-    normalizedRecords.forEach(r => { r.VOU_NO = 0 })
 
     // Upsert distributor format notes for memory
     if (req.query.storeOwnerId) {

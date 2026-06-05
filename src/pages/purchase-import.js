@@ -169,7 +169,7 @@ function buildRecords(header, items) {
       PARTYCODE:  pCode,
       NAME:       header.distName || '',
       ADD1:       header.address  || '',
-      VOU_NO:     0,                                        // always 0 — CARE assigns its own number
+      VOU_NO:     Number(String(header.billNo || '0').replace(/[^0-9]/g, '').slice(-6)) || 0,
       VOU_TYPE:   'CRB',                                    // CRB = Purchase Register (matches protocol files)
       TR_DATE:    header.billDate || '',
       DUE_DATE:   header.dueDate  || header.billDate || '',

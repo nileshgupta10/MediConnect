@@ -187,8 +187,6 @@ Represent the output exactly in the requested JSON structure.`
     date: parsedData.metadata.date || ''
   })
 
-  // Force VOU_NO to 0 — CARE assigns its own number
-  normalizedRecords.forEach(r => { r.VOU_NO = 0 })
 
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
   const templateBuffer = fs.readFileSync(templatePath)
@@ -332,8 +330,6 @@ async function generateSMS(protocol, rows, res) {
   let finalPartyCode = String(metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
   const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
 
-  // Force VOU_NO to 0 — CARE assigns its own number
-  records.forEach(r => { r.VOU_NO = 0 })
 
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
   const templateBuffer = fs.readFileSync(templatePath)
