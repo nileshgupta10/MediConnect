@@ -50,7 +50,9 @@
         })()
 
         const preDiscRate = parseFloat(item.rawRate) || rate
-        const grossAmt = qty * preDiscRate
+        const grossAmt = parseFloat(item.grossAmt || item.gross_amt || 0) > 0
+          ? parseFloat(item.grossAmt || item.gross_amt || 0)
+          : qty * preDiscRate
         const discAmt = parseFloat(item.discAmt || item.discountAmt || 0) > 0
           ? parseFloat(item.discAmt || item.discountAmt || 0)
           : grossAmt * (parseFloat(item.discountPer || 0) / 100)
