@@ -79,13 +79,12 @@ const { generateStableId } = require('../../utils/stableId')
     if (items.length > 0) {
       const targetTotal = cleanNum(rows[0]?.invamt)
       const currentTotal = items.reduce((sum, item) => {
-        const itemGross = item.qty * item.rate
-        const itemDisc = item.discAmt || (itemGross * (item.discountPer / 100))
-        return sum + (itemGross - itemDisc) + item.cgstAmt + item.sgstAmt
+        // Use grsamt (item.taxable) as the post-discount taxable base — do NOT recompute from qty×rate
+        return sum + item.taxable + item.cgstAmt + item.sgstAmt
       }, 0)
       const diff = targetTotal - currentTotal
       if (Math.abs(diff) < 1.0 && items[0].qty > 0) {
-        items[0].rate += (diff / items[0].qty)
+        items[0].taxable += diff
       }
     }
 

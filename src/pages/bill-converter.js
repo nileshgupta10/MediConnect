@@ -23,21 +23,18 @@ export default function BillConverter() {
 
   if (checking) return <p style={{ padding: 20 }}>Loading...</p>
 
-  const handleConvert = async (useAI = false) => {
+  const handleConvert = async () => {
     if (!file) { setStatus('Please select a file first.'); return }
     setLoading(true)
-    setStatus(useAI ? '🤖 Gemini AI is reading your bill and extracting items... Please wait...' : 'Converting...')
+    setStatus('Converting...')
 
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      let endpoint = useAI ? '/api/convert-bill-ai' : '/api/convert-bill'
-      const queryParams = []
-      if (userId) queryParams.push(`storeOwnerId=${userId}`)
-      if (queryParams.length > 0) {
-        endpoint += '?' + queryParams.join('&')
-      }
+      let endpoint = '/api/convert-bill'
+      if (userId) endpoint += `?storeOwnerId=${userId}`
+
       const res = await fetch(endpoint, {
         method: 'POST',
         body: formData
@@ -95,14 +92,14 @@ export default function BillConverter() {
             style={st.input}
           />
           {file && <p style={st.filename}>📄 {file.name}</p>}
-          
+
           <div style={st.btnContainer}>
             <button
-              onClick={() => handleConvert(false)}
+              onClick={handleConvert}
               disabled={loading || !file}
               style={loading || !file ? st.btnDisabled : st.btnStandard}
             >
-              ⚡ Convert & Download (Protocols)
+              {loading ? '⏳ Converting...' : '⚡ Convert & Download'}
             </button>
           </div>
 
@@ -116,8 +113,8 @@ export default function BillConverter() {
         <div style={st.infoBox}>
           <p style={st.infoTitle}>How to use:</p>
           <p style={st.infoText}>1. Select your distributor bill file (CSV or PDF format).</p>
-          <p style={st.infoText}>2. Use <b>Convert & Download (Protocols)</b> for your configured standard distributors.</p>
-          <p style={st.infoText}>3. Copy the downloaded file to your CARE PC's <b>C:\download\</b> folder and click <b>DwnLd Purch</b>.</p>
+          <p style={st.infoText}>2. Click <b>Convert &amp; Download</b> — the app identifies your distributor automatically.</p>
+          <p style={st.infoText}>3. Copy the downloaded .SMS file to your CARE PC&apos;s <b>C:\download\</b> folder and click <b>DwnLd Purch</b>.</p>
         </div>
       </div>
     </StoreLayout>
@@ -135,7 +132,6 @@ const st = {
   btnDisabled: { width: '100%', padding: '12px', background: '#94a3b8', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'not-allowed', opacity: 0.7 },
   btnContainer: { display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 },
   btnStandard: { width: '100%', padding: '12px', background: '#0e9090', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
-  btnAI: { width: '100%', padding: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)' },
   success: { marginTop: 16, padding: 12, background: '#d1fae5', color: '#065f46', borderRadius: 8, fontSize: 14 },
   error: { marginTop: 16, padding: 12, background: '#fee2e2', color: '#991b1b', borderRadius: 8, fontSize: 14 },
   infoBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 },

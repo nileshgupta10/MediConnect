@@ -14,14 +14,19 @@
     normalize(rawItems, metadata) {
       const { partyCode, partyName, date, invoiceNo } = metadata
       const formattedDate = this._formatDate(date)
-      const vouNo = String(invoiceNo || '0').replace(/[^0-9]/g, '').substring(0, 6)
+      const rawVou = String(invoiceNo || '0').replace(/[^0-9]/g, '')
+      const vouNo = rawVou ? rawVou.slice(-6) : '0'
 
       return rawItems.map((item, idx) => {
         const productName = String(item.productName || '').trim().toUpperCase()
 
         const itemId = String(idx + 1).padStart(5, '0')
         const pCode = (partyCode || '').padEnd(3, ' ').slice(0, 3).toUpperCase()
-        const prodCode = pCode + '  ' + itemId
+        // Use the protocol's stable prodCode if provided (deterministic hash → CARE maps once and remembers).
+        // Fall back to sequential only if the protocol didn't supply one.
+        const prodCode = (item.prodCode && String(item.prodCode).trim().length >= 6)
+          ? String(item.prodCode).trim().substring(0, 10)
+          : pCode + '  ' + itemId
 
         const cleanBatch = (item.batch && String(item.batch).trim()) || ''
         const finalBatch = (cleanBatch.length < 2 || cleanBatch === '*' || cleanBatch.toUpperCase() === 'ABC' || cleanBatch.toUpperCase() === 'BATCH')
