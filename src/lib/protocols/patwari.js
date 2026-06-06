@@ -34,14 +34,14 @@ const { generateStableId } = require('../../utils/stableId')
       const qty = cleanNum(row.qty)
 
       const discountPer = cleanNum(row.cdper || 0)
-      const discAmt = cleanNum(row.cdamt || 0) || Number((cleanNum(row.grsamt) * cleanNum(row.cdper) / 100).toFixed(2))
+      const discAmt = 0
 
       const rate = cleanNum(row.rate || row.ptr)
       const rawRate = rate
       const grossAmt = cleanNum(row.grsamt)
 
-      // Post-discount taxable base is grsAmt minus discAmt
-      const taxable = grossAmt - discAmt
+      // Post-discount taxable base is grsAmt
+      const taxable = grossAmt
 
       return {
         productName,
