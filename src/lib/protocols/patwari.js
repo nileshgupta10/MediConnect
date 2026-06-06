@@ -34,15 +34,12 @@ const { generateStableId } = require('../../utils/stableId')
       const qty = cleanNum(row.qty)
 
       const discountPer = cleanNum(row.cdper || 0)
-      const discAmt = 0
+      const discAmt = grossAmt * (discountPer / 100)
 
       const rate = cleanNum(row.rate || row.ptr)
       const rawRate = rate
-      const grossAmt = cleanNum(row.grsamt)
-
-      // Post-discount taxable base is grsAmt
-      const taxable = grossAmt
-
+      const grossAmt = qty * rate           // pre-discount: qty × rate
+const taxable = cleanNum(row.grsamt)  // post-discount: grsamt from CSV
       return {
         productName,
         prodCode: generateStableId('074', hsn, productName),
