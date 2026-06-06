@@ -53,9 +53,11 @@
         const grossAmt = parseFloat(item.grossAmt || item.gross_amt || 0) > 0
           ? parseFloat(item.grossAmt || item.gross_amt || 0)
           : qty * preDiscRate
-        const discAmt = parseFloat(item.discAmt || item.discountAmt || 0) > 0
-          ? parseFloat(item.discAmt || item.discountAmt || 0)
-          : grossAmt * (parseFloat(item.discountPer || 0) / 100)
+        const discAmt = (item.discAmt !== undefined && parseFloat(item.discAmt) === 0)
+          ? 0
+          : (parseFloat(item.discAmt || item.discountAmt || 0) > 0
+              ? parseFloat(item.discAmt || item.discountAmt || 0)
+              : grossAmt * (parseFloat(item.discountPer || 0) / 100))
         const taxableAmt = parseFloat(item.taxable) > 0
           ? parseFloat(item.taxable)
           : grossAmt - discAmt
