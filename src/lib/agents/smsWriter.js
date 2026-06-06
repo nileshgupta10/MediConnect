@@ -1,7 +1,7 @@
 class SMSWriter {
   constructor() {
     this.HEADER_SIZE = 1704
-    this.RECORD_SIZE = 499
+    this.RECORD_SIZE = 464
     this.VERSION_BYTE = 0x30
     this.EOF_MARKER = 0x1A
     this.DELETION_FLAG = 0x20
@@ -44,7 +44,7 @@ class SMSWriter {
       ['GROS_AMT',  'N', 12, 2, true],
       ['CAT_CODE',  'C',  3, 0, true],
       ['FREIGHT',   'N', 10, 2, false],  // optional — blank when 0
-      ['BAR_CODE',  'C', 50, 0, true],
+      ['BAR_CODE',  'C', 15, 0, true],
       ['HSNCODE',   'C', 15, 0, true],
       ['SGST',      'N',  5, 2, true],
       ['CGST',      'N',  5, 2, true],
@@ -58,12 +58,13 @@ class SMSWriter {
   }
 
   generate(records, templateBuffer) {
-    const header = Buffer.alloc(this.HEADER_SIZE)
-    templateBuffer.copy(header, 0, 0, this.HEADER_SIZE)
-    header.writeUInt32LE(records.length, 4)
-    const body = Buffer.concat(records.map((rec) => this._encodeRecord(rec)))
-    return Buffer.concat([header, body, Buffer.from([this.EOF_MARKER])])
-  }
+  const header = Buffer.alloc(this.HEADER_SIZE)
+  templateBuffer.copy(header, 0, 0, this.HEADER_SIZE)
+  header.writeUInt32LE(records.length, 4)
+  header.writeUInt16LE(this.RECORD_SIZE, 10)   // ← ADD THIS LINE
+  const body = Buffer.concat(records.map((rec) => this._encodeRecord(rec)))
+  return Buffer.concat([header, body, Buffer.from([this.EOF_MARKER])])
+}
 
   _encodeRecord(data) {
     const buf = Buffer.alloc(this.RECORD_SIZE, 0x20)  // pre-fill with spaces

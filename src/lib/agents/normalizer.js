@@ -115,7 +115,7 @@
           GROS_AMT: grossAmt,
           CAT_CODE: 'GEN',
           FREIGHT: 0,
-          BAR_CODE: ''.padEnd(50, ' '),
+          BAR_CODE: String(item.barcode || item.bar_code || '').substring(0, 15).padEnd(15, ' '),
           HSNCODE: String(item.hsn || '30049099').substring(0, 15),
           SGST: gstPer / 2,
           CGST: gstPer / 2,
