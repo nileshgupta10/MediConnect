@@ -30,16 +30,14 @@ const { generateStableId } = require('../../utils/stableId')
     const items = rows.map((row) => {
       const productName = row.productdesc || row.pitemname || ''
       const hsn = row.hsncode || ''
-      const grsAmt = cleanNum(row.grsamt)
       const qty = cleanNum(row.qty)
-
-      const discountPer = cleanNum(row.cdper || 0)
-      const discAmt = grossAmt * (discountPer / 100)
-
-      const rate = cleanNum(row.rate || row.ptr)
+      const rate = cleanNum(row.rate || row.ptr)   // pre-discount PTR
       const rawRate = rate
-      const grossAmt = qty * rate           // pre-discount: qty × rate
-const taxable = cleanNum(row.grsamt)  // post-discount: grsamt from CSV
+      // grsamt = post-CD-discount gross amount (qty × rate × (1 - cd%)) — use directly
+      const grossAmt = cleanNum(row.grsamt)
+      const discountPer = cleanNum(row.cdper || 0)
+      const discAmt = 0                             // already baked into grsamt; don't subtract again
+      const taxable = grossAmt                      // grsamt IS the taxable base
       return {
         productName,
         prodCode: generateStableId('074', hsn, productName),

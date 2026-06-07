@@ -1,7 +1,7 @@
 class SMSWriter {
   constructor() {
     this.HEADER_SIZE = 1704
-    this.RECORD_SIZE = 464
+    this.RECORD_SIZE = 499
     this.VERSION_BYTE = 0x30
     this.EOF_MARKER = 0x1A
     this.DELETION_FLAG = 0x20
@@ -44,7 +44,7 @@ class SMSWriter {
       ['GROS_AMT',  'N', 12, 2, true],
       ['CAT_CODE',  'C',  3, 0, true],
       ['FREIGHT',   'N', 10, 2, false],  // optional — blank when 0
-      ['BAR_CODE',  'C', 15, 0, true],
+      ['BAR_CODE',  'C', 50, 0, true],
       ['HSNCODE',   'C', 15, 0, true],
       ['SGST',      'N',  5, 2, true],
       ['CGST',      'N',  5, 2, true],
