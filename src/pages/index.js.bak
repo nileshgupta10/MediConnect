@@ -5,6 +5,24 @@ const TEAL  = '#0e9090'
 const DARK  = '#0f3460'
 const AMBER = '#d97706'
 
+const coreFeatures = [
+  {
+    icon: '🧾',
+    title: 'Bill Converter',
+    desc: 'Convert distributor bills directly into your software format. No manual entry, no errors.',
+  },
+  {
+    icon: '📦',
+    title: 'Inward Stock',
+    desc: 'Record and track incoming goods with barcode support. Full purchase history per supplier.',
+  },
+  {
+    icon: '👥',
+    title: 'Staff Hiring',
+    desc: 'Post jobs and connect with license-verified pharmacists near your store. No middlemen.',
+  },
+]
+
 const billFeatureTags = [
   '✓ GST accurate',
   '✓ Expiry auto-formatted',
@@ -13,47 +31,19 @@ const billFeatureTags = [
   '✓ No manual entry',
 ]
 
+const hiringFeatures = [
+  { icon: '🪪', title: 'License verified', desc: 'Every applicant\'s pharmacy license is verified before they can apply.' },
+  { icon: '📍', title: 'Hyper-local matching', desc: 'Jobs sorted by distance. Pharmacists near your store see your listing first.' },
+  { icon: '📅', title: 'Direct interviews', desc: 'Schedule interviews and share contact details directly — after you confirm interest.' },
+  { icon: '🛡️', title: 'Admin-verified store', desc: 'Get your store verified to build trust with applicants.' },
+]
+
 const comingFeatures = [
-  '📒 Khata mobile view',
   '📊 Store analytics dashboard',
   '↩️ Goods returns management',
   '💬 Pharmacist community forum',
   '📱 Native mobile app',
-  '🏆 Pharmacist performance ratings',
-  '🔔 Job alert notifications',
-]
-
-const jobCards = [
-  {
-    store: 'Shree Medicals, Pune',
-    role: 'Retail Pharmacist',
-    type: 'Full Time | ₹18,000–₹22,000/mo',
-    badge: '🟢 Actively Hiring',
-    badgeColor: '#dcfce7',
-    badgeText: '#166534',
-  },
-  {
-    store: 'Apollo Pharmacy Partner, Nashik',
-    role: 'Store Manager (B.Pharm)',
-    type: 'Full Time | ₹25,000–₹30,000/mo',
-    badge: '🟢 New Listing',
-    badgeColor: '#dcfce7',
-    badgeText: '#166534',
-  },
-  {
-    store: 'City Care Pharmacy, Mumbai',
-    role: 'Part-time Pharmacist',
-    type: 'Part Time | ₹12,000/mo',
-    badge: '🟡 2 Positions Open',
-    badgeColor: '#fef3c7',
-    badgeText: '#92400e',
-  },
-]
-
-const khataFeatures = [
-  { icon: '📋', title: 'Purchase Ledger', desc: 'Every distributor bill recorded automatically when you convert it.' },
-  { icon: '💸', title: 'Payment Tracking', desc: 'Mark invoices as paid, partial, or pending. Know exactly what\'s due.' },
-  { icon: '📊', title: 'Monthly Summary', desc: 'See your total purchases and outstanding at a glance.' },
+  '🏆 Performance ratings',
 ]
 
 export default function HomePage() {
@@ -86,132 +76,60 @@ export default function HomePage() {
         <div style={s.heroInner}>
           <div style={s.heroBadge}>
             <span style={s.heroBadgeDot} />
-            🇮🇳 India&apos;s Pharmacy Jobs &amp; Growth Platform
+            Built for India's pharmacy stores
           </div>
           <h1 style={s.heroTitle}>
-            Where Pharmacies and<br />
-            <span style={s.heroAccent}>Pharmacists Grow Together</span>
+            Run your pharmacy store<br />
+            <span style={s.heroAccent}>smarter, every day</span>
           </h1>
           <p style={s.heroSub}>
-            Post jobs, find verified pharmacists, manage your store khata — all built for Indian pharmacy retail.
+            Convert distributor bills to your software format, manage inward stock,
+            and hire verified pharmacists — all in one platform.
           </p>
           <div style={s.heroButtons}>
             <Link href="/simple-login">
-              <button style={s.heroPrimaryBtn}>Post a Job →</button>
+              <button style={s.heroPrimaryBtn}>Get started free →</button>
             </Link>
             <Link href="/simple-login">
-              <button style={s.heroSecondaryBtn}>Find Jobs Near You</button>
+              <button style={s.heroSecondaryBtn}>See how it works</button>
             </Link>
           </div>
-          <div style={s.heroStats}>
-            <span style={s.heroStatPill}>500+ Pharmacists</span>
-            <span style={s.heroStatDivider} />
-            <span style={s.heroStatPill}>200+ Stores</span>
-            <span style={s.heroStatDivider} />
-            <span style={s.heroStatPill}>Free to Join</span>
-          </div>
-          <p style={s.heroTagline}>&quot;Relations, over the counter.&quot;</p>
+          <p style={s.heroTagline}>"Relations, over the counter."</p>
         </div>
       </section>
 
-      {/* ── SECTION 3: DUAL AUDIENCE SPLIT ── */}
-      <section style={{ ...s.section, background: 'white' }}>
-        <div style={s.container}>
-          <div style={s.audienceGrid}>
+      {/* ── TRUST BAR ── */}
+      <div style={s.trustBar}>
+        {['✅ Distributor bills converted instantly', '🔒 License-verified pharmacists', '📍 Hyper-local job matching', '🇮🇳 Built for India'].map((t, i) => (
+          <span key={i} style={s.trustItem}>{t}</span>
+        ))}
+      </div>
 
-            {/* Left — Store Owners */}
-            <div style={s.audienceCardDark}>
-              <div style={s.audienceIcon}>🏪</div>
-              <h2 style={s.audienceTitleLight}>For Store Owners</h2>
-              <ul style={s.audienceList}>
-                {['Post jobs in 2 minutes', 'License-verified applicants only', 'Manage store khata & accounts', 'No agency fees, no middlemen'].map((pt, i) => (
-                  <li key={i} style={s.audienceItemLight}>✓ {pt}</li>
-                ))}
-              </ul>
-              <Link href="/simple-login">
-                <button style={s.audienceBtnTeal}>Post a Job Free →</button>
-              </Link>
-            </div>
-
-            {/* Right — Pharmacists */}
-            <div style={s.audienceCardLight}>
-              <div style={s.audienceIcon}>👨‍⚕️</div>
-              <h2 style={s.audienceTitleDark}>For Pharmacists</h2>
-              <ul style={s.audienceList}>
-                {['Browse jobs near your city', 'Build a verified profile', 'Apply directly to stores', 'Free to register'].map((pt, i) => (
-                  <li key={i} style={s.audienceItemDark}>✓ {pt}</li>
-                ))}
-              </ul>
-              <Link href="/simple-login">
-                <button style={s.audienceBtnTeal}>Find Pharmacy Jobs →</button>
-              </Link>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ── SECTION 4: JOBS FEATURE ── */}
+      {/* ── CORE FEATURES ── */}
       <section style={s.section}>
         <div style={s.container}>
-          <div style={{ ...s.sectionLabel, background: '#fef3c7', color: AMBER }}>🔥 Hiring Now</div>
-          <h2 style={s.sectionTitle}>Pharmacy Jobs, Near You, Right Now</h2>
-          <p style={s.sectionSub}>
-            MediClan connects verified pharmacists with stores across India. Every listing is from a real store. Every applicant is license-verified.
-          </p>
-          <div style={s.jobGrid}>
-            {jobCards.map((job, i) => (
-              <div key={i} style={s.jobCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <span style={s.jobStore}>{job.store}</span>
-                  <span style={{ ...s.jobBadge, background: job.badgeColor, color: job.badgeText }}>{job.badge}</span>
-                </div>
-                <div style={s.jobRole}>{job.role}</div>
-                <div style={s.jobType}>{job.type}</div>
+          <div style={s.sectionLabel}>What MediClan does</div>
+          <h2 style={s.sectionTitle}>Everything your store needs</h2>
+          <p style={s.sectionSub}>From bill conversion to staff hiring — built around the daily realities of running a pharmacy store.</p>
+          <div style={s.grid3}>
+            {coreFeatures.map((f, i) => (
+              <div key={i} style={{ ...s.featureCard, ...(i === 0 ? s.featureCardPrimary : {}) }}>
+                <div style={s.featureIcon}>{f.icon}</div>
+                <h3 style={s.featureTitle}>{f.title}</h3>
+                <p style={s.featureDesc}>{f.desc}</p>
               </div>
             ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 28 }}>
-            <Link href="/simple-login">
-              <button style={s.tealBtn}>Browse All Jobs →</button>
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── SECTION 5: KHATA ── */}
-      <section style={{ ...s.section, background: '#f8fafc' }}>
-        <div style={s.container}>
-          <div style={{ ...s.sectionLabel, color: TEAL }}>📒 Khata</div>
-          <h2 style={s.sectionTitle}>Your Store&apos;s Account Book, Digitised</h2>
-          <p style={s.sectionSub}>
-            Track what you owe distributors, record payments, and keep your purchase accounts clean — the way Indian pharmacy stores actually work.
-          </p>
-          <div style={s.khataGrid}>
-            {khataFeatures.map((f, i) => (
-              <div key={i} style={s.khataCard}>
-                <div style={s.khataIcon}>{f.icon}</div>
-                <h3 style={s.khataTitle}>{f.title}</h3>
-                <p style={s.khataDesc}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-          <p style={s.khataNoteItalic}>
-            Khata works hand-in-hand with Bill Converter — convert a bill and it gets logged automatically.
-          </p>
-          <Link href="/simple-login">
-            <button style={s.tealBtn}>Explore Khata →</button>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── SECTION 6: BILL CONVERTER (utility) ── */}
+      {/* ── BILL CONVERTER SPOTLIGHT ── */}
       <section style={{ ...s.section, background: '#f0fdfd' }}>
         <div style={s.container}>
-          <div style={s.sectionLabel}>Also inside MediClan</div>
-          <h2 style={s.sectionTitle}>Bill Converter — Still Powerful, Always Free</h2>
+          <div style={s.sectionLabel}>Bill Converter</div>
+          <h2 style={s.sectionTitle}>From distributor bill to your software format in seconds</h2>
           <p style={s.sectionSub}>
-            Upload your distributor&apos;s bill. MediClan converts it into the exact format your pharmacy software needs —
+            Upload your distributor's bill. MediClan converts it into the exact format your pharmacy software needs —
             ready to import, with zero manual data entry.
           </p>
           <div style={s.billFlow}>
@@ -244,7 +162,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION 7: COMING SOON ── */}
+      {/* ── HIRING SECTION ── */}
+      <section style={s.section}>
+        <div style={s.container}>
+          <div style={{ ...s.sectionLabel, background: '#fef3c7', color: AMBER }}>For store owners</div>
+          <h2 style={s.sectionTitle}>Hire pharmacists you can trust</h2>
+          <p style={s.sectionSub}>
+            Every pharmacist on MediClan is license-verified. Post a job in 2 minutes
+            and connect directly — no agency fees, no middlemen.
+          </p>
+          <div style={s.grid2}>
+            {hiringFeatures.map((f, i) => (
+              <div key={i} style={s.hiringCard}>
+                <span style={s.hiringIcon}>{f.icon}</span>
+                <div>
+                  <h3 style={s.hiringTitle}>{f.title}</h3>
+                  <p style={s.hiringDesc}>{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Link href="/simple-login">
+            <button style={{ ...s.tealBtn, background: AMBER, marginTop: 28 }}>Post a job opening →</button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ── COMING SOON ── */}
       <section style={{ ...s.section, background: `linear-gradient(135deg, ${DARK} 0%, #0e7070 100%)` }}>
         <div style={s.container}>
           <div style={s.csInner}>
@@ -252,7 +196,7 @@ export default function HomePage() {
               <div style={s.csLabel}>Coming soon</div>
               <h2 style={{ ...s.sectionTitle, color: 'white' }}>MediClan is just getting started</h2>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', lineHeight: 1.75 }}>
-                We&apos;re constantly building new tools to make pharmacy store operations easier.
+                We're constantly building new tools to make pharmacy store operations easier.
               </p>
             </div>
             <div style={s.csPills}>
@@ -264,13 +208,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION 8: CTA ── */}
+      {/* ── CTA ── */}
       <section style={s.ctaSection}>
         <div style={s.ctaInner}>
-          <h2 style={s.ctaTitle}>Post Your First Job in 2 Minutes. Free.</h2>
-          <p style={s.ctaSub}>Join hundreds of pharmacy stores and pharmacists already on MediClan.</p>
+          <h2 style={s.ctaTitle}>Ready to run your store smarter?</h2>
+          <p style={s.ctaSub}>Free to use. No credit card. Built for Indian pharmacy stores.</p>
           <Link href="/simple-login">
-            <button style={s.tealBtn}>Create Free Account →</button>
+            <button style={s.tealBtn}>Create your free account →</button>
           </Link>
         </div>
       </section>
@@ -291,7 +235,7 @@ export default function HomePage() {
             <a href="/disclaimer" style={s.footerLink}>Disclaimer</a>
             <a href="/contact" style={s.footerLink}>Contact Us</a>
           </div>
-          <p style={s.footerCopy}>© 2025 MediClan. Built for India&apos;s pharmacy community.</p>
+          <p style={s.footerCopy}>© 2025 MediClan. Built for India's pharmacy community.</p>
         </div>
       </footer>
 
@@ -302,7 +246,6 @@ export default function HomePage() {
 const s = {
   page: { fontFamily: "'Nunito', 'Segoe UI', sans-serif", color: '#1a1a2e', overflowX: 'hidden' },
 
-  // NAV (unchanged)
   nav: { background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 },
   navInner: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   navBrand: { display: 'flex', alignItems: 'center', gap: 10 },
@@ -312,7 +255,6 @@ const s = {
   navLoginBtn: { background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#64748b', cursor: 'pointer', padding: '6px 12px' },
   navSignupBtn: { background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: '7px 18px' },
 
-  // HERO
   hero: { background: `linear-gradient(135deg, ${DARK} 0%, #0e7070 100%)`, padding: '80px 24px 72px' },
   heroInner: { maxWidth: 640, margin: '0 auto', textAlign: 'center' },
   heroBadge: { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.85)', padding: '5px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, marginBottom: 24 },
@@ -323,48 +265,24 @@ const s = {
   heroButtons: { display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 24 },
   heroPrimaryBtn: { padding: '13px 28px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: 'pointer' },
   heroSecondaryBtn: { padding: '13px 28px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 50, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
-  heroStats: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20, marginTop: 8 },
-  heroStatPill: { background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)', padding: '5px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700 },
-  heroStatDivider: { width: 1, height: 16, background: 'rgba(255,255,255,0.2)', display: 'inline-block' },
-  heroTagline: { color: 'rgba(255,255,255,0.38)', fontSize: 13, fontStyle: 'italic', marginTop: 4 },
+  heroTagline: { color: 'rgba(255,255,255,0.38)', fontSize: 13, fontStyle: 'italic', marginTop: 8 },
 
-  // SHARED SECTION STRUCTURE
+  trustBar: { background: DARK, padding: '12px 24px', display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' },
+  trustItem: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 700 },
+
   section: { padding: '72px 24px', background: 'white' },
   container: { maxWidth: 1100, margin: '0 auto' },
   sectionLabel: { display: 'inline-block', background: '#e0f7f7', color: TEAL, padding: '3px 13px', borderRadius: 50, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.8, textTransform: 'uppercase' },
   sectionTitle: { fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 900, color: DARK, marginBottom: 8 },
   sectionSub: { fontSize: 15, color: '#64748b', marginBottom: 36, lineHeight: 1.75, maxWidth: 620 },
-  tealBtn: { padding: '12px 26px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer' },
 
-  // SECTION 3 — DUAL AUDIENCE
-  audienceGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 },
-  audienceCardDark: { background: 'linear-gradient(135deg, #0f3460, #0e7070)', borderRadius: 24, padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 0 },
-  audienceCardLight: { background: '#f0fdfd', border: '1.5px solid #0e9090', borderRadius: 24, padding: '36px 32px', display: 'flex', flexDirection: 'column', gap: 0 },
-  audienceIcon: { fontSize: 40, marginBottom: 14 },
-  audienceTitleLight: { fontSize: 22, fontWeight: 900, color: 'white', marginBottom: 18 },
-  audienceTitleDark: { fontSize: 22, fontWeight: 900, color: DARK, marginBottom: 18 },
-  audienceList: { listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 10 },
-  audienceItemLight: { fontSize: 14, color: 'rgba(255,255,255,0.88)', fontWeight: 600 },
-  audienceItemDark: { fontSize: 14, color: '#334155', fontWeight: 600 },
-  audienceBtnTeal: { padding: '11px 24px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer', alignSelf: 'flex-start' },
+  grid3: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 },
+  featureCard: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 20, padding: 28 },
+  featureCardPrimary: { background: '#f0fdfd', border: `1.5px solid ${TEAL}` },
+  featureIcon: { fontSize: 32, marginBottom: 14 },
+  featureTitle: { fontSize: 16, fontWeight: 800, color: DARK, marginBottom: 8 },
+  featureDesc: { fontSize: 14, color: '#64748b', lineHeight: 1.7 },
 
-  // SECTION 4 — JOB CARDS
-  jobGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
-  jobCard: { background: 'white', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 },
-  jobStore: { fontSize: 15, fontWeight: 800, color: DARK },
-  jobRole: { fontSize: 14, fontWeight: 800, color: TEAL, marginBottom: 6 },
-  jobType: { fontSize: 13, color: '#64748b' },
-  jobBadge: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 50, whiteSpace: 'nowrap', flexShrink: 0 },
-
-  // SECTION 5 — KHATA
-  khataGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 },
-  khataCard: { background: 'white', border: '1px solid #e2e8f0', borderRadius: 16, padding: 24 },
-  khataIcon: { fontSize: 28, marginBottom: 12 },
-  khataTitle: { fontSize: 15, fontWeight: 800, color: DARK, marginBottom: 6 },
-  khataDesc: { fontSize: 14, color: '#64748b', lineHeight: 1.7 },
-  khataNoteItalic: { fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 24 },
-
-  // SECTION 6 — BILL CONVERTER
   billFlow: { display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 24 },
   billFlowStep: { flex: '1 1 160px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 16px', textAlign: 'center' },
   billFlowIcon: { fontSize: 28, marginBottom: 8 },
@@ -374,20 +292,25 @@ const s = {
   billTags: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 },
   billTag: { background: 'white', border: '1px solid #e2e8f0', borderRadius: 50, padding: '5px 14px', fontSize: 13, color: '#334155', fontWeight: 600 },
 
-  // SECTION 7 — COMING SOON
+  grid2: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 },
+  hiringCard: { display: 'flex', gap: 14, alignItems: 'flex-start', background: '#fafafa', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 },
+  hiringIcon: { fontSize: 24, flexShrink: 0, marginTop: 2 },
+  hiringTitle: { fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 4 },
+  hiringDesc: { fontSize: 13, color: '#64748b', lineHeight: 1.65 },
+
   csInner: { display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' },
   csLeft: { flex: '1 1 260px' },
   csLabel: { display: 'inline-block', background: 'rgba(255,255,255,0.15)', color: 'white', padding: '3px 13px', borderRadius: 50, fontSize: 11, fontWeight: 800, marginBottom: 10, letterSpacing: 0.8, textTransform: 'uppercase' },
   csPills: { flex: '1 1 260px', display: 'flex', flexWrap: 'wrap', gap: 10 },
   csPill: { background: 'rgba(255,255,255,0.1)', color: 'white', padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700, border: '1px solid rgba(255,255,255,0.18)' },
 
-  // SECTION 8 — CTA
   ctaSection: { padding: '72px 24px', background: '#f0fdfd', textAlign: 'center' },
   ctaInner: { maxWidth: 560, margin: '0 auto' },
   ctaTitle: { fontSize: 'clamp(20px, 3.5vw, 32px)', fontWeight: 900, color: DARK, marginBottom: 10 },
   ctaSub: { fontSize: 15, color: '#475569', marginBottom: 28, lineHeight: 1.75 },
 
-  // FOOTER (unchanged)
+  tealBtn: { padding: '12px 26px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer' },
+
   footer: { background: '#0f172a', padding: '36px 24px' },
   footerInner: { maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' },
   footerBrand: { display: 'flex', alignItems: 'center', gap: 12 },
