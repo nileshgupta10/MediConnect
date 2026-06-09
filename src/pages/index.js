@@ -23,33 +23,6 @@ const comingFeatures = [
   '🔔 Job alert notifications',
 ]
 
-const jobCards = [
-  {
-    store: 'Shree Medicals, Pune',
-    role: 'Retail Pharmacist',
-    type: 'Full Time | ₹18,000–₹22,000/mo',
-    badge: '🟢 Actively Hiring',
-    badgeColor: '#dcfce7',
-    badgeText: '#166534',
-  },
-  {
-    store: 'Apollo Pharmacy Partner, Nashik',
-    role: 'Store Manager (B.Pharm)',
-    type: 'Full Time | ₹25,000–₹30,000/mo',
-    badge: '🟢 New Listing',
-    badgeColor: '#dcfce7',
-    badgeText: '#166534',
-  },
-  {
-    store: 'City Care Pharmacy, Mumbai',
-    role: 'Part-time Pharmacist',
-    type: 'Part Time | ₹12,000/mo',
-    badge: '🟡 2 Positions Open',
-    badgeColor: '#fef3c7',
-    badgeText: '#92400e',
-  },
-]
-
 const khataFeatures = [
   { icon: '📋', title: 'Purchase Ledger', desc: 'Every distributor bill recorded automatically when you convert it.' },
   { icon: '💸', title: 'Payment Tracking', desc: 'Mark invoices as paid, partial, or pending. Know exactly what\'s due.' },
@@ -159,21 +132,12 @@ export default function HomePage() {
           <p style={s.sectionSub}>
             MediClan connects verified pharmacists with stores across India. Every listing is from a real store. Every applicant is license-verified.
           </p>
-          <div style={s.jobGrid}>
-            {jobCards.map((job, i) => (
-              <div key={i} style={s.jobCard}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <span style={s.jobStore}>{job.store}</span>
-                  <span style={{ ...s.jobBadge, background: job.badgeColor, color: job.badgeText }}>{job.badge}</span>
-                </div>
-                <div style={s.jobRole}>{job.role}</div>
-                <div style={s.jobType}>{job.type}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 28 }}>
+          <div style={s.jobsComingSoon}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: DARK, marginBottom: 8 }}>Job listings coming soon</div>
+            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>Be the first store to post a job on MediClan. It takes 2 minutes.</div>
             <Link href="/simple-login">
-              <button style={s.tealBtn}>Browse All Jobs →</button>
+              <button style={s.tealBtn}>Post the First Job →</button>
             </Link>
           </div>
         </div>
@@ -348,13 +312,8 @@ const s = {
   audienceItemDark: { fontSize: 14, color: '#334155', fontWeight: 600 },
   audienceBtnTeal: { padding: '11px 24px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer', alignSelf: 'flex-start' },
 
-  // SECTION 4 — JOB CARDS
-  jobGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 },
-  jobCard: { background: 'white', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 },
-  jobStore: { fontSize: 15, fontWeight: 800, color: DARK },
-  jobRole: { fontSize: 14, fontWeight: 800, color: TEAL, marginBottom: 6 },
-  jobType: { fontSize: 13, color: '#64748b' },
-  jobBadge: { fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 50, whiteSpace: 'nowrap', flexShrink: 0 },
+  // SECTION 4 — JOBS COMING SOON
+  jobsComingSoon: { background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: 16, padding: '40px 24px', textAlign: 'center', marginBottom: 0 },
 
   // SECTION 5 — KHATA
   khataGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 },
