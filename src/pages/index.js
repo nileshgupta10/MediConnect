@@ -132,14 +132,7 @@ export default function HomePage() {
           <p style={s.sectionSub}>
             MediClan connects verified pharmacists with stores across India. Every listing is from a real store. Every applicant is license-verified.
           </p>
-          <div style={s.jobsComingSoon}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: DARK, marginBottom: 8 }}>Job listings coming soon</div>
-            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 20 }}>Be the first store to post a job on MediClan. It takes 2 minutes.</div>
-            <Link href="/simple-login">
-              <button style={s.tealBtn}>Post the First Job →</button>
-            </Link>
-          </div>
+
         </div>
       </section>
 
@@ -312,8 +305,7 @@ const s = {
   audienceItemDark: { fontSize: 14, color: '#334155', fontWeight: 600 },
   audienceBtnTeal: { padding: '11px 24px', background: TEAL, color: 'white', border: 'none', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer', alignSelf: 'flex-start' },
 
-  // SECTION 4 — JOBS COMING SOON
-  jobsComingSoon: { background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: 16, padding: '40px 24px', textAlign: 'center', marginBottom: 0 },
+
 
   // SECTION 5 — KHATA
   khataGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 20 },
