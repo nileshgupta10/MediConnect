@@ -1,3 +1,12 @@
+// FIX 1 of 3 — smsWriter.js
+// BUG: BAR_CODE field was declared as 50 bytes but CARE's DBF schema expects 15 bytes.
+// This caused a 35-byte offset drift for EVERY field after BAR_CODE:
+// HSNCODE, SGST, CGST, IGST, SGSTAMT, CGSTAMT, IGSTAMT, SHELF_NO were all misread by CARE.
+// This single change fixes: data overflow + GST mismatch + HSN mismatch.
+// Affects ALL distributors, not just Patwari.
+//
+// CHANGE: line ['BAR_CODE', 'C', 50, 0, true]  →  ['BAR_CODE', 'C', 15, 0, true]
+
 class SMSWriter {
   constructor() {
     this.HEADER_SIZE = 1704
@@ -6,9 +15,6 @@ class SMSWriter {
     this.EOF_MARKER = 0x1A
     this.DELETION_FLAG = 0x20
 
-    // [name, type, len, dec, required]
-    // required=true → always write the numeric value (even if 0)
-    // required=false → write blank spaces when value is 0/null (matches CARE's own export format)
     this.FIELDS = [
       ['PARTYCODE', 'C',  3, 0, true],
       ['NAME',      'C', 40, 0, true],
@@ -33,41 +39,42 @@ class SMSWriter {
       ['DISCOUNT',  'N',  6, 2, true],
       ['DISC_AMT',  'N', 12, 2, true],
       ['PR_PTR',    'N', 11, 3, true],
-      ['SPL_DISC',  'N',  8, 2, false],  // optional — blank when 0
-      ['SURCHARGE', 'N',  8, 2, false],  // optional — blank when 0
+      ['SPL_DISC',  'N',  8, 2, false],
+      ['SURCHARGE', 'N',  8, 2, false],
       ['DISC_PER',  'N',  6, 2, true],
-      ['CASH_DISC', 'N',  8, 2, false],  // optional — blank when 0
-      ['CR_AMT',    'N', 10, 2, false],  // optional — blank when 0
-      ['PTS_PER',   'N',  5, 2, false],  // optional — blank when 0
-      ['PTS_AMT',   'N', 10, 2, false],  // optional — blank when 0
+      ['CASH_DISC', 'N',  8, 2, false],
+      ['CR_AMT',    'N', 10, 2, false],
+      ['PTS_PER',   'N',  5, 2, false],
+      ['PTS_AMT',   'N', 10, 2, false],
       ['DEBIT',     'N', 12, 2, true],
       ['GROS_AMT',  'N', 12, 2, true],
       ['CAT_CODE',  'C',  3, 0, true],
-      ['FREIGHT',   'N', 10, 2, false],  // optional — blank when 0
-      ['BAR_CODE',  'C', 50, 0, true],
+      ['FREIGHT',   'N', 10, 2, false],
+      // ✅ FIX: was 50, must be 15 to match CARE's DBF field descriptor in the template header
+      ['BAR_CODE',  'C', 15, 0, true],
       ['HSNCODE',   'C', 15, 0, true],
       ['SGST',      'N',  5, 2, true],
       ['CGST',      'N',  5, 2, true],
       ['IGST',      'N',  5, 2, true],
       ['SGSTAMT',   'N', 10, 3, true],
       ['CGSTAMT',   'N', 10, 3, true],
-      ['IGSTAMT',   'N', 10, 3, false],  // optional — blank when 0
-      ['SHELF_NO',  'C', 10, 0, false],  // optional
+      ['IGSTAMT',   'N', 10, 3, false],
+      ['SHELF_NO',  'C', 10, 0, false],
       ['_NullFlags','0',  1, 0, false],
     ]
   }
 
   generate(records, templateBuffer) {
-  const header = Buffer.alloc(this.HEADER_SIZE)
-  templateBuffer.copy(header, 0, 0, this.HEADER_SIZE)
-  header.writeUInt32LE(records.length, 4)
-  header.writeUInt16LE(this.RECORD_SIZE, 10)   // ← ADD THIS LINE
-  const body = Buffer.concat(records.map((rec) => this._encodeRecord(rec)))
-  return Buffer.concat([header, body, Buffer.from([this.EOF_MARKER])])
-}
+    const header = Buffer.alloc(this.HEADER_SIZE)
+    templateBuffer.copy(header, 0, 0, this.HEADER_SIZE)
+    header.writeUInt32LE(records.length, 4)
+    header.writeUInt16LE(this.RECORD_SIZE, 10)
+    const body = Buffer.concat(records.map((rec) => this._encodeRecord(rec)))
+    return Buffer.concat([header, body, Buffer.from([this.EOF_MARKER])])
+  }
 
   _encodeRecord(data) {
-    const buf = Buffer.alloc(this.RECORD_SIZE, 0x20)  // pre-fill with spaces
+    const buf = Buffer.alloc(this.RECORD_SIZE, 0x20)
     buf[0] = this.DELETION_FLAG
     let offset = 1
 
@@ -75,7 +82,6 @@ class SMSWriter {
       let raw = data[name]
 
       if (type === '0') {
-        // NullFlags — write 0x00 (not space)
         buf[offset] = 0x00
         offset += len
         continue
@@ -88,7 +94,6 @@ class SMSWriter {
       } else if (type === 'N') {
         const num = parseFloat(String(raw !== undefined && raw !== null ? raw : '').replace(/,/g, '')) || 0
         if (!required && num === 0) {
-          // Leave as spaces (already pre-filled) — matches CARE's blank optional fields
           offset += len
           continue
         }
