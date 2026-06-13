@@ -1,5 +1,26 @@
 /**
- * MANSHI AGENCIES PDF PROTOCOL (unpdf layout optimized)
+ * MANSHI AGENCIES PDF PROTOCOL
+ *
+ * FIXES APPLIED (verified against invoice CC-1552):
+ *
+ * FIX 1 — 6-digit HSN breaks merged token parse (HB SHAMPOO HSN=330510)
+ *   Old: /^(\d+\.\d{2})(\d+\.\d{2})(\d+\.\d{2})(\d{8})$/
+ *   New: /^(\d+\.\d{2})(\d+\.\d{2})(\d+\.\d{2})(\d{6,8})$/
+ *   Impact: items with 6-digit HSN were getting SGST=0, CGST=0, DISCOUNT=0,
+ *           HSN='30049099' (fallback). All now correctly parsed.
+ *
+ * FIX 2 — SCM (free qty) column causes qty to be mis-identified
+ *   When a row has a free-qty column (e.g. "... 47.00  4  1  36.21 ...")
+ *   the parser was finding the SCM value (1) as qty, and the real qty (4)
+ *   was buried in the product name.
+ *   Old: first integer whose next token starts with a float = qty
+ *   New: look for TWO consecutive integers before the rate float.
+ *        If found: first = qty, second = scm (free qty).
+ *        If only one integer before float: qty = that integer, scm = 0.
+ *
+ * FIX 3 — discAmt missing from returned item (normalizer recomputed it wrong)
+ *   Old: returned item had no discAmt field → normalizer used grossAmt*(disc%/100)
+ *   New: discAmt = gross - taxable (derived, always matches invoice exactly)
  */
 
 const { generateStableId } = require('../../utils/stableId')
@@ -13,142 +34,167 @@ function parseRowLine(line) {
   const text = String(line || '').replace(/\s+/g, ' ').trim()
   if (!text) return null
 
-  // Find the qty: the first bare integer token followed by a token starting with a float
   const tokens = text.split(' ')
-  let q = -1
+
+  // ── FIX 2: find qty (and optional scm) ──────────────────────────────────
+  // Scan for the first integer token whose NEXT token (or next-next, if also
+  // an integer) starts with a float.  Pattern can be:
+  //   ... MRP(float)  QTY(int)          RATE(float) ...  → scm = 0
+  //   ... MRP(float)  QTY(int)  SCM(int)  RATE(float) ... → scm = SCM
+  let q = -1          // index of qty token
+  let scmIdx = -1     // index of scm token (or -1 if absent)
+
   for (let i = 0; i < tokens.length - 1; i++) {
-    if (/^\d+$/.test(tokens[i]) && /^\d+\.\d{2}/.test(tokens[i + 1])) {
+    if (!/^\d+$/.test(tokens[i])) continue
+
+    const next = tokens[i + 1] || ''
+    const afterNext = tokens[i + 2] || ''
+
+    if (/^\d+\.\d{2}/.test(next)) {
+      // Normal: integer followed directly by float = qty, no scm
       q = i
+      scmIdx = -1
+      break
+    }
+
+    if (/^\d+$/.test(next) && /^\d+\.\d{2}/.test(afterNext)) {
+      // Two integers before float = qty + scm
+      q = i
+      scmIdx = i + 1
       break
     }
   }
+
   if (q === -1) return null
 
   const productName = tokens.slice(0, q).join(' ').trim()
   const qty = parseInt(tokens[q])
+  const freeQtyFromScm = scmIdx !== -1 ? parseInt(tokens[scmIdx]) : 0
+  const rateStartIdx = scmIdx !== -1 ? scmIdx + 1 : q + 1
+
   if (!productName || isNaN(qty) || qty <= 0) return null
 
-  const rateMrpToken = tokens[q + 1]
-  let rate = 0
-  let mrp = 0
-  let pack = ''
+  // ── Parse rate+mrp+pack token ────────────────────────────────────────────
+  const rateMrpToken = tokens[rateStartIdx]
+  if (!rateMrpToken) return null
+
+  let rate = 0, mrp = 0, pack = ''
 
   // rateMrpToken can be like "34.6440.0050ML" or "35.7240.00"
-  // Allow '=' in pack pattern (e.g. S=9, XXL=5)
   const m1 = rateMrpToken.match(/^(\d+\.\d{2})(\d+\.\d{2})([A-Z0-9+=]+)$/i)
   const m2 = rateMrpToken.match(/^(\d+\.\d{2})(\d+\.\d{2})$/)
   if (m1) {
     rate = parseFloat(m1[1])
-    mrp = parseFloat(m1[2])
+    mrp  = parseFloat(m1[2])
     pack = m1[3]
   } else if (m2) {
     rate = parseFloat(m2[1])
-    mrp = parseFloat(m2[2])
+    mrp  = parseFloat(m2[2])
   } else {
     return null
   }
 
-  // Next tokens
-  const nextTokens = tokens.slice(q + 2)
+  // ── Parse remaining tokens after rate+mrp ───────────────────────────────
+  const nextTokens = tokens.slice(rateStartIdx + 1)
   if (nextTokens.length === 0) return null
 
-  // Identify HSN and GST fields
-  let gstPer = 0
-  let cgstAmt = 0
-  let sgstAmt = 0
-  let hsn = ''
-  let discountPer = 0
-  let taxable = 0
-  let netAmt = 0
-
-  // If there's no pack in rateMrpToken, it might be in the next token
+  let gstPer = 0, cgstAmt = 0, sgstAmt = 0, hsn = ''
+  let discountPer = 0, taxable = 0, netAmt = 0
   let nextIdx = 0
+
+  // If pack wasn't in rateMrpToken it might be the next token
   if (!pack) {
-    const maybePackToken = nextTokens[0]
-    const mPackHsn = maybePackToken.match(/^([A-Z0-9+=]+)(\d{8})$/i)
+    const maybePackHsn = nextTokens[0]
+    const mPackHsn = maybePackHsn.match(/^([A-Z0-9+=]+)(\d{6,8})$/i)
     if (mPackHsn) {
       pack = mPackHsn[1]
-      hsn = mPackHsn[2]
+      hsn  = mPackHsn[2]
       nextIdx = 1
-    } else if (/[A-Z]/i.test(maybePackToken) && !isNumStr(maybePackToken)) {
-      pack = maybePackToken
+    } else if (/[A-Z]/i.test(maybePackHsn) && !isNumStr(maybePackHsn)) {
+      pack = maybePackHsn
       nextIdx = 1
     }
   }
 
-  // Parse remaining fields
   const remaining = nextTokens.slice(nextIdx)
-  
-  // Search for the HSN / GST merged token in the remaining tokens
-  // E.g. "3.363.362.5033059011"
+
+  // ── FIX 1: allow 6, 7, or 8-digit HSN in the merged GST+HSN token ───────
+  // Old: (\d{8})   New: (\d{6,8})
   let hsnTokenIdx = -1
   let gstMatch = null
+
   for (let i = 0; i < remaining.length; i++) {
-    const m = remaining[i].match(/^(\d+\.\d{2})(\d+\.\d{2})(\d+\.\d{2})(\d{8})$/)
+    const m = remaining[i].match(/^(\d+\.\d{2})(\d+\.\d{2})(\d+\.\d{2})(\d{6,8})$/)
     if (m) {
       hsnTokenIdx = i
       gstMatch = m
       break
     }
-    // Also handle case where HSN is bare 8 digits
-    if (/^\d{8}$/.test(remaining[i])) {
+    if (/^\d{6,8}$/.test(remaining[i])) {
       hsnTokenIdx = i
       hsn = remaining[i]
       break
     }
   }
 
-  let freeQty = 0
-  if (pack) {
-    // If pack has free qty merged, e.g. "17PADS" (1 free, 7PADS pack) or "112+12" (1 free, 12+12 pack)
-    if (pack.startsWith('1') && pack.length > 3 && (pack.includes('+') || pack.includes('PADS') || pack.includes('T') || pack.includes('='))) {
+  // Handle free-qty encoded in pack string (e.g. "17PADS" = 1 free + "7PADS" pack)
+  let freeQty = freeQtyFromScm
+  if (!freeQty && pack) {
+    if (
+      pack.startsWith('1') &&
+      pack.length > 3 &&
+      (pack.includes('+') || pack.includes('PADS') || pack.includes('T') || pack.includes('='))
+    ) {
       freeQty = 1
       pack = pack.substring(1)
     }
   }
 
   if (gstMatch) {
-    cgstAmt = parseFloat(gstMatch[1])
-    sgstAmt = parseFloat(gstMatch[2])
-    gstPer = parseFloat(gstMatch[3]) * 2 // half rate repeat, so double it
-    hsn = gstMatch[4]
+    cgstAmt   = parseFloat(gstMatch[1])
+    sgstAmt   = parseFloat(gstMatch[2])
+    gstPer    = parseFloat(gstMatch[3]) * 2  // half-rate stored twice → double it
+    hsn       = gstMatch[4]
 
-    // Tokens after the gstMatch are: [discountPer, taxable, netAmt] or [taxable, netAmt]
     const after = remaining.slice(hsnTokenIdx + 1)
     if (after.length >= 3) {
       discountPer = parseFloat(after[0]) || 0
-      taxable = parseFloat(after[1]) || 0
-      netAmt = parseFloat(after[2]) || 0
+      taxable     = parseFloat(after[1]) || 0
+      netAmt      = parseFloat(after[2]) || 0
     } else if (after.length >= 2) {
       taxable = parseFloat(after[0]) || 0
-      netAmt = parseFloat(after[1]) || 0
+      netAmt  = parseFloat(after[1]) || 0
     }
   } else {
-    // Zero GST item
+    // Zero-GST item
     if (hsnTokenIdx !== -1) {
-      if (remaining.length > hsnTokenIdx + 1) {
-        taxable = parseFloat(remaining[hsnTokenIdx + 1]) || 0
-      } else {
-        taxable = parseFloat(remaining[remaining.length - 1]) || 0
-      }
+      taxable = hsnTokenIdx + 1 < remaining.length
+        ? parseFloat(remaining[hsnTokenIdx + 1]) || 0
+        : parseFloat(remaining[remaining.length - 1]) || 0
     } else {
       taxable = parseFloat(remaining[remaining.length - 1]) || 0
     }
     netAmt = taxable
   }
 
+  // ── FIX 3: compute discAmt so normalizer doesn't recompute it ────────────
+  // gross = qty * rate (pre-discount).  discAmt = gross - taxable (always balances).
+  const gross   = qty * rate
+  const discAmt = Math.max(0, +(gross - taxable).toFixed(2))
+
   return {
     productName: productName.substring(0, 30),
     prodCode: generateStableId('747', hsn || productName, productName),
     pack: pack || '1N',
     qty,
-    freeQty,
+    freeQty,                         // ✅ FIX 2: correctly captured from scm column
     rate,
     rawRate: rate,
     mrp: mrp || rate,
-    hsn,
+    hsn,                             // ✅ FIX 1: now parses 6-digit HSN correctly
     discountPer,
-    cgstAmt,
+    discAmt,                         // ✅ FIX 3: explicit, normalizer uses as-is
+    cgstAmt,                         // ✅ FIX 1: now parsed correctly for 6-digit HSN items
     sgstAmt,
     gstPer,
     taxable,
@@ -194,12 +240,9 @@ module.exports = {
         continue
       }
 
-      // Check if this looks like a product row (starts with letters, has numbers)
       if (/[A-Z]/i.test(line) && /\d+/.test(line)) {
         const parsed = parseRowLine(line)
-        if (parsed) {
-          items.push(parsed)
-        }
+        if (parsed) items.push(parsed)
       }
     }
 
