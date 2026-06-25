@@ -90,16 +90,26 @@ function parseLeapItems(lines) {
     }
 
     // NEXT line contains remaining fields
-    const nextLineIdx = j + 1
-    if (nextLineIdx >= lines.length) break
-    
-    const nextLine = lines[nextLineIdx]
-    const nextTokens = nextLine.split(' ').map(x => x.trim()).filter(Boolean)
-    
-    if (nextTokens.length < 5) {
-      i = j + 1
-      continue
-    }
+    // NEXT line contains remaining fields
+// FIX: disc amount can wrap onto an extra line (e.g. "115.4" then "4 743.11 18 133.76 876.88")
+// when disc amt is large (3 digits). Merge the following line if we don't have enough tokens.
+const nextLineIdx = j + 1
+if (nextLineIdx >= lines.length) break
+
+let nextLine = lines[nextLineIdx]
+let nextTokens = nextLine.split(' ').map(x => x.trim()).filter(Boolean)
+let extraLinesConsumed = 0
+
+if (nextTokens.length < 5 && nextLineIdx + 1 < lines.length) {
+  nextLine = nextLine + ' ' + lines[nextLineIdx + 1]
+  nextTokens = nextLine.split(' ').map(x => x.trim()).filter(Boolean)
+  extraLinesConsumed = 1
+}
+
+if (nextTokens.length < 5) {
+  i = j + 1
+  continue
+}
     
     const discAmt = parseFloat(nextTokens[nextTokens.length - 5]) || 0
     const taxable = parseFloat(nextTokens[nextTokens.length - 4]) || 0
@@ -139,8 +149,7 @@ function parseLeapItems(lines) {
       netAmt
     })
     
-    i = nextLineIdx + 1
-  }
+i = nextLineIdx + 1 + extraLinesConsumed  }
   
   return items
 }
