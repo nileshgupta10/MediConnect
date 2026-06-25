@@ -64,9 +64,11 @@ async function getRawBody(req) {
 function detectProtocol(text) {
   const upper = text.toUpperCase()
   for (const protocol of PROTOCOLS) {
-    for (const pattern of protocol.identifyPatterns) {
-      if (upper.includes(pattern.toUpperCase())) return protocol
-    }
+    // ALL patterns must match (AND), not just one (OR)
+    const allMatch = protocol.identifyPatterns.every(pattern =>
+      upper.includes(pattern.toUpperCase())
+    )
+    if (allMatch) return protocol
   }
   return null
 }
