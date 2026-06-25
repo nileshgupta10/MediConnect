@@ -171,7 +171,7 @@ function parseLeapItems(lines) {
 
 module.exports = {
   name: 'Manshi Leap PDF',
-  identifyPatterns: ['HIMALAYA WELLNESS COMPANY', 'PRODUCT DESCRIPTION'],
+  identifyPatterns: ['HIMALAYA WELLNESS COMPANY', 'MANSHI AGENCIES'],
 
   getMetadata: (lines) => {
     const arr = Array.isArray(lines) ? lines : String(lines || '').split('\n')
