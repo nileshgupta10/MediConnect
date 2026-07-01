@@ -380,4 +380,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: globalError.message || 'Global purchase handler error', stack: globalError.stack });
   }
 }
-}
