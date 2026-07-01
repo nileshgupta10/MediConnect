@@ -27,7 +27,7 @@ module.exports = {
         const cols = parseHTRow(line.trim())
         if (cols[0] === 'H') {
           return {
-            partyCode: 'NVP',
+            partyCode: 'NKP',
             partyName: 'NAVKAR PHARMA',
             date: (cols[2] || '').trim(),
             invoiceNo: (cols[3] || '000000').replace(/[^0-9]/g, '') || '000000'
