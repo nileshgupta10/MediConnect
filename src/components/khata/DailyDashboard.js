@@ -453,6 +453,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       }
     } catch (err) {
       console.error(err);
+      alert("Failed to save purchase: " + (err.message || err));
     }
   };
   const handleAddExpense = async (e) => {
