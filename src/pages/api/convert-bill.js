@@ -41,10 +41,10 @@ import navkar from '../../lib/protocols/navkar'
 import cgMarketing from '../../lib/protocols/cgMarketing'
 import abmarketing from '../../lib/protocols/abmarketing'
 import medicineHouse from '../../lib/protocols/medicineHouse'
+import navkarPharma from '../../lib/protocols/navkarPharma'
 
 // Check Manshi Leap before Manshi because the Leap PDF also contains shared Manshi footer text.
-const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshiLeap, manshi, navkar, abmarketing, medicineHouse]
-
+const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshiLeap, manshi, navkar, navkarPharma, abmarketing, medicineHouse]
 export const config = {
   api: {
     bodyParser: false,
