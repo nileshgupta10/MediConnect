@@ -313,11 +313,33 @@ export default async function handler(req, res) {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
       return res.send(smsBuffer)
     } else {
+      // If the protocol declares mapRawCSV, the file uses a non-standard format
+      // (e.g. Navkar's H/T rows) that standard parseCSV() cannot handle correctly.
+      // Pass the raw text directly to the protocol and skip parseCSV entirely.
+      if (protocol.mapRawCSV) {
+        const metadata = protocol.getMetadata(textContent)
+        const items = protocol.mapRawCSV(textContent)
+        if (!items || items.length === 0) {
+          return res.status(400).json({ error: 'No data rows found in file.' })
+        }
+        let finalPartyCode = String(metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
+        const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
+        const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
+        const templateBuffer = fs.readFileSync(templatePath)
+        const smsBuffer = smsWriter.generate(records, templateBuffer)
+        const rawInvNo = String(metadata.invoiceNo || '0').replace(/[^0-9]/g, '')
+        const invNo = rawInvNo ? rawInvNo.slice(-6) : '000000'
+        const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
+        res.setHeader('Content-Type', 'application/octet-stream')
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+        return res.send(smsBuffer)
+      }
+ 
       rows = parseCSV(textContent)
     }
-
+ 
     if (!rows || rows.length === 0) return res.status(400).json({ error: 'No data rows found in file.' })
-
+ 
     return await generateSMS(protocol, rows, res)
 
   } catch (err) {
