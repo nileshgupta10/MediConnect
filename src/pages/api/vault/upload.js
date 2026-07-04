@@ -97,31 +97,30 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Failed to parse upload: ' + err.message });
   }
 
-  const { file, patient_id, record_date } = parts;
+  const { file, patient_id, record_date, notes } = parts;
 
-  if (!file || !file.data || file.data.length === 0) {
-    return res.status(400).json({ error: 'No file received.' });
-  }
-  if (!patient_id) {
-    return res.status(400).json({ error: 'patient_id is required.' });
-  }
-  if (!record_date) {
-    return res.status(400).json({ error: 'record_date is required.' });
-  }
+  const hasFile  = !!(file?.data && file.data.length > 0);
+  const hasNotes = !!(typeof notes === 'string' && notes.trim());
 
-  // ── Validate file type ───────────────────────────────────────────
-  if (!ALLOWED_MIME_TYPES.includes(file.contentType)) {
-    return res.status(400).json({
-      error: `Invalid file type "${file.contentType}". Allowed: JPG, PNG, WEBP, HEIC only.`,
-    });
+  if (!patient_id) return res.status(400).json({ error: 'patient_id is required.' });
+  if (!record_date) return res.status(400).json({ error: 'record_date is required.' });
+  if (!hasFile && !hasNotes) {
+    return res.status(400).json({ error: 'Provide an image, notes, or both.' });
   }
 
-  // ── Validate file size ───────────────────────────────────────────
-  if (file.data.length > MAX_FILE_SIZE_BYTES) {
-    const sizeMB = (file.data.length / (1024 * 1024)).toFixed(1);
-    return res.status(400).json({
-      error: `File is ${sizeMB} MB. Maximum allowed size is 10 MB.`,
-    });
+  // ── Validate file (only when a file is present) ──────────────────
+  if (hasFile) {
+    if (!ALLOWED_MIME_TYPES.includes(file.contentType)) {
+      return res.status(400).json({
+        error: `Invalid file type "${file.contentType}". Allowed: JPG, PNG, WEBP, HEIC only.`,
+      });
+    }
+    if (file.data.length > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (file.data.length / (1024 * 1024)).toFixed(1);
+      return res.status(400).json({
+        error: `File is ${sizeMB} MB. Maximum allowed size is 10 MB.`,
+      });
+    }
   }
 
   // ── Verify patient belongs to this store (never trust client) ────
@@ -130,62 +129,61 @@ export default async function handler(req, res) {
     .select('id')
     .eq('id', patient_id)
     .eq('store_id', storeOwnerId)
+    .is('deleted_at', null)
     .single();
 
   if (patientErr || !patient) {
     return res.status(403).json({ error: 'Patient not found or access denied.' });
   }
 
-  // ── Compress image with sharp before storing ─────────────────────
-  // All formats → JPEG, max 1600px longest side (never upscale), 75% quality.
-  // Prescription images are text-heavy; 1600px keeps text readable at ~150–200 kB.
-  let compressedBuffer;
-  try {
-    compressedBuffer = await sharp(file.data)
-      .rotate()                          // auto-correct EXIF orientation
-      .resize(1600, 1600, {
-        fit: 'inside',                   // preserve aspect ratio
-        withoutEnlargement: true,        // never upscale small images
-      })
-      .jpeg({ quality: 75, progressive: true })
-      .toBuffer();
+  // ── Compress + upload image (only when a file is present) ──────
+  let storagePath = null;
 
-    const origKB  = (file.data.length   / 1024).toFixed(0);
-    const compKB  = (compressedBuffer.length / 1024).toFixed(0);
-    console.log(`[vault/upload] compressed ${origKB} KB → ${compKB} KB (${file.contentType})`);
-  } catch (compErr) {
-    console.error('[vault/upload] compression error:', compErr.message);
-    return res.status(500).json({ error: 'Image compression failed: ' + compErr.message });
+  if (hasFile) {
+    // Server-side compression via sharp — safety net after client-side resize.
+    // All formats → JPEG 75q, max 1600px longest side, never upscale.
+    let compressedBuffer;
+    try {
+      compressedBuffer = await sharp(file.data)
+        .rotate()                        // auto-correct EXIF orientation
+        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 75, progressive: true })
+        .toBuffer();
+
+      const origKB = (file.data.length / 1024).toFixed(0);
+      const compKB = (compressedBuffer.length / 1024).toFixed(0);
+      console.log(`[vault/upload] compressed ${origKB} KB → ${compKB} KB (${file.contentType})`);
+    } catch (compErr) {
+      console.error('[vault/upload] compression error:', compErr.message);
+      return res.status(500).json({ error: 'Image compression failed: ' + compErr.message });
+    }
+
+    storagePath = `${storeOwnerId}/${patient_id}/${Date.now()}.jpg`;
+    const { error: uploadErr } = await supabaseAdmin
+      .storage
+      .from('prescription-vault')
+      .upload(storagePath, compressedBuffer, { contentType: 'image/jpeg', upsert: false });
+
+    if (uploadErr) return res.status(500).json({ error: 'Upload failed: ' + uploadErr.message });
   }
 
-  // ── Upload compressed buffer to private bucket ───────────────────
-  // Always stored as .jpg since sharp always outputs JPEG above.
-  const storagePath = `${storeOwnerId}/${patient_id}/${Date.now()}.jpg`;
-
-  const { error: uploadErr } = await supabaseAdmin
-    .storage
-    .from('prescription-vault')
-    .upload(storagePath, compressedBuffer, {
-      contentType: 'image/jpeg',
-      upsert: false,
-    });
-
-  if (uploadErr) return res.status(500).json({ error: 'Upload failed: ' + uploadErr.message });
-
-  // ── Insert record into vault_prescription_records ────────────────
+  // ── Insert record ─────────────────────────────────────────────
   const { data: record, error: insertErr } = await supabaseAdmin
     .from('vault_prescription_records')
     .insert({
       patient_id,
-      image_path: storagePath,
+      image_path: storagePath,          // null for text-only records
       record_date,
+      notes: hasNotes ? notes.trim() : null,
     })
-    .select('id, image_path, record_date, uploaded_at')
+    .select('id, image_path, record_date, uploaded_at, notes')
     .single();
 
   if (insertErr) {
-    // Best-effort: clean up the orphaned file
-    await supabaseAdmin.storage.from('prescription-vault').remove([storagePath]);
+    // Clean up orphaned image only if one was uploaded
+    if (storagePath) {
+      await supabaseAdmin.storage.from('prescription-vault').remove([storagePath]);
+    }
     return res.status(500).json({ error: 'Failed to save record: ' + insertErr.message });
   }
 
