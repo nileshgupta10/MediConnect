@@ -60,7 +60,8 @@ export default function StoreLayout({ children }) {
     { label: 'Bill Conv', path: '/bill-converter', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
     { label: 'Khaata', path: '/khata', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
-    { label: 'Applicants', path: '/applicants', allowed: isVerified, lockMsg: 'Applicants tab unlocks only after your store is verified by the administrator.' }
+    { label: 'Applicants', path: '/applicants', allowed: isVerified, lockMsg: 'Applicants tab unlocks only after your store is verified by the administrator.' },
+    { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
   ]
 
   return (
@@ -116,11 +117,9 @@ const s = {
     borderBottom: '2px solid #e2e8f0',
     position: 'sticky', top: 0, zIndex: 100,
     display: 'flex', alignItems: 'center',
-    padding: '0 24px', gap: '24px',
+    padding: '0 12px', gap: '4px',
     overflowX: 'auto',
     WebkitOverflowScrolling: 'touch',
-    scrollbarWidth: 'none',
-    msOverflowStyle: 'none',
   },
   brand: { display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', marginRight: 24, flexShrink: 0 },
   logo: { width: 24, height: 24, objectFit: 'contain' },
