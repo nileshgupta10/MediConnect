@@ -68,7 +68,7 @@ export default function AdminPage() {
   const loadStores = async (pageNum) => {
     const from = pageNum * PAGE_SIZE
     const { data } = await supabase.from('store_profiles')
-      .select('user_id, store_name, verification_status, is_verified, address, license_url')
+      .select('user_id, store_name, verification_status, is_verified, address, license_url, contact_person, phone, store_timings, num_vacancies, experience_required, verification_remark')
       .eq('verification_status', status).order('store_name').range(from, from + PAGE_SIZE - 1)
     if (pageNum === 0) setStores(data || [])
     else setStores(prev => [...prev, ...(data || [])])
@@ -97,11 +97,12 @@ export default function AdminPage() {
     } catch (e) { alert('Error: ' + e.message) }
   }
 
-  const updateStoreStatus = async (userId, newStatus) => {
+  const updateStoreStatus = async (userId, newStatus, remarkVal) => {
     try {
       await adminUpdate('store_profiles', userId, {
         verification_status: newStatus,
-        is_verified: newStatus === 'approved'
+        is_verified: newStatus === 'approved',
+        verification_remark: remarkVal
       })
       await loadStores(0); setPage(0)
     } catch (e) { alert('Error: ' + e.message) }
@@ -191,10 +192,9 @@ export default function AdminPage() {
           {filteredStores.length===0 && <p style={st.empty}>No records.</p>}
           {filteredStores.map(item => (
             <StoreCard key={item.user_id} item={item} status={status}
-  onApprove={()=>updateStoreStatus(item.user_id,'approved')}
-  onReject={()=>updateStoreStatus(item.user_id,'rejected')}
+  onApprove={(remarkVal)=>updateStoreStatus(item.user_id,'approved', remarkVal)}
+  onReject={(remarkVal)=>updateStoreStatus(item.user_id,'rejected', remarkVal)}
   onSuspend={()=>updateStoreStatus(item.user_id,'suspended')}
-  onViewLicense={()=>viewLicense(item)}
   getPerformance={getPerformance} />
           ))}
         </>}
@@ -242,22 +242,84 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onViewLi
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, onSuspend, onViewLicense, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onSuspend, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
+  const [showLicense, setShowLicense] = useState(false)
+  const [licenseUrl, setLicenseUrl] = useState('')
+  const [ll, setLl] = useState(false)
+  const [remark, setRemark] = useState(item.verification_remark || '')
+
   const loadPerf = async () => { if(perf){setPerf(null);return} setLp(true); setPerf(await getPerformance(item.user_id,'store')); setLp(false) }
+
+  const toggleLicense = async () => {
+    if (showLicense) {
+      setShowLicense(false)
+      return
+    }
+    if (licenseUrl) {
+      setShowLicense(true)
+      return
+    }
+    if (!item.license_url) {
+      alert('No license uploaded.')
+      return
+    }
+    setLl(true)
+    const cleanPath = item.license_url.includes('supabase.co')
+      ? item.license_url.split('/licenses/')[1]
+      : item.license_url
+    const { data, error } = await supabase.storage.from('licenses').createSignedUrl(cleanPath, 3600)
+    if (error || !data?.signedUrl) {
+      alert('Could not load license. Error: ' + error?.message)
+    } else {
+      setLicenseUrl(data.signedUrl)
+      setShowLicense(true)
+    }
+    setLl(false)
+  }
+
   return (
     <div style={st.card}>
       <h3 style={st.cardTitle}>{item.store_name||'Unnamed Store'}</h3>
-      {item.address && <p style={st.detail}>📍 {item.address}</p>}
+      {item.contact_person && <p style={st.detail}>👤 <b>Contact Person:</b> {item.contact_person}</p>}
+      {item.phone && <p style={st.detail}>📞 <b>Phone:</b> {item.phone}</p>}
+      {item.address && <p style={st.detail}>📍 <b>Address:</b> {item.address}</p>}
+      {item.store_timings && <p style={st.detail}>🕒 <b>Store Timings:</b> {item.store_timings}</p>}
+      {item.num_vacancies !== undefined && item.num_vacancies !== null && <p style={st.detail}>💼 <b>Vacancies:</b> {item.num_vacancies}</p>}
+      {item.experience_required && <p style={st.detail}>🎓 <b>Experience Required:</b> {item.experience_required}</p>}
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
+      {item.verification_remark && <p style={st.detail}>💬 <b>Remark:</b> {item.verification_remark}</p>}
+      
       <div style={st.actions}>
-        {item.license_url && <button style={st.licBtn} onClick={onViewLicense}>📄 License</button>}
+        {item.license_url && <button style={st.licBtn} onClick={toggleLicense} disabled={ll}>{ll?'…':showLicense?'Hide License':'📄 License'}</button>}
         <button style={st.perfBtn} onClick={loadPerf} disabled={lp}>{lp?'…':perf?'Hide Stats':'📊 Stats'}</button>
       </div>
+
+      {showLicense && licenseUrl && (
+        <div style={st.licenseBox}>
+          <img src={licenseUrl} alt="Store License" style={st.licenseImg} />
+        </div>
+      )}
+
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={st.perfItem}>✓ Hired: <b>{perf.jobsClosed}</b></p><p style={st.perfItem}>📅 Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
-      {status==='pending' && <div style={st.approvalRow}><button style={st.approve} onClick={onApprove}>✓ Approve</button><button style={st.reject} onClick={onReject}>✕ Reject</button></div>}
-{status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
+      
+      {status==='pending' && (
+        <div style={{ marginTop: 12 }}>
+          <textarea
+            style={st.remarkInput}
+            placeholder="Add verification remark / comments..."
+            value={remark}
+            onChange={e => setRemark(e.target.value)}
+            rows={2}
+          />
+          <div style={st.approvalRow}>
+            <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
+            <button style={st.reject} onClick={() => onReject(remark)}>✕ Reject</button>
+          </div>
+        </div>
+      )}
+      {status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
     </div>
   )
 }
@@ -291,4 +353,7 @@ const st = {
   disabledBanner:{ background:'#fee2e2', color:'#991b1b', padding:'6px 10px', borderRadius:6, fontSize:13, fontWeight:600, marginBottom:10 },
   loadMore:{ marginTop:20, width:'100%', padding:12, background:'#f1f5f9', border:'1px solid #e2e8f0', borderRadius:8, cursor:'pointer', fontSize:14 },
   suspend:{ background:'#f59e0b', color:'white', border:'none', padding:'8px 20px', borderRadius:6, cursor:'pointer', fontWeight:700, fontSize:14 },
+  licenseBox:{ marginTop:12, border:'1px solid #e2e8f0', borderRadius:8, padding:8, overflow:'hidden', background:'#f8fafc' },
+  licenseImg:{ width:'100%', maxHeight:400, objectFit:'contain', display:'block', borderRadius:6 },
+  remarkInput:{ width:'100%', padding:'8px 12px', border:'1.5px solid #cbd5e1', borderRadius:6, fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', boxSizing:'border-box' },
 }
