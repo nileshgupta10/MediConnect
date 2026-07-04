@@ -78,7 +78,7 @@ export default function StoreProfile() {
     setOwnerFirstName(fullName.split(' ')[0] || '')
     const { data } = await supabase
       .from('store_profiles')
-      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, license_url, is_verified, verification_status')
+      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, license_url, is_verified, verification_status, verification_remark')
       .eq('user_id', user.id)
       .maybeSingle()
     if (data) {
@@ -189,6 +189,12 @@ export default function StoreProfile() {
           <div style={profile?.is_verified ? s.verifiedBadge : s.pendingBadge}>
             {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
           </div>
+
+          {profile?.verification_remark && (
+            <div style={s.remarkBanner}>
+              📋 <b>Note from MediClan:</b> {profile.verification_remark}
+            </div>
+          )}
 
           {!editing ? (
             <div style={s.viewMode}>
@@ -337,4 +343,5 @@ const s = {
   wrongRoleBox: { marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9', textAlign: 'center' },
   wrongRoleText: { fontSize: 13, color: '#94a3b8', marginBottom: 6 },
   wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
+  remarkBanner: { marginTop: 12, padding: '10px 14px', background: '#fef3c7', border: '1.5px dashed #d97706', borderRadius: 10, fontSize: 13, color: '#92400e', lineHeight: 1.4, textAlign: 'left' },
 }

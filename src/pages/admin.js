@@ -58,7 +58,7 @@ export default function AdminPage() {
   const loadPharmacists = async (pageNum) => {
     const from = pageNum * PAGE_SIZE
     const { data } = await supabase.from('pharmacist_profiles')
-      .select('user_id, name, verification_status, is_verified, license_url')
+      .select('user_id, name, verification_status, is_verified, license_url, verification_remark')
       .eq('verification_status', status).order('name').range(from, from + PAGE_SIZE - 1)
     if (pageNum === 0) setPharmacists(data || [])
     else setPharmacists(prev => [...prev, ...(data || [])])
@@ -87,11 +87,21 @@ export default function AdminPage() {
 
   const loadMore = () => { const next = page + 1; setPage(next); fetchData(next) }
 
-  const updatePharmacistStatus = async (userId, newStatus) => {
+  const updatePharmacistStatus = async (userId, newStatus, remarkVal) => {
     try {
       await adminUpdate('pharmacist_profiles', userId, {
         verification_status: newStatus,
-        is_verified: newStatus === 'approved'
+        is_verified: newStatus === 'approved',
+        verification_remark: remarkVal
+      })
+      await loadPharmacists(0); setPage(0)
+    } catch (e) { alert('Error: ' + e.message) }
+  }
+
+  const updatePharmacistRemark = async (userId, remarkVal) => {
+    try {
+      await adminUpdate('pharmacist_profiles', userId, {
+        verification_remark: remarkVal
       })
       await loadPharmacists(0); setPage(0)
     } catch (e) { alert('Error: ' + e.message) }
@@ -102,6 +112,15 @@ export default function AdminPage() {
       await adminUpdate('store_profiles', userId, {
         verification_status: newStatus,
         is_verified: newStatus === 'approved',
+        verification_remark: remarkVal
+      })
+      await loadStores(0); setPage(0)
+    } catch (e) { alert('Error: ' + e.message) }
+  }
+
+  const updateStoreRemark = async (userId, remarkVal) => {
+    try {
+      await adminUpdate('store_profiles', userId, {
         verification_remark: remarkVal
       })
       await loadStores(0); setPage(0)
@@ -179,10 +198,10 @@ export default function AdminPage() {
           {filteredPharmacists.length===0 && <p style={st.empty}>No records.</p>}
           {filteredPharmacists.map(item => (
             <PharmacistCard key={item.user_id} item={item} status={status}
-  onApprove={()=>updatePharmacistStatus(item.user_id,'approved')}
-  onReject={()=>updatePharmacistStatus(item.user_id,'rejected')}
+  onApprove={(remarkVal)=>updatePharmacistStatus(item.user_id,'approved', remarkVal)}
+  onReject={(remarkVal)=>updatePharmacistStatus(item.user_id,'rejected', remarkVal)}
   onSuspend={()=>updatePharmacistStatus(item.user_id,'suspended')}
-  onViewLicense={()=>viewLicense(item)}
+  onSaveRemark={(remarkVal)=>updatePharmacistRemark(item.user_id, remarkVal)}
   getPerformance={getPerformance} />
           ))}
         </>}
@@ -195,6 +214,7 @@ export default function AdminPage() {
   onApprove={(remarkVal)=>updateStoreStatus(item.user_id,'approved', remarkVal)}
   onReject={(remarkVal)=>updateStoreStatus(item.user_id,'rejected', remarkVal)}
   onSuspend={()=>updateStoreStatus(item.user_id,'suspended')}
+  onSaveRemark={(remarkVal)=>updateStoreRemark(item.user_id, remarkVal)}
   getPerformance={getPerformance} />
           ))}
         </>}
@@ -223,26 +243,86 @@ export default function AdminPage() {
   )
 }
 
-function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onViewLicense, getPerformance }) {
+function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
+  const [showLicense, setShowLicense] = useState(false)
+  const [licenseUrl, setLicenseUrl] = useState('')
+  const [ll, setLl] = useState(false)
+  const [remark, setRemark] = useState(item.verification_remark || '')
+
   const loadPerf = async () => { if(perf){setPerf(null);return} setLp(true); setPerf(await getPerformance(item.user_id,'pharmacist')); setLp(false) }
+
+  const toggleLicense = async () => {
+    if (showLicense) {
+      setShowLicense(false)
+      return
+    }
+    if (licenseUrl) {
+      setShowLicense(true)
+      return
+    }
+    if (!item.license_url) {
+      alert('No license uploaded.')
+      return
+    }
+    setLl(true)
+    const cleanPath = item.license_url.includes('supabase.co')
+      ? item.license_url.split('/licenses/')[1]
+      : item.license_url
+    const { data, error } = await supabase.storage.from('licenses').createSignedUrl(cleanPath, 3600)
+    if (error || !data?.signedUrl) {
+      alert('Could not load license. Error: ' + error?.message)
+    } else {
+      setLicenseUrl(data.signedUrl)
+      setShowLicense(true)
+    }
+    setLl(false)
+  }
+
   return (
     <div style={st.card}>
       <h3 style={st.cardTitle}>{item.name||'Unnamed'}</h3>
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
+      {item.verification_remark && <p style={st.detail}>💬 <b>Remark:</b> {item.verification_remark}</p>}
+      
       <div style={st.actions}>
-        {item.license_url && <button style={st.licBtn} onClick={onViewLicense}>📄 License</button>}
+        {item.license_url && <button style={st.licBtn} onClick={toggleLicense} disabled={ll}>{ll?'…':showLicense?'Hide License':'📄 License'}</button>}
         <button style={st.perfBtn} onClick={loadPerf} disabled={lp}>{lp?'…':perf?'Hide Stats':'📊 Stats'}</button>
       </div>
+
+      {showLicense && licenseUrl && (
+        <div style={st.licenseBox}>
+          <img src={licenseUrl} alt="Pharmacist License" style={st.licenseImg} />
+        </div>
+      )}
+
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Applied: <b>{perf.jobsApplied}</b></p><p style={st.perfItem}>✓ Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
-      {status==='pending' && <div style={st.approvalRow}><button style={st.approve} onClick={onApprove}>✓ Approve</button><button style={st.reject} onClick={onReject}>✕ Reject</button></div>}
-{status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
+      
+      <div style={{ marginTop: 12 }}>
+        <textarea
+          style={st.remarkInput}
+          placeholder="Add verification remark / comments..."
+          value={remark}
+          onChange={e => setRemark(e.target.value)}
+          rows={2}
+        />
+        <div style={st.approvalRow}>
+          <button style={st.saveRemarkBtn} onClick={() => onSaveRemark(remark)}>💾 Save Remark</button>
+          {status==='pending' && (
+            <>
+              <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
+              <button style={st.reject} onClick={() => onReject(remark)}>✕ Reject</button>
+            </>
+          )}
+          {status==='approved' && <button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button>}
+        </div>
+      </div>
     </div>
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, onSuspend, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark, getPerformance }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const [showLicense, setShowLicense] = useState(false)
@@ -304,22 +384,25 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, getPerformanc
 
       {perf && <div style={st.perfBox}><p style={st.perfItem}>📋 Jobs Posted: <b>{perf.jobsPosted}</b></p><p style={st.perfItem}>✓ Hired: <b>{perf.jobsClosed}</b></p><p style={st.perfItem}>📅 Appointments: <b>{perf.appointmentsConfirmed}</b></p></div>}
       
-      {status==='pending' && (
-        <div style={{ marginTop: 12 }}>
-          <textarea
-            style={st.remarkInput}
-            placeholder="Add verification remark / comments..."
-            value={remark}
-            onChange={e => setRemark(e.target.value)}
-            rows={2}
-          />
-          <div style={st.approvalRow}>
-            <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
-            <button style={st.reject} onClick={() => onReject(remark)}>✕ Reject</button>
-          </div>
+      <div style={{ marginTop: 12 }}>
+        <textarea
+          style={st.remarkInput}
+          placeholder="Add verification remark / comments..."
+          value={remark}
+          onChange={e => setRemark(e.target.value)}
+          rows={2}
+        />
+        <div style={st.approvalRow}>
+          <button style={st.saveRemarkBtn} onClick={() => onSaveRemark(remark)}>💾 Save Remark</button>
+          {status==='pending' && (
+            <>
+              <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
+              <button style={st.reject} onClick={() => onReject(remark)}>✕ Reject</button>
+            </>
+          )}
+          {status==='approved' && <button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button>}
         </div>
-      )}
-      {status==='approved' && <div style={st.approvalRow}><button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button></div>}
+      </div>
     </div>
   )
 }
@@ -356,4 +439,5 @@ const st = {
   licenseBox:{ marginTop:12, border:'1px solid #e2e8f0', borderRadius:8, padding:8, overflow:'hidden', background:'#f8fafc' },
   licenseImg:{ width:'100%', maxHeight:400, objectFit:'contain', display:'block', borderRadius:6 },
   remarkInput:{ width:'100%', padding:'8px 12px', border:'1.5px solid #cbd5e1', borderRadius:6, fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', boxSizing:'border-box' },
+  saveRemarkBtn:{ background:'#475569', color:'white', border:'none', padding:'8px 16px', borderRadius:6, cursor:'pointer', fontWeight:700, fontSize:14 },
 }
