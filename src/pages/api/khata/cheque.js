@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
       const body = req.body;
-      const { chequeNumber, chequeDate, bankName, amount, status, supplierName, paymentMode, bankCharge, bankAccountId, partyType, customerId } = body;
+      const { chequeNumber, chequeDate, bankName, amount, status, supplierName, paymentMode, bankCharge, bankAccountId, partyType, customerId, purchaseIds, isFifo } = body;
 
       if (!chequeNumber || !chequeDate || !amount || !bankName) {
         return res.status(400).json({ error: 'Missing required cheque fields' });
@@ -43,6 +43,91 @@ export default async function handler(req, res) {
           customerId: customerId ? Number(customerId) : null,
         },
       });
+
+      // Link purchases to this cheque for Supplier settlements
+      const isSupplier = (partyType || 'Supplier') === 'Supplier';
+      if (isSupplier && supplierName) {
+        let purchasesToSettle = [];
+        if (purchaseIds && purchaseIds.length > 0) {
+          purchasesToSettle = await prisma.purchase.findMany({
+            where: {
+              id: { in: purchaseIds.map(Number) },
+              storeOwnerId,
+              supplierName,
+              paymentType: 'Credit',
+              chequeId: null
+            },
+            orderBy: { date: 'asc' }
+          });
+        } else if (isFifo) {
+          purchasesToSettle = await prisma.purchase.findMany({
+            where: {
+              storeOwnerId,
+              supplierName,
+              paymentType: 'Credit',
+              chequeId: null
+            },
+            orderBy: { date: 'asc' }
+          });
+        }
+
+        let remainingAmount = Number(amount);
+        for (const p of purchasesToSettle) {
+          if (remainingAmount <= 0) break;
+          if (remainingAmount >= p.invoiceAmount) {
+            await prisma.purchase.update({
+              where: { id: p.id },
+              data: { chequeId: cheque.id }
+            });
+            remainingAmount -= p.invoiceAmount;
+          } else {
+            await prisma.purchase.update({
+              where: { id: p.id },
+              data: {
+                invoiceAmount: remainingAmount,
+                chequeId: cheque.id
+              }
+            });
+            await prisma.purchase.create({
+              data: {
+                storeOwnerId: p.storeOwnerId,
+                date: p.date,
+                supplierName: p.supplierName,
+                invoiceNumber: p.invoiceNumber,
+                invoiceAmount: p.invoiceAmount - remainingAmount,
+                paymentType: 'Credit',
+                chequeId: null
+              }
+            });
+            remainingAmount = 0;
+          }
+        }
+      }
+
+      // Sync Payment record if it is a cleared Supplier payment
+      if (status === 'Cleared' && isSupplier && supplierName) {
+        const desc = `${bankName} Settlement (Ref No: ${chequeNumber})`;
+        const existingPayment = await prisma.payment.findFirst({
+          where: {
+            storeOwnerId,
+            payee: supplierName,
+            amount: Number(amount),
+            description: desc
+          }
+        });
+        if (!existingPayment) {
+          await prisma.payment.create({
+            data: {
+              storeOwnerId,
+              date: new Date(chequeDate),
+              amount: Number(amount),
+              payee: supplierName,
+              type: 'Credit',
+              description: desc
+            }
+          });
+        }
+      }
 
       return res.status(201).json(cheque);
     } catch (error) {

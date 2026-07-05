@@ -288,6 +288,25 @@ export function SupplierLedger() {
       return next;
     });
   };
+  const handleAmountInputChange = (val) => {
+    setCustomAmount(val);
+    const amtVal = parseFloat(val) || 0;
+    if (amtVal <= 0) {
+      setSelectedPurchaseIds([]);
+      return;
+    }
+    const sorted = [...unsettledPurchases].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    let remaining = amtVal;
+    const selectedIds = [];
+    for (const p of sorted) {
+      if (remaining <= 0) break;
+      selectedIds.push(p.id);
+      remaining -= p.invoiceAmount;
+    }
+    setSelectedPurchaseIds(selectedIds);
+  };
   const fetchUnsettled = async () => {
     if (!selectedSupplier) return;
     try {
@@ -374,8 +393,7 @@ export function SupplierLedger() {
       });
     }
   };
-  const calculatedChequeAmount = unsettledPurchases.filter((p) => selectedPurchaseIds.includes(p.id)).reduce((sum, p) => sum + p.invoiceAmount, 0);
-  const settlementAmount = useCustomAmount ? parseFloat(customAmount) || 0 : calculatedChequeAmount;
+  const settlementAmount = parseFloat(customAmount) || 0;
   const getFifoAllocationPreview = () => {
     const amountVal = parseFloat(customAmount) || 0;
     let remaining = amountVal;
@@ -423,28 +441,21 @@ export function SupplierLedger() {
   const { allocation: fifoAllocationPreview, excess: fifoExcess } = getFifoAllocationPreview();
   const handleIssueSettlement = async (e) => {
     e.preventDefault();
-    if (useCustomAmount) {
-      const amtVal = parseFloat(customAmount) || 0;
-      const totalUnsettledAmount = unsettledPurchases.reduce((sum, p) => sum + p.invoiceAmount, 0);
-      if (amtVal <= 0) {
-        alert("Please enter a valid custom amount greater than \u20B90.");
-        return;
-      }
-      if (amtVal > totalUnsettledAmount) {
-        alert(`Custom amount cannot exceed total outstanding unsettled amount of \u20B9${totalUnsettledAmount.toLocaleString("en-IN")}.`);
-        return;
-      }
-    } else {
-      if (selectedPurchaseIds.length === 0) {
-        alert("Please select at least one unsettled purchase invoice.");
-        return;
-      }
+    const amtVal = parseFloat(customAmount) || 0;
+    if (amtVal <= 0) {
+      alert("Please enter a valid amount greater than \u20B90.");
+      return;
+    }
+    const totalUnsettledAmount = unsettledPurchases.reduce((sum, p) => sum + p.invoiceAmount, 0);
+    if (amtVal > totalUnsettledAmount) {
+      alert(`Amount cannot exceed total outstanding unsettled amount of \u20B9${totalUnsettledAmount.toLocaleString("en-IN")}.`);
+      return;
     }
     let payload = {
       supplierName: selectedSupplier,
-      amount: settlementAmount,
-      purchaseIds: useCustomAmount ? [] : selectedPurchaseIds,
-      isFifo: useCustomAmount
+      amount: amtVal,
+      purchaseIds: selectedPurchaseIds,
+      isFifo: selectedPurchaseIds.length === 0
     };
     if (settlementMode === "Cheque") {
       payload = {
@@ -893,47 +904,6 @@ export function SupplierLedger() {
       </Card>
 
       {
-    /* ── Summary stat strip ─────────────────────────────────── */
-  }
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-5">
-        {
-    /* Total Period Purchases */
-  }
-        <div className="relative overflow-hidden bg-gradient-to-br from-brand-navy to-slate-700 rounded-xl p-6 shadow-md">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-brand-teal/20 rounded-full -translate-y-6 translate-x-6" />
-          <div className="relative z-10">
-            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">🧾 Period Purchases</div>
-            <div className="text-2xl font-black text-white font-mono">₹{totalPurchases.toLocaleString("en-IN")}</div>
-            <div className="text-[10px] text-slate-450 font-semibold mt-1">Total value of all period invoices</div>
-          </div>
-        </div>
-
-        {
-    /* Outstanding Balance */
-  }
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-650 rounded-xl p-6 shadow-md">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
-          <div className="relative z-10">
-            <div className="text-[10px] font-black text-amber-100 uppercase tracking-widest mb-1">⏳ Outstanding Balance</div>
-            <div className="text-2xl font-black text-white font-mono">₹{outstandingAmount.toLocaleString("en-IN")}</div>
-            <div className="text-[10px] text-amber-200 font-semibold mt-1">Unsettled credit amount pending</div>
-          </div>
-        </div>
-
-        {
-    /* Settled Payments */
-  }
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl p-6 shadow-md">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
-          <div className="relative z-10">
-            <div className="text-[10px] font-black text-emerald-100 uppercase tracking-widest mb-1">🟢 Settled Payments</div>
-            <div className="text-2xl font-black text-white font-mono">₹{Math.max(0, totalPurchases - outstandingAmount).toLocaleString("en-IN")}</div>
-            <div className="text-[10px] text-emerald-250 font-semibold mt-1">Amount fully cleared/paid</div>
-          </div>
-        </div>
-      </div>
-
-      {
     /* Sleek, Premium Quick Payment Entry Card */
   }
       <Card className="border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden">
@@ -944,122 +914,47 @@ export function SupplierLedger() {
         </CardHeader>
         <CardContent className="p-5">
           <form onSubmit={handleIssueSettlement} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
               
-              {
-    /* Field 1: Party (Supplier) */
-  }
+              {/* Field 1: Party (Supplier) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Party (Supplier)</Label>
                 <select
-    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
-    value={selectedSupplier}
-    onChange={(e) => setSelectedSupplier(e.target.value)}
-    required
-  >
+                  className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+                  value={selectedSupplier}
+                  onChange={(e) => setSelectedSupplier(e.target.value)}
+                  required
+                >
                   <option value="">Select Supplier</option>
                   {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
 
-              {
-    /* Field 2: Select Unpaid Invoices Dropdown Checklist */
-  }
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unpaid Vouchers</Label>
-                <div className="relative">
-                  <button
-    type="button"
-    onClick={() => setIsVoucherDropdownOpen(!isVoucherDropdownOpen)}
-    className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-semibold text-slate-850 dark:text-slate-200 cursor-pointer"
-  >
-                    <span className="truncate">
-                      {selectedPurchaseIds.length === 0 ? "Auto-Settle (All Unpaid)" : `${selectedPurchaseIds.length} Voucher${selectedPurchaseIds.length > 1 ? "s" : ""} Selected`}
-                    </span>
-                    <span className="text-[10px] text-slate-400">▼</span>
-                  </button>
-
-                  {isVoucherDropdownOpen && <div className="absolute left-0 mt-1 z-50 w-full md:w-[350px] max-h-80 overflow-y-auto space-y-1.5 p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-xl border-slate-150 dark:border-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 mb-2">
-                        <span className="text-[10px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-wider">Pending Credit Invoices</span>
-                        <button
-    type="button"
-    onClick={() => setIsVoucherDropdownOpen(false)}
-    className="text-[10px] text-brand-teal font-extrabold hover:underline cursor-pointer"
-  >
-                          Done
-                        </button>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {unsettledPurchases.map((p) => {
-    const details = getVoucherDetails(p);
-    return <div
-      key={p.id}
-      className={`flex items-center space-x-3 p-2.5 rounded-xl border transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-800 ${selectedPurchaseIds.includes(p.id) ? "border-brand-teal/30 bg-brand-soft-teal/20 dark:bg-brand-teal/10" : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"}`}
-    >
-                              <input
-      type="checkbox"
-      id={`quick-unpaid-${p.id}`}
-      checked={selectedPurchaseIds.includes(p.id)}
-      onChange={() => handleQuickCheckboxChange(p)}
-      className="h-4.5 w-4.5 rounded border-slate-300 text-brand-teal focus:ring-brand-teal cursor-pointer"
-    />
-                              <label
-      htmlFor={`quick-unpaid-${p.id}`}
-      className="flex-1 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 select-none"
-    >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold font-mono">#{p.invoiceNumber}</span>
-                                  <span className="font-extrabold text-brand-teal">₹{p.invoiceAmount.toLocaleString("en-IN")}</span>
-                                </div>
-                                <div className="flex flex-col text-[9px] text-slate-400 dark:text-slate-550 mt-1">
-                                  <span>📅 {formatDate(p.date)}</span>
-                                  {details.isPartPaid && <span className="font-bold text-amber-600 dark:text-amber-400 mt-0.5">
-                                      Total: ₹{details.totalAmount} (Paid: ₹{details.paidAmount})
-                                    </span>}
-                                </div>
-                              </label>
-                            </div>;
-  })}
-
-                        {unsettledPurchases.length === 0 && <p className="text-center py-6 text-xs text-muted-foreground font-semibold">
-                            ✓ All invoices are fully settled!
-                          </p>}
-                      </div>
-                    </div>}
-                </div>
-              </div>
-
-              {
-    /* Field 3: Amount */
-  }
+              {/* Field 2: Amount */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Amount (₹)</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-sm font-extrabold text-slate-400">₹</span>
                   <Input
-    type="number"
-    placeholder="0.00"
-    className="pl-7 h-9 font-extrabold text-sm rounded-lg bg-white dark:bg-slate-950 font-semibold px-4"
-    value={customAmount}
-    onChange={(e) => setCustomAmount(e.target.value)}
-    required
-  />
+                    type="number"
+                    placeholder="0.00"
+                    className="pl-7 h-9 font-extrabold text-sm rounded-lg bg-white dark:bg-slate-950 px-4"
+                    value={customAmount}
+                    onChange={(e) => handleAmountInputChange(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
 
-              {
-    /* Field 4: Settle Mode */
-  }
+              {/* Field 3: Payment Mode */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Payment Mode</Label>
                 <select
-    className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
-    value={settlementMode}
-    onChange={(e) => setSettlementMode(e.target.value)}
-    required
-  >
+                  className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+                  value={settlementMode}
+                  onChange={(e) => setSettlementMode(e.target.value)}
+                  required
+                >
                   <option value="Cheque">Post-Dated Cheque (PDC)</option>
                   <option value="Cash">Cash</option>
                   <option value="UPI">UPI Transfer</option>
@@ -1068,9 +963,7 @@ export function SupplierLedger() {
                 </select>
               </div>
 
-              {
-    /* Field 5: Action Button */
-  }
+              {/* Field 4: Action Button */}
               <div>
                 <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-extrabold h-9 rounded-full border-0 shadow-xs cursor-pointer">
                   Record Payment
@@ -1164,6 +1057,94 @@ export function SupplierLedger() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Pending Unpaid Vouchers Table */}
+      {selectedSupplier && (
+        <Card className="border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden mt-6 animate-in fade-in duration-300">
+          <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+            <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase flex items-center justify-between">
+              <span>📋 Unpaid Vouchers for {selectedSupplier}</span>
+              <span className="text-xs bg-brand-soft-teal text-brand-teal px-2.5 py-0.5 rounded-full font-black border border-brand-teal/20">
+                {unsettledPurchases.length} Pending
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="border border-slate-150 dark:border-slate-800/80 rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader className="bg-slate-50 dark:bg-slate-950">
+                  <TableRow>
+                    <TableHead className="w-12 text-center">
+                      <input
+                        type="checkbox"
+                        checked={unsettledPurchases.length > 0 && unsettledPurchases.every(p => selectedPurchaseIds.includes(p.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedPurchaseIds(unsettledPurchases.map(p => p.id));
+                            const totalVal = unsettledPurchases.reduce((sum, p) => sum + p.invoiceAmount, 0);
+                            setCustomAmount(String(totalVal));
+                          } else {
+                            setSelectedPurchaseIds([]);
+                            setCustomAmount("");
+                          }
+                        }}
+                        className="h-4.5 w-4.5 rounded border-slate-300 text-brand-teal focus:ring-brand-teal cursor-pointer"
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300">Date</TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300">Invoice No.</TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300">Original Amount</TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300">Paid Amount</TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300 text-right pr-4">Balance Owed</TableHead>
+                    <TableHead className="text-xs font-bold py-3 text-slate-700 dark:text-slate-300 text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {unsettledPurchases.map((p) => {
+                    const details = getVoucherDetails(p);
+                    const isChecked = selectedPurchaseIds.includes(p.id);
+                    return (
+                      <TableRow key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors border-b border-slate-100 dark:border-slate-800/80">
+                        <TableCell className="text-center py-3">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleQuickCheckboxChange(p)}
+                            className="h-4.5 w-4.5 rounded border-slate-300 text-brand-teal focus:ring-brand-teal cursor-pointer"
+                          />
+                        </TableCell>
+                        <TableCell className="font-semibold text-xs text-slate-700 dark:text-slate-350">{formatDate(p.date)}</TableCell>
+                        <TableCell className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200">#{p.invoiceNumber}</TableCell>
+                        <TableCell className="font-semibold text-xs text-slate-700 dark:text-slate-350">₹{details.totalAmount.toLocaleString("en-IN")}</TableCell>
+                        <TableCell className="font-semibold text-xs text-slate-700 dark:text-slate-350">₹{details.paidAmount.toLocaleString("en-IN")}</TableCell>
+                        <TableCell className="text-right font-extrabold text-xs text-rose-600 dark:text-rose-400 font-mono pr-4">₹{p.invoiceAmount.toLocaleString("en-IN")}</TableCell>
+                        <TableCell className="text-center">
+                          {details.isPartPaid ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
+                              Partially Paid
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-200">
+                              Unpaid
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {unsettledPurchases.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-emerald-600 font-bold text-sm">
+                        ✅ All invoices are fully settled! No unpaid vouchers.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statements & Payments History Filters, and Payments & Purchases Ledger History moved to MasterLedger.js */}
 
