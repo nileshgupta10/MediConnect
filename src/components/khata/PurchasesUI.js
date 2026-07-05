@@ -13,6 +13,8 @@ export function PurchasesUI() {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [newBankAccountName, setNewBankAccountName] = useState('');
+  const [isBankDialogOpen, setIsBankDialogOpen] = useState(false);
   const [hasCheque, setHasCheque] = useState(false);
 
   // Edit dialog state
@@ -28,6 +30,7 @@ export function PurchasesUI() {
     chequeNumber: '',
     chequeDate: '',
     chequeBank: '',
+    bankAccountId: '',
   });
 
   const fetchPurchases = async () => {
@@ -92,6 +95,29 @@ export function PurchasesUI() {
     }
   };
 
+  const handleAddBankAccount = async (e) => {
+    e.preventDefault();
+    if (!newBankAccountName.trim()) return;
+
+    try {
+      const res = await khataFetch('/api/khata/bank-account', {
+        method: 'POST',
+        body: JSON.stringify({ name: newBankAccountName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await fetchBankAccounts();
+        setFormData(prev => ({ ...prev, bankAccountId: String(data.id) }));
+        setNewBankAccountName('');
+        setIsBankDialogOpen(false);
+      } else {
+        alert(data.error || 'Failed to add bank account');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
@@ -99,6 +125,7 @@ export function PurchasesUI() {
       chequeNumber: hasCheque ? formData.chequeNumber : '',
       chequeDate: hasCheque ? formData.chequeDate : '',
       chequeBank: hasCheque ? formData.chequeBank : '',
+      bankAccountId: hasCheque ? formData.bankAccountId : '',
     };
 
     try {
@@ -119,6 +146,7 @@ export function PurchasesUI() {
           chequeNumber: '',
           chequeDate: '',
           chequeBank: '',
+          bankAccountId: '',
         }));
         setHasCheque(false);
       } else {
@@ -306,8 +334,48 @@ export function PurchasesUI() {
                   <Input type="date" value={formData.chequeDate} onChange={e => setFormData({...formData, chequeDate: e.target.value})} className="rounded-lg bg-white font-semibold" required={hasCheque} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-500">Bank Name</Label>
-                  <Input value={formData.chequeBank} onChange={e => setFormData({...formData, chequeBank: e.target.value})} placeholder="e.g. HDFC Bank" className="rounded-lg bg-white font-semibold" required={hasCheque} />
+                  <Label className="text-xs font-bold text-slate-500">Bank Account</Label>
+                  <div className="flex gap-2">
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm shadow-sm font-bold"
+                      value={formData.bankAccountId}
+                      onChange={e => {
+                        const acc = bankAccounts.find(b => String(b.id) === e.target.value);
+                        setFormData({...formData, bankAccountId: e.target.value, chequeBank: acc ? acc.name : ''});
+                      }}
+                      required={hasCheque}
+                    >
+                      <option value="" disabled>Select bank account</option>
+                      {bankAccounts.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                    <Dialog open={isBankDialogOpen} onOpenChange={setIsBankDialogOpen}>
+                      <DialogTrigger render={
+                        <Button type="button" variant="outline" size="sm" className="rounded-lg border-brand-teal/50 text-brand-teal font-bold h-9 w-9 shrink-0 cursor-pointer">+</Button>
+                      } />
+                      <DialogContent className="max-w-md rounded-xl bg-white border border-slate-150 p-5 shadow-lg">
+                        <DialogHeader>
+                          <DialogTitle className="text-brand-navy font-bold">Add bank account</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleAddBankAccount} className="space-y-4 pt-2">
+                          <div className="space-y-1.5">
+                            <Label className="text-sm font-bold text-slate-650">Bank Account Name</Label>
+                            <Input
+                              value={newBankAccountName}
+                              onChange={e => setNewBankAccountName(e.target.value)}
+                              placeholder="e.g. HDFC Bank - Current A/c"
+                              className="rounded-lg bg-white font-semibold"
+                              required
+                            />
+                          </div>
+                          <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0 shadow-xs cursor-pointer">
+                            Save bank account
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </div>
             )}
