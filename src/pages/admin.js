@@ -247,6 +247,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const [showLicense, setShowLicense] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
   const [licenseUrl, setLicenseUrl] = useState('')
   const [ll, setLl] = useState(false)
   const [remark, setRemark] = useState(item.verification_remark || '')
@@ -281,10 +282,10 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
   }
 
   return (
-    <div style={st.card}>
+    <div style={status==='pending' ? {...st.card, ...st.cardPending} : st.card}>
       <h3 style={st.cardTitle}>{item.name||'Unnamed'}</h3>
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
-      {item.verification_remark && <p style={st.detail}>💬 <b>Remark:</b> {item.verification_remark}</p>}
+      {item.verification_remark && <div style={st.remarkHighlight}>💬 <b>Remark:</b> {item.verification_remark}</div>}
       
       <div style={st.actions}>
         {item.license_url && <button style={st.licBtn} onClick={toggleLicense} disabled={ll}>{ll?'…':showLicense?'Hide License':'📄 License'}</button>}
@@ -292,8 +293,20 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
       </div>
 
       {showLicense && licenseUrl && (
-        <div style={st.licenseBox}>
-          <img src={licenseUrl} alt="Pharmacist License" style={st.licenseImg} />
+  <div style={st.licenseBox}>
+    <img src={licenseUrl} alt="License" style={{...st.licenseImg, cursor: 'zoom-in'}} onClick={() => setZoomOpen(true)} title="Click to zoom" />
+  </div>
+)}
+{zoomOpen && (
+  <div style={st.zoomOverlay} onClick={() => setZoomOpen(false)}>
+    <img src={licenseUrl} alt="License zoomed" style={st.zoomImg} />
+    <button style={st.zoomClose} onClick={() => setZoomOpen(false)}>✕ Close</button>
+  </div>
+)}
+      {zoomOpen && (
+        <div style={st.zoomOverlay} onClick={() => setZoomOpen(false)}>
+          <img src={licenseUrl} alt="License zoomed" style={st.zoomImg} />
+          <button style={st.zoomClose} onClick={() => setZoomOpen(false)}>✕ Close</button>
         </div>
       )}
 
@@ -328,6 +341,7 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const [showLicense, setShowLicense] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
   const [licenseUrl, setLicenseUrl] = useState('')
   const [ll, setLl] = useState(false)
   const [remark, setRemark] = useState(item.verification_remark || '')
@@ -362,7 +376,7 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
   }
 
   return (
-    <div style={st.card}>
+    <div style={status==='pending' ? {...st.card, ...st.cardPending} : st.card}>
       <h3 style={st.cardTitle}>{item.store_name||'Unnamed Store'}</h3>
       {item.contact_person && <p style={st.detail}>👤 <b>Contact Person:</b> {item.contact_person}</p>}
       {item.phone && <p style={st.detail}>📞 <b>Phone:</b> {item.phone}</p>}
@@ -371,16 +385,27 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
       {item.num_vacancies !== undefined && item.num_vacancies !== null && <p style={st.detail}>💼 <b>Vacancies:</b> {item.num_vacancies}</p>}
       {item.experience_required && <p style={st.detail}>🎓 <b>Experience Required:</b> {item.experience_required}</p>}
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
-      {item.verification_remark && <p style={st.detail}>💬 <b>Remark:</b> {item.verification_remark}</p>}
+      {item.verification_remark && <div style={st.remarkHighlight}>💬 <b>Remark:</b> {item.verification_remark}</div>}
       
       <div style={st.actions}>
         {item.license_url && <button style={st.licBtn} onClick={toggleLicense} disabled={ll}>{ll?'…':showLicense?'Hide License':'📄 License'}</button>}
         <button style={st.perfBtn} onClick={loadPerf} disabled={lp}>{lp?'…':perf?'Hide Stats':'📊 Stats'}</button>
       </div>
-
-      {showLicense && licenseUrl && (
-        <div style={st.licenseBox}>
-          <img src={licenseUrl} alt="Store License" style={st.licenseImg} />
+{showLicense && licenseUrl && (
+  <div style={st.licenseBox}>
+    <img src={licenseUrl} alt="License" style={{...st.licenseImg, cursor: 'zoom-in'}} onClick={() => setZoomOpen(true)} title="Click to zoom" />
+  </div>
+)}
+{zoomOpen && (
+  <div style={st.zoomOverlay} onClick={() => setZoomOpen(false)}>
+    <img src={licenseUrl} alt="License zoomed" style={st.zoomImg} />
+    <button style={st.zoomClose} onClick={() => setZoomOpen(false)}>✕ Close</button>
+  </div>
+)}
+      {zoomOpen && (
+        <div style={st.zoomOverlay} onClick={() => setZoomOpen(false)}>
+          <img src={licenseUrl} alt="License zoomed" style={st.zoomImg} />
+          <button style={st.zoomClose} onClick={() => setZoomOpen(false)}>✕ Close</button>
         </div>
       )}
 
@@ -424,6 +449,8 @@ const st = {
   sub:{ fontSize:18, fontWeight:600, marginBottom:12 },
   empty:{ fontSize:14, color:'#64748b', padding:16 },
   card:{ border:'1px solid #e2e8f0', padding:16, borderRadius:10, marginBottom:14, background:'white' },
+  cardPending:{ borderLeft:'5px solid #f59e0b', background:'#fffbeb' },
+  remarkHighlight:{ background:'#fef3c7', border:'1px solid #fbbf24', borderRadius:6, padding:'8px 10px', margin:'8px 0', fontSize:14, color:'#78350f' },
   cardTitle:{ fontSize:16, fontWeight:600, margin:'0 0 8px 0' },
   detail:{ fontSize:14, color:'#475569', margin:'3px 0' },
   badge:{ background:'#e5e7eb', padding:'2px 8px', borderRadius:12, fontSize:12 },
@@ -442,6 +469,9 @@ const st = {
   suspend:{ background:'#f59e0b', color:'white', border:'none', padding:'8px 20px', borderRadius:6, cursor:'pointer', fontWeight:700, fontSize:14 },
   licenseBox:{ marginTop:12, border:'1px solid #e2e8f0', borderRadius:8, padding:8, overflow:'hidden', background:'#f8fafc' },
   licenseImg:{ width:'100%', maxHeight:400, objectFit:'contain', display:'block', borderRadius:6 },
+  zoomOverlay:{ position:'fixed', top:0, left:0, width:'100vw', height:'100vh', background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, cursor:'zoom-out' },
+  zoomImg:{ maxWidth:'90vw', maxHeight:'90vh', objectFit:'contain', borderRadius:8 },
+  zoomClose:{ position:'fixed', top:20, right:20, background:'#dc2626', color:'white', border:'none', padding:'10px 18px', borderRadius:6, fontWeight:700, cursor:'pointer', fontSize:14 },
   remarkInput:{ width:'100%', padding:'8px 12px', border:'1.5px solid #cbd5e1', borderRadius:6, fontSize:13, outline:'none', resize:'vertical', fontFamily:'inherit', boxSizing:'border-box' },
   saveRemarkBtn:{ background:'#475569', color:'white', border:'none', padding:'8px 16px', borderRadius:6, cursor:'pointer', fontWeight:700, fontSize:14 },
 }
