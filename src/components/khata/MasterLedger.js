@@ -2,10 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { formatDate, khataFetch } from '../../lib/khata-utils';
 import {
   Calendar, ShoppingBag, TrendingUp, AlertTriangle, Building2, Settings,
-  ArrowRight, FileText, Filter, ChevronDown, X
+  ArrowRight, FileText, Filter, ChevronDown, X, Plus, Trash2, Edit
 } from 'lucide-react';
 import { BankLedger } from './BankLedger';
 import { BankAccountManager } from './BankAccountManager';
@@ -30,6 +33,27 @@ export function MasterLedger() {
   const [supplierFilter, setSupplierFilter] = useState('');
   const [isSupplierFilterOpen, setIsSupplierFilterOpen] = useState(false);
   const [selectedSuppliers, setSelectedSuppliers] = useState([]);
+
+  // For Payment History Sub-tab
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedStatementSupplier, setSelectedStatementSupplier] = useState('');
+  const [statementInputStartDate, setStatementInputStartDate] = useState(thirtyDaysAgoStr);
+  const [statementInputEndDate, setStatementInputEndDate] = useState(todayStr);
+  const [statementConfirmedStartDate, setStatementConfirmedStartDate] = useState(thirtyDaysAgoStr);
+  const [statementConfirmedEndDate, setStatementConfirmedEndDate] = useState(todayStr);
+  
+  const [ledgerPurchases, setLedgerPurchases] = useState([]);
+  const [statementTotalPurchases, setStatementTotalPurchases] = useState(0);
+  const [statementOutstandingAmount, setStatementOutstandingAmount] = useState(0);
+  const [bankAccounts, setBankAccounts] = useState([]);
+
+  // Edit states for Ledger History
+  const [selectedGroupForEdit, setSelectedGroupForEdit] = useState(null);
+  const [isEditSelectionDialogOpen, setIsEditSelectionDialogOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [isEditBillDialogOpen, setIsEditBillDialogOpen] = useState(false);
+  const [editingCheque, setEditingCheque] = useState(null);
+  const [isEditChequeDialogOpen, setIsEditChequeDialogOpen] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -57,7 +81,57 @@ export function MasterLedger() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchSuppliers = async () => {
+    try {
+      const res = await khataFetch('/api/khata/supplier');
+      const data = await res.json();
+      setSuppliers(data || []);
+      if (data && data.length > 0 && !selectedStatementSupplier) {
+        setSelectedStatementSupplier(data[0].name);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchBankAccounts = async () => {
+    try {
+      const res = await khataFetch('/api/khata/bank-account');
+      const data = await res.json();
+      setBankAccounts(Array.isArray(data) ? data : data.accounts ?? []);
+    } catch {
+      setBankAccounts([]);
+    }
+  };
+
+  const fetchLedger = async () => {
+    if (!selectedStatementSupplier) return;
+    try {
+      const res = await khataFetch(
+        `/api/supplier/ledger?supplierName=${encodeURIComponent(
+          selectedStatementSupplier
+        )}&startDate=${statementConfirmedStartDate}&endDate=${statementConfirmedEndDate}`
+      );
+      const data = await res.json();
+      setLedgerPurchases(data.purchases || []);
+      setStatementTotalPurchases(data.totalAmount || 0);
+      setStatementOutstandingAmount(data.outstandingAmount || 0);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchSuppliers();
+    fetchBankAccounts();
+  }, []);
+
+  useEffect(() => {
+    if (selectedStatementSupplier) {
+      fetchLedger();
+    }
+  }, [selectedStatementSupplier, statementConfirmedStartDate, statementConfirmedEndDate]);
 
   const isWithinRange = (dateInput) => {
     try {
@@ -156,12 +230,219 @@ export function MasterLedger() {
     }
   };
 
+  const getGroupedLedgerPurchases = () => {
+    const groups = {};
+    ledgerPurchases.forEach((p) => {
+      const key = p.invoiceNumber ? p.invoiceNumber.trim() : `unnamed-${p.id}`;
+      if (!groups[key]) {
+        groups[key] = {
+          invoiceNumber: p.invoiceNumber || "",
+          date: p.date,
+          paymentType: p.paymentType,
+          originalAmount: 0,
+          paidAmount: 0,
+          unpaidAmount: 0,
+          purchases: [],
+          cheques: []
+        };
+      }
+      const g = groups[key];
+      if (new Date(p.date).getTime() < new Date(g.date).getTime()) {
+        g.date = p.date;
+      }
+      g.originalAmount += p.invoiceAmount;
+      if (p.cheque) {
+        g.paidAmount += p.invoiceAmount;
+        if (!g.cheques.some((c) => c.id === p.cheque.id)) {
+          g.cheques.push(p.cheque);
+        }
+      } else {
+        if (p.paymentType === "Cash") {
+          g.paidAmount += p.invoiceAmount;
+        } else {
+          g.unpaidAmount += p.invoiceAmount;
+        }
+      }
+      g.purchases.push(p);
+    });
+    return Object.values(groups).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
+  const handleApplyFilters = () => {
+    setStatementConfirmedStartDate(statementInputStartDate);
+    setStatementConfirmedEndDate(statementInputEndDate);
+  };
+
+  const handleStatementTallyExport = async () => {
+    try {
+      const res = await khataFetch(`/api/khata/export/tally?from=${statementConfirmedStartDate}&to=${statementConfirmedEndDate}`);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `MediCLan_CA_Tally_Entries_${statementConfirmedStartDate}_to_${statementConfirmedEndDate}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to download Tally CA Excel file");
+    }
+  };
+
+  const handleEditBillClick = (p) => {
+    setEditingPurchase({
+      id: p.id,
+      date: new Date(p.date).toISOString().split('T')[0],
+      supplierName: p.supplierName,
+      invoiceNumber: p.invoiceNumber,
+      invoiceAmount: p.invoiceAmount.toString(),
+      paymentType: p.paymentType,
+      paymentMode: p.cheque?.paymentMode || 'Cash',
+      bankAccountId: p.cheque?.bankAccountId ? String(p.cheque.bankAccountId) : '',
+      chequeNumber: p.cheque?.chequeNumber || '',
+      chequeDate: p.cheque?.chequeDate ? new Date(p.cheque.chequeDate).toISOString().split('T')[0] : new Date(p.date).toISOString().split('T')[0],
+      bankCharge: p.cheque?.bankCharge ? String(p.cheque.bankCharge) : ''
+    });
+    setIsEditBillDialogOpen(true);
+  };
+
+  const handleEditBillSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingPurchase) return;
+    try {
+      const payload = {
+        id: editingPurchase.id,
+        date: editingPurchase.date,
+        supplierName: editingPurchase.supplierName,
+        invoiceNumber: editingPurchase.invoiceNumber,
+        invoiceAmount: Number(editingPurchase.invoiceAmount),
+        paymentType: editingPurchase.paymentType,
+        paymentMode: editingPurchase.paymentMode,
+        bankAccountId: editingPurchase.paymentMode !== 'Cash' && editingPurchase.bankAccountId ? Number(editingPurchase.bankAccountId) : null,
+        chequeNumber: editingPurchase.paymentMode === 'Cheque' ? editingPurchase.chequeNumber : null,
+        chequeDate: editingPurchase.paymentMode === 'Cheque' ? editingPurchase.chequeDate : null,
+        bankCharge: editingPurchase.paymentMode !== 'Cash' && editingPurchase.bankCharge ? Number(editingPurchase.bankCharge) : null
+      };
+      const res = await khataFetch('/api/khata/purchase', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setIsEditBillDialogOpen(false);
+        setEditingPurchase(null);
+        await fetchLedger();
+        await fetchData(); // Refresh MasterLedger stats
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to edit purchase bill');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteBill = async (id) => {
+    if (!confirm('Are you sure you want to delete this purchase bill? All associated payment details will also be deleted.')) {
+      return;
+    }
+    try {
+      const res = await khataFetch(`/api/khata/purchase?id=${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setIsEditBillDialogOpen(false);
+        setEditingPurchase(null);
+        await fetchLedger();
+        await fetchData(); // Refresh MasterLedger stats
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to delete purchase bill');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleEditChequeClick = (cheque) => {
+    if (!cheque || cheque.id === undefined) {
+      alert('Settlement data not available. Please refresh and try again.');
+      return;
+    }
+    setEditingCheque({
+      id: cheque.id,
+      chequeNumber: cheque.chequeNumber ?? '',
+      chequeDate: cheque.chequeDate ? new Date(cheque.chequeDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      bankName: cheque.bankName ?? '',
+      amount: cheque.amount != null ? String(cheque.amount) : '0',
+      paymentMode: cheque.paymentMode ?? 'Cheque',
+      bankAccountId: cheque.bankAccountId ? String(cheque.bankAccountId) : ''
+    });
+    setIsEditChequeDialogOpen(true);
+  };
+
+  const handleEditChequeSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingCheque) return;
+    try {
+      const res = await khataFetch('/api/khata/cheque', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingCheque.id,
+          chequeNumber: editingCheque.chequeNumber,
+          chequeDate: editingCheque.chequeDate,
+          bankName: editingCheque.bankName,
+          amount: Number(editingCheque.amount),
+          paymentMode: editingCheque.paymentMode,
+          bankAccountId: editingCheque.paymentMode !== 'Cash' && editingCheque.bankAccountId ? Number(editingCheque.bankAccountId) : null
+        })
+      });
+      if (res.ok) {
+        setIsEditChequeDialogOpen(false);
+        setEditingCheque(null);
+        await fetchLedger();
+        await fetchData(); // Refresh MasterLedger stats
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to edit cheque');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteCheque = async (e, id) => {
+    e.preventDefault();
+    if (!confirm('Are you sure you want to delete this payment settlement?')) return;
+    try {
+      const res = await khataFetch(`/api/khata/cheque?id=${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setIsEditChequeDialogOpen(false);
+        setEditingCheque(null);
+        await fetchLedger();
+        await fetchData(); // Refresh MasterLedger stats
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to delete payment settlement');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // ── Sub-tab sidebar items ────────────────────────────────────────
   const subTabs = [
     { value: 'purchases', label: 'Purchase Ledger', icon: <ShoppingBag className="w-4.5 h-4.5" />, badge: filteredPurchases.length, color: 'brand-teal' },
     { value: 'sales', label: 'Consolidated Sales', icon: <TrendingUp className="w-4.5 h-4.5" />, badge: salesDates.length, color: 'violet' },
     { value: 'credit-health', label: 'Credit Health', icon: <AlertTriangle className="w-4.5 h-4.5" />, badge: openCreditPurchases.length + pendingOutwardCheques.length, color: 'amber' },
     { value: 'bank-ledger', label: 'Bank Ledger', icon: <Building2 className="w-4.5 h-4.5" />, color: 'slate' },
+    { value: 'statements', label: 'Payment History', icon: <FileText className="w-4.5 h-4.5" />, color: 'slate' },
     { value: 'settings', label: 'Settings & Banks', icon: <Settings className="w-4.5 h-4.5" />, color: 'slate' },
   ];
 
@@ -265,6 +546,7 @@ export function MasterLedger() {
                 {activeSubTab === 'sales' && '📈 Consolidated Sales Ledger'}
                 {activeSubTab === 'credit-health' && '⚠️ Credit Health Overview'}
                 {activeSubTab === 'bank-ledger' && '🏦 Bank Account Ledger'}
+                {activeSubTab === 'statements' && '🧾 Statements & Payment History'}
                 {activeSubTab === 'settings' && '⚙️ Settings & Bank Account Manager'}
               </CardTitle>
             </CardHeader>
@@ -596,6 +878,155 @@ export function MasterLedger() {
                     </div>
                   )}
 
+                  {/* ─── STATEMENTS / PAYMENT HISTORY ────────────────── */}
+                  {activeSubTab === 'statements' && (
+                    <div className="p-5 space-y-6 animate-in fade-in duration-200">
+                      
+                      {/* Statements Filters Card */}
+                      <Card className="border-slate-200/60 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-xs rounded-xl overflow-hidden">
+                        <CardHeader className="py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+                          <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase flex items-center gap-2">
+                            Statements &amp; Payments History Filters
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-5">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Select Supplier</Label>
+                              <select
+                                className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-bold"
+                                value={selectedStatementSupplier}
+                                onChange={(e) => setSelectedStatementSupplier(e.target.value)}
+                                required
+                              >
+                                {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                              </select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Start Date</Label>
+                              <Input type="date" value={statementInputStartDate} onChange={(e) => setStatementInputStartDate(e.target.value)} className="rounded-full bg-white dark:bg-slate-950 font-semibold px-4" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">End Date</Label>
+                              <Input type="date" value={statementInputEndDate} onChange={(e) => setStatementInputEndDate(e.target.value)} className="rounded-full bg-white dark:bg-slate-950 font-semibold px-4" />
+                            </div>
+                            <div>
+                              <Button type="button" onClick={handleApplyFilters} className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-extrabold h-9 rounded-full border-0 shadow-xs transition-all duration-200 cursor-pointer">
+                                Apply Date Range Filters
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Statements Table Card */}
+                      <Card className="border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 shadow-sm rounded-xl overflow-hidden">
+                        <CardHeader className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 py-4 px-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+                          <div className="space-y-1">
+                            <CardTitle className="text-sm font-bold text-brand-navy dark:text-slate-200 tracking-wide uppercase">Payments &amp; Purchases Ledger History</CardTitle>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wide max-w-md">
+                              ⚠️ Note: Use this Excel sheet to directly post or import entries in Tally for your CA's convenience.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-4 lg:gap-6 self-stretch lg:self-auto justify-between lg:justify-end">
+                            <Button
+                              onClick={handleStatementTallyExport}
+                              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs px-4 h-9 gap-1.5 cursor-pointer flex items-center shadow-xs border-0"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              Convert to Excel (CA)
+                            </Button>
+                            <div className="flex gap-6">
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-455 block uppercase font-bold tracking-wider">Period Purchases</span>
+                                <span className="text-xl font-extrabold text-brand-navy dark:text-slate-200 font-mono">₹{statementTotalPurchases.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div className="text-right border-l pl-6 border-slate-200 dark:border-slate-800">
+                                <span className="text-[10px] text-rose-500 block uppercase font-bold tracking-wider">Total Outstanding</span>
+                                <span className="text-xl font-extrabold text-rose-600 dark:text-rose-400 font-mono">₹{statementOutstandingAmount.toLocaleString("en-IN")}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                          <div className="min-h-[500px] max-h-[750px] overflow-y-auto pr-1 border border-slate-100 dark:border-slate-800/40 rounded-xl scrollbar-thin">
+                            <Table>
+                              <TableHeader className="sticky top-0 bg-brand-soft-teal dark:bg-slate-950 z-10 shadow-[0_1px_0_rgba(0,0,0,0.05)]">
+                                <TableRow>
+                                  <TableHead className="w-12 text-center bg-brand-soft-teal dark:bg-slate-950" />
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Date</TableHead>
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Invoice No.</TableHead>
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Payment Mode</TableHead>
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Settlement Status</TableHead>
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-right text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Amount</TableHead>
+                                  <TableHead className="bg-brand-soft-teal dark:bg-slate-950 text-right text-slate-800 dark:text-slate-200 text-xs font-bold py-3">Balance (₹)</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {getGroupedLedgerPurchases().map((g) => (
+                                  <TableRow key={g.invoiceNumber || g.date} className="hover:bg-brand-soft-teal/50 dark:hover:bg-slate-850/50 transition-colors odd:bg-white even:bg-brand-soft-teal/20 dark:odd:bg-slate-950/40 dark:even:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800/80">
+                                    <TableCell className="text-center py-2.5 px-1 align-middle">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedGroupForEdit(g);
+                                          setIsEditSelectionDialogOpen(true);
+                                        }}
+                                        className="h-7 w-7 text-slate-400 hover:text-brand-teal hover:bg-brand-soft-teal dark:hover:bg-slate-800 rounded-full transition-all cursor-pointer animate-in zoom-in-50 duration-150"
+                                        title="Edit Invoice or Settlement"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                    </TableCell>
+                                    <TableCell className="font-semibold text-xs text-slate-700 dark:text-slate-350">{formatDate(g.date)}</TableCell>
+                                    <TableCell className="font-semibold text-xs text-slate-800 dark:text-slate-200">{g.invoiceNumber || "N/A"}</TableCell>
+                                    <TableCell>
+                                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${g.paymentType === "Cash" ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300" : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"}`}>
+                                        {g.paymentType}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      {g.paymentType === "Cash" ? <span className="text-xs text-green-600 dark:text-green-400 font-bold animate-in fade-in duration-200">Settled (Immediate Cash)</span> : g.paidAmount > 0 && g.unpaidAmount > 0 ? <span className="inline-flex flex-col text-xs font-medium text-amber-600 dark:text-amber-400 animate-in fade-in duration-200">
+                                          <span className="font-bold">Partially Paid</span>
+                                          <span className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">
+                                            Paid: ₹{g.paidAmount.toLocaleString("en-IN")} | Remaining: ₹{g.unpaidAmount.toLocaleString("en-IN")}
+                                          </span>
+                                          {g.cheques.map((c) => <span key={c.id} className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase block leading-tight mt-0.5">
+                                              Mode: {c.bankName} (Ref: {c.chequeNumber}) | Amt: ₹{c.amount.toLocaleString("en-IN")} ({c.status === "Cleared" ? "Part Cleared" : c.status})
+                                            </span>)}
+                                        </span> : g.paidAmount > 0 && g.unpaidAmount === 0 ? <span className="inline-flex flex-col text-xs font-medium text-green-600 dark:text-green-400 animate-in fade-in duration-200">
+                                          <span className="font-bold">Fully Settled</span>
+                                          {g.cheques.map((c) => <span key={c.id} className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase block leading-tight mt-0.5">
+                                              Mode: {c.bankName} (Ref: {c.chequeNumber}) | Amt: ₹{c.amount.toLocaleString("en-IN")} ({c.status})
+                                            </span>)}
+                                        </span> : <span className="text-xs text-rose-500 dark:text-rose-400 font-bold animate-in fade-in duration-200">Unpaid (Owed)</span>}
+                                    </TableCell>
+                                    <TableCell className="text-right font-extrabold text-xs text-slate-800 dark:text-slate-200 font-mono">
+                                      ₹{g.originalAmount.toLocaleString("en-IN")}
+                                    </TableCell>
+                                    <TableCell className={`text-right font-extrabold text-xs font-mono ${g.unpaidAmount === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                                      ₹{g.unpaidAmount.toLocaleString("en-IN")}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                                {ledgerPurchases.length === 0 && (
+                                  <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-xs font-semibold">
+                                      No purchases recorded for {selectedStatementSupplier} during this period.
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                    </div>
+                  )}
+
                   {/* ─── SETTINGS ────────────────────────────────────── */}
                   {activeSubTab === 'settings' && (
                     <div className="p-4">
@@ -609,6 +1040,494 @@ export function MasterLedger() {
           </Card>
         </div>
       </div>
-    </div>
+        {/* Purchase Bill Edit Modal */}
+        <Dialog open={isEditBillDialogOpen} onOpenChange={setIsEditBillDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Purchase Invoice</DialogTitle>
+            </DialogHeader>
+            {editingPurchase && <form onSubmit={handleEditBillSubmit} className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Input
+      type="date"
+      value={editingPurchase.date}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, date: e.target.value })}
+      required
+    />
+                </div>
+                <div className="space-y-2">
+                  <Label>Supplier</Label>
+                  <select
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold"
+      value={editingPurchase.supplierName}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, supplierName: e.target.value })}
+      required
+    >
+                    {suppliers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Invoice Number</Label>
+                  <Input
+      value={editingPurchase.invoiceNumber}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, invoiceNumber: e.target.value })}
+      required
+    />
+                </div>
+                <div className="space-y-2">
+                  <Label>Invoice Amount (₹)</Label>
+                  <Input
+      type="number"
+      value={editingPurchase.invoiceAmount}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, invoiceAmount: e.target.value })}
+      required
+    />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Type</Label>
+                  <select
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold"
+      value={editingPurchase.paymentType}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, paymentType: e.target.value })}
+      required
+    >
+                    <option value="Cash">Cash (Paid Today)</option>
+                    <option value="Credit">Credit (Pay Later)</option>
+                  </select>
+                </div>
+
+                {editingPurchase.paymentType === "Cash" && <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div className="space-y-2">
+                      <Label>Payment Mode</Label>
+                      <select
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold"
+      value={editingPurchase.paymentMode || "Cash"}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, paymentMode: e.target.value })}
+      required
+    >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI">UPI Transfer</option>
+                        <option value="NEFT">NEFT (Bank Transfer)</option>
+                        <option value="IMPS">IMPS (Instant Bank Transfer)</option>
+                        <option value="Cheque">Cheque Payment</option>
+                      </select>
+                    </div>
+
+                    {editingPurchase.paymentMode !== "Cash" && editingPurchase.paymentMode && <>
+                        <div className="space-y-2">
+                          <Label>Select Bank Account</Label>
+                          <select
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold"
+      value={editingPurchase.bankAccountId || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, bankAccountId: e.target.value })}
+      required={editingPurchase.paymentMode !== "Cash"}
+    >
+                            <option value="">Select Bank Account</option>
+                            {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>{editingPurchase.paymentMode === "Cheque" ? "Cheque Number" : "Transaction Ref No."}</Label>
+                          <Input
+      value={editingPurchase.chequeNumber || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, chequeNumber: e.target.value })}
+      placeholder={editingPurchase.paymentMode === "Cheque" ? "e.g. 123456" : "e.g. TXN9876543"}
+    />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>{editingPurchase.paymentMode === "Cheque" ? "Cheque Date" : "Transfer Date"}</Label>
+                          <Input
+      type="date"
+      value={editingPurchase.chequeDate || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, chequeDate: e.target.value })}
+    />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Bank Charges / Fees (₹, if any)</Label>
+                          <Input
+      type="number"
+      value={editingPurchase.bankCharge || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, bankCharge: e.target.value })}
+      placeholder="0.00"
+    />
+                        </div>
+                      </>}
+                  </div>}
+
+                {editingPurchase.paymentType === "Credit" && <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+      type="checkbox"
+      id="editLinkPdc"
+      checked={editingPurchase.paymentMode === "Cheque"}
+      onChange={(e) => {
+        const checked = e.target.checked;
+        setEditingPurchase({
+          ...editingPurchase,
+          paymentMode: checked ? "Cheque" : "Cash",
+          chequeNumber: checked ? editingPurchase.chequeNumber || "" : "",
+          bankAccountId: checked ? editingPurchase.bankAccountId || "" : ""
+        });
+      }}
+      className="h-4 w-4 rounded border-slate-350 text-brand-teal focus:ring-brand-teal"
+    />
+                      <Label htmlFor="editLinkPdc" className="text-xs font-bold text-slate-700 dark:text-slate-200">Link to Post-Dated Cheque (PDC)</Label>
+                    </div>
+
+                    {editingPurchase.paymentMode === "Cheque" && <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                        <div className="space-y-2">
+                          <Label>Select Bank Account</Label>
+                          <select
+      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold"
+      value={editingPurchase.bankAccountId || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, bankAccountId: e.target.value })}
+      required={editingPurchase.paymentMode === "Cheque"}
+    >
+                            <option value="">Select Bank Account</option>
+                            {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Cheque Number</Label>
+                          <Input
+      value={editingPurchase.chequeNumber || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, chequeNumber: e.target.value })}
+      placeholder="e.g. 504932"
+      required={editingPurchase.paymentMode === "Cheque"}
+    />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Cheque Date</Label>
+                          <Input
+      type="date"
+      value={editingPurchase.chequeDate || ""}
+      onChange={(e) => setEditingPurchase({ ...editingPurchase, chequeDate: e.target.value })}
+      required={editingPurchase.paymentMode === "Cheque"}
+    />
+                        </div>
+                      </div>}
+                  </div>}
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <Button
+      type="button"
+      variant="destructive"
+      onClick={() => handleDeleteBill(editingPurchase.id)}
+      className="bg-rose-600 hover:bg-rose-700 text-white"
+    >
+                    Delete Bill
+                  </Button>
+                  <div className="space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsEditBillDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                  </div>
+                </div>
+              </form>}
+          </DialogContent>
+        </Dialog>
+
+        {/* Cheque / Settlement Edit Modal */}
+        <Dialog open={isEditChequeDialogOpen} onOpenChange={setIsEditChequeDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Settlement details</DialogTitle>
+            </DialogHeader>
+            {editingCheque && <form onSubmit={handleEditChequeSubmit} className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Cheque/Receipt Number</Label>
+                  <Input
+      value={editingCheque.chequeNumber}
+      onChange={(e) => setEditingCheque({ ...editingCheque, chequeNumber: e.target.value })}
+      required
+    />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Date / PDC Date</Label>
+                  <Input
+      type="date"
+      value={editingCheque.chequeDate}
+      onChange={(e) => setEditingCheque({ ...editingCheque, chequeDate: e.target.value })}
+      required
+    />
+                </div>
+                <div className="space-y-2">
+                  <Label>Payment Mode</Label>
+                  <select
+      className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+      value={editingCheque.paymentMode || "Cheque"}
+      onChange={(e) => {
+        const mode = e.target.value;
+        if (mode === "Cash") {
+          setEditingCheque({
+            ...editingCheque,
+            paymentMode: mode,
+            bankAccountId: "",
+            bankName: "Cash Payment"
+          });
+        } else {
+          const defaultAccId = bankAccounts[0]?.id ? String(bankAccounts[0].id) : "";
+          const defaultAccName = bankAccounts[0]?.name || "Bank";
+          setEditingCheque({
+            ...editingCheque,
+            paymentMode: mode,
+            bankAccountId: editingCheque.bankAccountId || defaultAccId,
+            bankName: editingCheque.bankAccountId ? editingCheque.bankName : defaultAccName
+          });
+        }
+      }}
+      required
+    >
+                    <option value="Cheque">Post-Dated Cheque (PDC)</option>
+                    <option value="Cash">Cash</option>
+                    <option value="UPI">UPI Transfer</option>
+                    <option value="NEFT">NEFT (Bank Transfer)</option>
+                    <option value="IMPS">IMPS (Instant Bank Transfer)</option>
+                  </select>
+                </div>
+
+                {editingCheque.paymentMode !== "Cash" && <div className="space-y-2">
+                    <Label>Select Bank Account</Label>
+                    <select
+      className="flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-bold text-slate-800 dark:text-slate-200"
+      value={editingCheque.bankAccountId || ""}
+      onChange={(e) => {
+        const bankId = e.target.value;
+        const selectedBank = bankAccounts.find((b) => String(b.id) === bankId);
+        setEditingCheque({
+          ...editingCheque,
+          bankAccountId: bankId,
+          bankName: selectedBank ? selectedBank.name : ""
+        });
+      }}
+      required={editingCheque.paymentMode !== "Cash"}
+    >
+                      <option value="">Select Bank Account</option>
+                      {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                    </select>
+                  </div>}
+                <div className="space-y-2">
+                  <Label>Amount (₹)</Label>
+                  <Input
+      type="number"
+      value={editingCheque.amount}
+      onChange={(e) => setEditingCheque({ ...editingCheque, amount: e.target.value })}
+      required
+    />
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <Button
+      type="button"
+      variant="destructive"
+      onClick={(e) => handleDeleteCheque(e, editingCheque.id)}
+      className="bg-rose-600 hover:bg-rose-700 text-white"
+    >
+                    Delete Settlement
+                  </Button>
+                  <div className="space-x-2">
+                    <Button type="button" variant="outline" onClick={() => setIsEditChequeDialogOpen(false)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                  </div>
+                </div>
+              </form>}
+          </DialogContent>
+        </Dialog>
+
+        {/* Unified Edit Selection Dialog */}
+        <Dialog open={isEditSelectionDialogOpen} onOpenChange={setIsEditSelectionDialogOpen}>
+          <DialogContent className="sm:max-w-7xl sm:w-[94vw] sm:h-[88vh] sm:max-h-[900px] w-full h-[95vh] flex flex-col bg-white/98 dark:bg-slate-950/98 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800 shadow-2xl rounded-xl p-6 md:p-10 transition-all duration-300 ease-out">
+            <DialogHeader className="border-b border-slate-100 dark:border-slate-800/80 pb-5 shrink-0">
+              <DialogTitle className="text-2xl font-black text-slate-855 dark:text-slate-100 flex items-center gap-3">
+                <div className="p-3 bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400 shadow-2xs">
+                  <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-3">
+                    <span>Manage Invoice #{selectedGroupForEdit?.invoiceNumber || "N/A"}</span>
+                    <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300 font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-200/30 dark:border-blue-900/30">
+                      Statement Group Editor
+                    </span>
+                  </div>
+                </div>
+              </DialogTitle>
+              <p className="text-sm text-slate-455 dark:text-slate-550 mt-2.5 font-medium leading-relaxed">
+                Below are the dynamic components for this purchase invoice group. You can edit individual purchase bills or make edits to the associated settlement payments.
+              </p>
+            </DialogHeader>
+
+            {selectedGroupForEdit && <div className="flex-1 overflow-y-auto pr-1 py-6 min-h-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-12 items-stretch h-full">
+                  
+                  {/* Purchase Details Column */}
+                  <div className="flex flex-col p-6 md:p-8 rounded-xl border border-slate-200/50 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/10 shadow-xs">
+                    <div className="space-y-6 flex-1 flex flex-col min-h-0">
+                      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div className="p-2.5 bg-blue-500/8 dark:bg-blue-400/10 rounded-xl text-blue-600 dark:text-blue-400">
+                          <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-black text-lg text-slate-850 dark:text-slate-150">Purchase Bill Parts</h3>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Invoice No</span>
+                          <span className="font-mono font-black text-slate-855 dark:text-slate-100 text-sm">#{selectedGroupForEdit.invoiceNumber || "N/A"}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Total Amount</span>
+                          <span className="font-black text-blue-600 dark:text-blue-400 font-mono text-lg">₹{selectedGroupForEdit.originalAmount.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Invoice Date</span>
+                          <span className="font-extrabold text-slate-700 dark:text-slate-200">{formatDate(selectedGroupForEdit.date)}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Payment Type</span>
+                          <span className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest text-xs">{selectedGroupForEdit.paymentType}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex-1 flex flex-col min-h-0 space-y-3">
+                        <span className="text-xs font-black text-slate-455 dark:text-slate-400 uppercase tracking-widest block">Database Record Split Parts:</span>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin min-h-[300px] max-h-[580px]">
+                          {selectedGroupForEdit.purchases.map((pur, idx) => <div
+      key={pur.id}
+      className={`flex items-center justify-between p-5 rounded-xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-blue-50/20 dark:bg-blue-950/10 border-blue-100/50 dark:border-blue-900/30"}`}
+    >
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold font-mono text-slate-855 dark:text-slate-100 text-base">
+                                    Part {idx + 1}: ₹{pur.invoiceAmount.toLocaleString("en-IN")}
+                                  </span>
+                                  {pur.chequeId ? <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-350 border border-emerald-200/50 dark:border-emerald-900/50">
+                                      Linked
+                                    </span> : <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-350 border border-rose-200/50 dark:border-rose-900/50">
+                                      Unsettled
+                                    </span>}
+                                </div>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-550 block font-semibold uppercase tracking-wider">
+                                  Record ID: #{pur.id} {pur.chequeId ? `(Linked to Chq ID: #${pur.chequeId})` : "(Owed / Unpaid Credit)"}
+                                </span>
+                              </div>
+                              <Button
+      variant="ghost"
+      size="default"
+      type="button"
+      onClick={() => {
+        setIsEditSelectionDialogOpen(false);
+        handleEditBillClick(pur);
+      }}
+      className="rounded-lg h-10 text-xs font-extrabold text-brand-teal hover:text-white bg-brand-soft-teal hover:bg-brand-teal dark:bg-brand-teal/20 dark:text-brand-mint dark:hover:bg-brand-teal border border-brand-teal/20 px-4 py-2 cursor-pointer transition-all shadow-xs"
+    >
+                                Edit Bill Details
+                              </Button>
+                            </div>)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Settlement/Payment Details Column */}
+                  <div className="flex flex-col p-6 md:p-8 rounded-xl border border-slate-200/60 dark:border-slate-800 bg-brand-soft-teal/10 dark:bg-slate-900/10 shadow-xs">
+                    <div className="space-y-6 flex-1 flex flex-col min-h-0">
+                      <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div className="p-2.5 bg-emerald-500/8 dark:bg-emerald-400/10 rounded-xl text-emerald-600 dark:text-emerald-400">
+                          <svg className="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="font-black text-lg text-slate-850 dark:text-slate-150">Settlements & Payments</h3>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-6 bg-white/80 dark:bg-slate-900/60 p-5 rounded-xl border border-slate-150/80 dark:border-slate-800 shadow-sm text-sm">
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Paid Amount</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono text-lg">₹{selectedGroupForEdit.paidAmount.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Remaining Balance</span>
+                          <span className={`font-black font-mono text-lg ${selectedGroupForEdit.unpaidAmount > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                            ₹{selectedGroupForEdit.unpaidAmount.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex-1 flex flex-col min-h-0 space-y-3">
+                        <span className="text-xs font-black text-slate-455 dark:text-slate-400 uppercase tracking-widest block">Linked Settlements / Cheques:</span>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin min-h-[300px] max-h-[580px]">
+                          {selectedGroupForEdit.cheques.map((chq, idx) => <div
+      key={chq.id}
+      className={`flex flex-col gap-3.5 p-5 rounded-xl border shadow-xs transition-all duration-300 hover:scale-[1.01] hover:shadow-md ${idx % 2 === 0 ? "bg-white dark:bg-slate-950 border-slate-150/70 dark:border-slate-800/80" : "bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-100/50 dark:border-emerald-900/30"}`}
+    >
+                              <div className="flex items-center justify-between">
+                                <span className="font-black text-emerald-600 dark:text-emerald-400 text-base font-mono flex items-center">
+                                  ₹{chq.amount.toLocaleString("en-IN")}
+                                </span>
+                                <span className="inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-350 border border-slate-200 dark:border-slate-800 font-mono">
+                                  Ref: #{chq.chequeNumber}
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400 font-bold border-t border-dashed border-slate-100 dark:border-slate-850/60 pt-3 mt-1">
+                                <div>Mode: <span className="text-slate-800 dark:text-slate-200 font-extrabold">{chq.bankName}</span></div>
+                                <div className="text-right">Date: <span className="text-slate-800 dark:text-slate-200 font-extrabold">{formatDate(chq.chequeDate)}</span></div>
+                                <div>Status: <span className={`font-black ${chq.status === "Cleared" ? "text-emerald-600 dark:text-emerald-450" : "text-amber-500"}`}>
+                                  {selectedGroupForEdit.unpaidAmount > 0 && chq.status === "Cleared" ? "Part Cleared" : chq.status}
+                                </span></div>
+                                <div className="text-right text-[10px] text-slate-400 dark:text-slate-550 font-semibold">Record ID: #{chq.id}</div>
+                              </div>
+
+                              <Button
+      variant="ghost"
+      size="default"
+      type="button"
+      onClick={() => {
+        setIsEditSelectionDialogOpen(false);
+        handleEditChequeClick(chq);
+      }}
+      className="rounded-lg h-10 text-xs font-extrabold text-emerald-600 hover:text-white bg-emerald-50 hover:bg-emerald-650 dark:bg-emerald-950/20 dark:text-emerald-450 dark:hover:bg-emerald-600 border border-emerald-100/50 dark:border-emerald-900/50 px-4 py-2 w-full mt-1 cursor-pointer transition-all shadow-xs"
+    >
+                                Edit Settlement Details
+                              </Button>
+                            </div>)}
+                          {selectedGroupForEdit.cheques.length === 0 && <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/40 dark:bg-slate-900/20 text-center">
+                              <svg className="w-10 h-10 text-slate-355 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <p className="text-xs text-slate-400 dark:text-slate-550 font-extrabold italic">
+                                No payments/settlements are linked to this credit purchase yet.
+                              </p>
+                            </div>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>}
+
+            <div className="flex justify-end pt-5 border-t border-slate-100 dark:border-slate-800/80 shrink-0">
+              <Button
+      variant="outline"
+      type="button"
+      onClick={() => setIsEditSelectionDialogOpen(false)}
+      className="rounded-lg text-xs font-black px-5 py-2.5 border-slate-250 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 hover:text-slate-800 dark:hover:text-slate-200 transition-all shadow-2xs cursor-pointer"
+    >
+                Close Editor Panel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
   );
 }
