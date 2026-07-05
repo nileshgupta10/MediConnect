@@ -309,6 +309,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
         />
         <div style={st.approvalRow}>
           <button style={st.saveRemarkBtn} onClick={() => onSaveRemark(remark)}>💾 Save Remark</button>
+<button style={st.reject} onClick={() => { setRemark(''); onSaveRemark(''); }}>🗑️ Delete Remark</button>
           {status==='pending' && (
             <>
               <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
@@ -316,6 +317,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
             </>
           )}
           {status==='approved' && <button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button>}
+{status==='suspended' && <button style={st.approve} onClick={() => onApprove(remark)}>✓ Re-approve</button>}
         </div>
       </div>
     </div>
@@ -394,6 +396,7 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
         />
         <div style={st.approvalRow}>
           <button style={st.saveRemarkBtn} onClick={() => onSaveRemark(remark)}>💾 Save Remark</button>
+<button style={st.reject} onClick={() => { setRemark(''); onSaveRemark(''); }}>🗑️ Delete Remark</button>
           {status==='pending' && (
             <>
               <button style={st.approve} onClick={() => onApprove(remark)}>✓ Approve</button>
@@ -401,6 +404,7 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
             </>
           )}
           {status==='approved' && <button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button>}
+{status==='suspended' && <button style={st.approve} onClick={() => onApprove(remark)}>✓ Re-approve</button>}but
         </div>
       </div>
     </div>
