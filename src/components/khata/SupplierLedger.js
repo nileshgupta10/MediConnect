@@ -8,7 +8,8 @@ import { Label } from "../ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { formatDate, khataFetch } from "../../lib/khata-utils";
-import { Coins } from "lucide-react";
+import { Coins, ShoppingBag, Home, Edit, Trash2, Plus, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+const INPUT_STYLE = "flex h-9 w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 font-semibold";
 export function SupplierLedger() {
   const [suppliers, setSuppliers] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState("");
@@ -73,12 +74,164 @@ export function SupplierLedger() {
   const [isEditChequeDialogOpen, setIsEditChequeDialogOpen] = useState(false);
   const [selectedGroupForEdit, setSelectedGroupForEdit] = useState(null);
   const [isEditSelectionDialogOpen, setIsEditSelectionDialogOpen] = useState(false);
+  const [expenses, setExpenses] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(() => (new Date()).toLocaleDateString("en-CA"));
+  const [isExpenseAddOpen, setIsExpenseAddOpen] = useState(false);
+  const [isExpenseEditOpen, setIsExpenseEditOpen] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({
+    amount: "",
+    category: "Shop",
+    narration: "",
+    paymentMode: "Cash",
+    bankAccountId: ""
+  });
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [isQuickBankOpen, setIsQuickBankOpen] = useState(false);
+  const [quickBankForm, setQuickBankForm] = useState({
+    name: "",
+    accountNo: "",
+    ifscCode: "",
+    accountType: "Savings",
+    openingBalance: "0",
+    isDefault: false
+  });
+
+  const fetchExpenses = async () => {
+    try {
+      const res = await khataFetch("/api/khata/expense");
+      const data = await res.json();
+      setExpenses(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddExpense = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await khataFetch("/api/khata/expense", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...expenseForm,
+          date: selectedDate,
+          amount: Number(expenseForm.amount),
+          bankAccountId: expenseForm.paymentMode !== "Cash" && expenseForm.bankAccountId ? Number(expenseForm.bankAccountId) : null
+        })
+      });
+      if (res.ok) {
+        setIsExpenseAddOpen(false);
+        setExpenseForm((prev) => ({ ...prev, amount: "", narration: "" }));
+        fetchExpenses();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to add expense");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const triggerEditExpense = (e) => {
+    setEditingExpense({
+      id: e.id,
+      date: new Date(e.date).toISOString().split("T")[0],
+      amount: String(e.amount),
+      category: e.category,
+      narration: e.narration,
+      paymentMode: e.paymentMode || "Cash",
+      bankAccountId: e.bankAccountId ? String(e.bankAccountId) : ""
+    });
+    setIsExpenseEditOpen(true);
+  };
+
+  const handleEditExpenseSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingExpense) return;
+    try {
+      const res = await khataFetch("/api/khata/expense", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editingExpense,
+          amount: Number(editingExpense.amount),
+          bankAccountId: editingExpense.paymentMode !== "Cash" && editingExpense.bankAccountId ? Number(editingExpense.bankAccountId) : null
+        })
+      });
+      if (res.ok) {
+        setIsExpenseEditOpen(false);
+        setEditingExpense(null);
+        fetchExpenses();
+      } else {
+        alert("Failed to save expense details.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteExpense = async (id) => {
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+    try {
+      const res = await khataFetch(`/api/khata/expense?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setIsExpenseEditOpen(false);
+        setEditingExpense(null);
+        fetchExpenses();
+      } else {
+        alert("Failed to delete expense.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleQuickBankSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await khataFetch("/api/khata/bank-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickBankForm.name,
+          accountNo: quickBankForm.accountNo,
+          ifscCode: quickBankForm.ifscCode,
+          accountType: quickBankForm.accountType,
+          openingBalance: Number(quickBankForm.openingBalance),
+          isDefault: quickBankForm.isDefault
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsQuickBankOpen(false);
+        setQuickBankForm({
+          name: "",
+          accountNo: "",
+          ifscCode: "",
+          accountType: "Savings",
+          openingBalance: "0",
+          isDefault: false
+        });
+        await fetchBankAccounts();
+        const newBankId = String(data.id);
+        setExpenseForm((prev) => ({ ...prev, bankAccountId: newBankId }));
+      } else {
+        alert(data.error || "Failed to add bank account");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const fetchSuppliers = async () => {
-    const res = await khataFetch("/api/khata/supplier");
-    const data = await res.json();
-    setSuppliers(data);
-    if (data.length > 0 && !selectedSupplier) {
-      setSelectedSupplier(data[0].name);
+    try {
+      const res = await khataFetch("/api/khata/supplier");
+      const data = await res.json();
+      setSuppliers(data || []);
+      if (data && data.length > 0 && !selectedSupplier) {
+        setSelectedSupplier(data[0].name);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
   const fetchLedger = async () => {
@@ -104,7 +257,11 @@ export function SupplierLedger() {
     try {
       const res = await khataFetch("/api/khata/bank-account");
       const data = await res.json();
-      setBankAccounts(Array.isArray(data) ? data : data.accounts ?? []);
+      const accounts = Array.isArray(data) ? data : data.accounts ?? [];
+      setBankAccounts(accounts);
+      const defaultAcc = accounts.find((b) => b.isDefault) || accounts[0];
+      const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
+      setExpenseForm((prev) => ({ ...prev, bankAccountId: prev.bankAccountId || defaultAccId }));
     } catch {
       setBankAccounts([]);
     }
@@ -152,6 +309,7 @@ export function SupplierLedger() {
   useEffect(() => {
     fetchSuppliers();
     fetchBankAccounts();
+    fetchExpenses();
   }, []);
   useEffect(() => {
     if (selectedSupplier) {
@@ -531,6 +689,19 @@ export function SupplierLedger() {
     });
     return Object.values(groups).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
+  const isDateMatch = (d1) => {
+    try {
+      return new Date(d1).toLocaleDateString("en-CA") === selectedDate;
+    } catch {
+      return false;
+    }
+  };
+  const dateExpenses = expenses.filter((e) => isDateMatch(e.date));
+  const shopExpenses = dateExpenses.filter((e) => e.category === "Shop");
+  const homeExpenses = dateExpenses.filter((e) => e.category === "Home");
+  const totalShopExpenses = shopExpenses.reduce((s, e) => s + e.amount, 0);
+  const totalHomeExpenses = homeExpenses.reduce((s, e) => s + e.amount, 0);
+
   return <div className="space-y-6">
       
       {
@@ -553,6 +724,173 @@ export function SupplierLedger() {
           </div>
         </div>
       </div>
+
+      {/* Daily Expenses Section Moved from DailyDashboard.js */}
+      <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-xl">
+        <CardHeader className="py-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💸</span>
+              <CardTitle className="text-sm font-black text-brand-navy dark:text-slate-200 tracking-wide uppercase">
+                Daily Expenses
+              </CardTitle>
+            </div>
+            
+            {/* Date Navigation */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/85 p-1 rounded-lg border border-slate-250 dark:border-slate-700/50">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded cursor-pointer"
+                onClick={() => {
+                  const d = new Date(selectedDate);
+                  d.setDate(d.getDate() - 1);
+                  setSelectedDate(d.toLocaleDateString("en-CA"));
+                }}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-300 font-mono px-1">
+                {selectedDate}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded cursor-pointer"
+                onClick={() => {
+                  const d = new Date(selectedDate);
+                  d.setDate(d.getDate() + 1);
+                  setSelectedDate(d.toLocaleDateString("en-CA"));
+                }}
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
+              const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
+              setExpenseForm({
+                amount: "",
+                category: "Shop",
+                narration: "",
+                paymentMode: "Cash",
+                bankAccountId: defaultAccId
+              });
+              setIsExpenseAddOpen(true);
+            }}
+            className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Expense
+          </Button>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+            
+            {/* Shop Expenses Column */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="bg-blue-500/15 dark:bg-blue-900/40 border-b-2 border-blue-200 dark:border-blue-900/60 px-5 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shadow-sm">
+                      <ShoppingBag className="w-4.5 h-4.5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-blue-800 dark:text-blue-200 uppercase tracking-wide">Shop Expenses</div>
+                      <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Store operational costs</div>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-blue-500 text-white px-2.5 py-1 rounded-full font-black shadow-sm">
+                    {shopExpenses.length} entries
+                  </span>
+                </div>
+
+                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
+                  {shopExpenses.map((e, idx) => (
+                    <div key={e.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-blue-200/60 dark:border-blue-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-blue-950/30" : "bg-blue-50/80 dark:bg-blue-950/20"}`}>
+                      <div>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">{e.narration}</p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">Voucher ID: #{e.id}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-black text-red-650 dark:text-red-400">₹{e.amount.toLocaleString("en-IN")}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-450 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg cursor-pointer" onClick={() => triggerEditExpense(e)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {shopExpenses.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-450 text-lg">💵</div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">No Shop expenses logged today</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-3 bg-blue-500/10 dark:bg-blue-900/30 border-t-2 border-blue-200 dark:border-blue-900/60 flex items-center justify-between mt-auto">
+                <span className="text-xs font-black text-blue-700 dark:text-blue-300 uppercase tracking-wider">Shop Total</span>
+                <span className="text-base font-black text-blue-700 dark:text-blue-300 font-mono">₹{totalShopExpenses.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            {/* Home Expenses Column */}
+            <div className="bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-200 dark:border-purple-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="bg-purple-500/15 dark:bg-purple-900/40 border-b-2 border-purple-200 dark:border-purple-900/60 px-5 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center shadow-sm">
+                      <Home className="w-4.5 h-4.5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-purple-800 dark:text-purple-200 uppercase tracking-wide">Home Expenses</div>
+                      <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">Personal drawing costs</div>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-purple-500 text-white px-2.5 py-1 rounded-full font-black shadow-sm">
+                    {homeExpenses.length} entries
+                  </span>
+                </div>
+
+                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
+                  {homeExpenses.map((e, idx) => (
+                    <div key={e.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-purple-200/60 dark:border-purple-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-purple-950/30" : "bg-purple-50/80 dark:bg-purple-950/20"}`}>
+                      <div>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">{e.narration}</p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">Voucher ID: #{e.id}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-black text-red-650 dark:text-red-400">₹{e.amount.toLocaleString("en-IN")}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-450 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-lg cursor-pointer" onClick={() => triggerEditExpense(e)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {homeExpenses.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-450 text-lg">🏠</div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">No Home expenses logged today</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-3 bg-purple-500/10 dark:bg-purple-900/30 border-t-2 border-purple-200 dark:border-purple-900/60 flex items-center justify-between mt-auto">
+                <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider">Home Total</span>
+                <span className="text-base font-black text-purple-700 dark:text-purple-300 font-mono">₹{totalHomeExpenses.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
 
       {
     /* ── Summary stat strip ─────────────────────────────────── */
@@ -1473,6 +1811,238 @@ export function SupplierLedger() {
               Close Editor Panel
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- ADD EXPENSE DIALOG --- */}
+      <Dialog open={isExpenseAddOpen} onOpenChange={setIsExpenseAddOpen}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Log Daily Expense</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddExpense} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Active Date</Label>
+              <Input type="date" value={selectedDate} disabled className="bg-slate-100 cursor-not-allowed font-semibold dark:bg-slate-900" />
+            </div>
+            <div className="space-y-2">
+              <Label>Expense Category</Label>
+              <select
+                className={INPUT_STYLE}
+                value={expenseForm.category}
+                onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                required
+              >
+                <option value="Shop">🏪 Shop Expense</option>
+                <option value="Home">🏠 Home Expense</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input type="number" value={expenseForm.amount} onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })} placeholder="0.00" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Expense Description / Narration</Label>
+              <Input value={expenseForm.narration} onChange={(e) => setExpenseForm({ ...expenseForm, narration: e.target.value })} placeholder="e.g. Shop electric bill" required />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Payment Mode</Label>
+              <select
+                className={INPUT_STYLE}
+                value={expenseForm.paymentMode}
+                onChange={(e) => setExpenseForm({ ...expenseForm, paymentMode: e.target.value })}
+                required
+              >
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Bank">Bank Account</option>
+              </select>
+            </div>
+
+            {expenseForm.paymentMode !== "Cash" && (
+              <div className="space-y-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <Label>Bank Account</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickBankOpen(true)}
+                    className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
+                  >
+                    ➕ Add Bank
+                  </button>
+                </div>
+                <select
+                  className={INPUT_STYLE}
+                  value={expenseForm.bankAccountId}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, bankAccountId: e.target.value })}
+                  required={expenseForm.paymentMode !== "Cash"}
+                >
+                  <option value="">Select Bank Account</option>
+                  {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                </select>
+              </div>
+            )}
+
+            <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0 cursor-pointer">
+              Save Expense
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- EDIT EXPENSE DIALOG --- */}
+      <Dialog open={isExpenseEditOpen} onOpenChange={setIsExpenseEditOpen}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Expense Details</DialogTitle></DialogHeader>
+          {editingExpense && (
+            <form onSubmit={handleEditExpenseSubmit} className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Expense Category</Label>
+                <select
+                  className={INPUT_STYLE}
+                  value={editingExpense.category}
+                  onChange={(e) => setEditingExpense({ ...editingExpense, category: e.target.value })}
+                  required
+                >
+                  <option value="Shop">🏪 Shop Expense</option>
+                  <option value="Home">🏠 Home Expense</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount (₹)</Label>
+                <Input type="number" value={editingExpense.amount} onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Expense Description / Narration</Label>
+                <Input value={editingExpense.narration} onChange={(e) => setEditingExpense({ ...editingExpense, narration: e.target.value })} required />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Payment Mode</Label>
+                <select
+                  className={INPUT_STYLE}
+                  value={editingExpense.paymentMode}
+                  onChange={(e) => setEditingExpense({ ...editingExpense, paymentMode: e.target.value })}
+                  required
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank">Bank Account</option>
+                </select>
+              </div>
+
+              {editingExpense.paymentMode !== "Cash" && (
+                <div className="space-y-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <Label>Bank Account</Label>
+                    <button
+                      type="button"
+                      onClick={() => setIsQuickBankOpen(true)}
+                      className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
+                    >
+                      ➕ Add Bank
+                    </button>
+                  </div>
+                  <select
+                    className={INPUT_STYLE}
+                    value={editingExpense.bankAccountId}
+                    onChange={(e) => setEditingExpense({ ...editingExpense, bankAccountId: e.target.value })}
+                    required={editingExpense.paymentMode !== "Cash"}
+                  >
+                    <option value="">Select Bank Account</option>
+                    {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => handleDeleteExpense(editingExpense.id)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
+                </Button>
+                <div className="space-x-2">
+                  <Button type="button" variant="outline" className="rounded-full cursor-pointer" onClick={() => setIsExpenseEditOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-full border-0 cursor-pointer">Save Changes</Button>
+                </div>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- QUICK BANK REGISTER DIALOG --- */}
+      <Dialog open={isQuickBankOpen} onOpenChange={setIsQuickBankOpen}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Quick Add Bank Account</DialogTitle></DialogHeader>
+          <form onSubmit={handleQuickBankSubmit} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Bank / Account Name *</Label>
+              <Input
+                value={quickBankForm.name}
+                onChange={(e) => setQuickBankForm({ ...quickBankForm, name: e.target.value })}
+                placeholder="e.g. HDFC Main A/c"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Account Type *</Label>
+                <select
+                  className={INPUT_STYLE}
+                  value={quickBankForm.accountType}
+                  onChange={(e) => setQuickBankForm({ ...quickBankForm, accountType: e.target.value })}
+                  required
+                >
+                  <option value="Savings">Savings</option>
+                  <option value="Current">Current</option>
+                  <option value="OD">Overdraft (OD)</option>
+                  <option value="CC">Cash Credit (CC)</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Opening Balance (₹) *</Label>
+                <Input
+                  type="number"
+                  value={quickBankForm.openingBalance}
+                  onChange={(e) => setQuickBankForm({ ...quickBankForm, openingBalance: e.target.value })}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Account Number (Optional)</Label>
+              <Input
+                value={quickBankForm.accountNo}
+                onChange={(e) => setQuickBankForm({ ...quickBankForm, accountNo: e.target.value })}
+                placeholder="e.g. 501002938475"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>IFSC Code (Optional)</Label>
+              <Input
+                value={quickBankForm.ifscCode}
+                onChange={(e) => setQuickBankForm({ ...quickBankForm, ifscCode: e.target.value })}
+                placeholder="e.g. HDFC0001203"
+              />
+            </div>
+            <div className="flex items-center space-x-2 p-1">
+              <input
+                type="checkbox"
+                id="isDefaultBank"
+                checked={quickBankForm.isDefault}
+                onChange={(e) => setQuickBankForm({ ...quickBankForm, isDefault: e.target.checked })}
+                className="h-4.5 w-4.5 rounded border-slate-350 text-brand-teal focus:ring-brand-teal cursor-pointer"
+              />
+              <Label htmlFor="isDefaultBank" className="cursor-pointer text-xs font-semibold text-slate-700">Set as Default Account</Label>
+            </div>
+            <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0 cursor-pointer">
+              Save Account
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>;
