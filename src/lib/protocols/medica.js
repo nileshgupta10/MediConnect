@@ -49,19 +49,22 @@ module.exports = {
       const rawProdCode = row.prcode || ''
       const finalProdCode = String(rawProdCode).padStart(10, '0')
 
-      // ── Discount calculation ──────────────────────────────────────────
+     // ── Discount calculation ──────────────────────────────────────────
       // Prem CSV has cascading discounts: SchPer + CDPer + TDPer applied
       // sequentially — simple addition gives a wrong combined %.
-      // Instead: back-calculate taxable from CGSTAmt ÷ CGSTPer (exact),
-      // then derive discAmt and effective discountPer from GrsAmt.
+      // FIX: dividing CGSTAmt by CGSTPer amplifies the CSV's own rounding
+      // (e.g. a 0.005 rounding on CGSTAmt becomes 0.005/0.025 = 0.20 error
+      // at 2.5% GST). Subtracting two already-rounded figures (INetAmt
+      // minus the GST amounts) stays exact and ties to the printed invoice.
       const grsAmt  = parseFloat(row.grsamt  || 0)
-      const cgstPer = parseFloat(row.cgstper || 0)
+      const inetAmt = parseFloat(row.inetamt || 0)
       const cgstAmt = parseFloat(row.cgstamt || 0)
       const sgstAmt = parseFloat(row.sgstamt || 0)
+      const igstAmt = parseFloat(row.igstamt || 0)
+      const cgstPer = parseFloat(row.cgstper || 0)
 
-      // Back-calculate taxable from the GST amount printed on the invoice
-      const taxable = (cgstPer > 0 && cgstAmt > 0)
-        ? +(cgstAmt / (cgstPer / 100)).toFixed(2)
+      const taxable = (inetAmt > 0)
+        ? +(inetAmt - cgstAmt - sgstAmt - igstAmt).toFixed(2)
         : grsAmt
 
       const discAmt = +(Math.max(grsAmt - taxable, 0)).toFixed(2)
