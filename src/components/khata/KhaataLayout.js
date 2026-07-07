@@ -20,8 +20,8 @@ export function KhaataLayout({ user }) {
   const navItems = [
     { id: 'purchases', label: 'Purchases', icon: ShoppingBag },
     { id: 'ledger', label: 'Payments', icon: CreditCard },
-    { id: 'daily', label: 'Counter Khata', icon: LayoutDashboard },
-    { id: 'pdc', label: 'Cheque Flow', icon: CalendarDays },
+    { id: 'daily', label: 'Inward', icon: LayoutDashboard },
+    { id: 'pdc', label: 'Cheque Flow', icon: CalendarDays, disabled: true },
     { id: 'master-ledger', label: 'Accounts Hub', icon: Layers },
     { id: 'customer-credit', label: 'Customers', icon: Users },
   ];
@@ -71,14 +71,18 @@ export function KhaataLayout({ user }) {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-start gap-3 py-2.5 px-4 rounded-lg text-[13px] font-bold transition-all border-0 text-left cursor-pointer outline-none ${
-                      isActive 
-                        ? 'bg-[#0e9090] text-white shadow-sm shadow-teal-700/20' 
-                        : 'text-slate-600 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-slate-900 dark:hover:text-white'
+                    disabled={item.disabled}
+                    onClick={() => { if (!item.disabled) setActiveTab(item.id); }}
+                    title={item.disabled ? "Temporarily disabled" : undefined}
+                    className={`w-full flex items-center justify-start gap-3 py-2.5 px-4 rounded-lg text-[13px] font-bold transition-all border-0 text-left outline-none ${
+                      item.disabled
+                        ? 'opacity-40 cursor-not-allowed text-slate-400 dark:text-slate-600'
+                        : isActive 
+                          ? 'bg-[#0e9090] text-white shadow-sm shadow-teal-700/20 cursor-pointer' 
+                          : 'text-slate-600 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-slate-900 dark:hover:text-white cursor-pointer'
                     }`}
                   >
-                    <Icon className={`w-4.5 h-4.5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-slate-450 dark:text-slate-400'}`} />
+                    <Icon className={`w-4.5 h-4.5 shrink-0 transition-colors ${item.disabled ? 'text-slate-400 dark:text-slate-600' : isActive ? 'text-white' : 'text-slate-455 dark:text-slate-400'}`} />
                     <span>{item.label}</span>
                   </button>
                 );
