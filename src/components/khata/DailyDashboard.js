@@ -1073,75 +1073,117 @@ export function DailyDashboard({ mode = "dashboard" }) {
                 </div>
               </div>
 
-              {unlockedTab === "daily" ? <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 animate-in fade-in duration-300">
-                  
+              {unlockedTab === "daily" ? <div className="space-y-6 animate-in fade-in duration-300">
+
                   {
-    /* 1. Daily Sales Ledger */
+    /* 1. Cash Collection / UPI Sales / Card Settlement — Aligned Row */
   }
-                  <div className="lg:col-span-1 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-4">
-                    <div className="flex items-center gap-2 border-b pb-2">
-                      <span className="text-sm">💰</span>
-                      <h3 className="text-sm font-bold text-brand-navy dark:text-slate-200 uppercase tracking-wide">Daily Sales Ledger</h3>
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+
+                    {/* Cash Collection Column */}
+                    <div className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="bg-emerald-500/15 dark:bg-emerald-900/40 border-b-2 border-emerald-200 dark:border-emerald-900/60 px-5 py-3.5 flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
+                            <span className="text-white text-sm">💵</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-black text-emerald-800 dark:text-emerald-200 uppercase tracking-wide">Cash Collection</div>
+                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Physical currency sales</div>
+                          </div>
+                        </div>
+                        <div className="p-4 min-h-36 flex flex-col justify-center">
+                          <Label className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1.5 block">Cash Collection (₹)</Label>
+                          <Input
+                            type="number"
+                            value={salesForm.cashSales}
+                            onChange={(e) => setSalesForm({ ...salesForm, cashSales: e.target.value })}
+                            className={INPUT_STYLE}
+                          />
+                        </div>
+                      </div>
+                      <div className="px-5 py-3 bg-emerald-500/10 dark:bg-emerald-900/30 border-t-2 border-emerald-200 dark:border-emerald-900/60 flex items-center justify-between mt-auto">
+                        <span className="text-xs font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Cash Total</span>
+                        <span className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">₹{cashSales.toLocaleString("en-IN")}</span>
+                      </div>
                     </div>
-                    
-                    <div className="space-y-3.5">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-bold text-slate-500 dark:text-slate-400">Cash Collection (₹)</Label>
-                        <Input
-    type="number"
-    value={salesForm.cashSales}
-    onChange={(e) => setSalesForm({ ...salesForm, cashSales: e.target.value })}
-    className={INPUT_STYLE}
-  />
+
+                    {/* UPI Sales Column */}
+                    <div className="bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="bg-indigo-500/15 dark:bg-indigo-900/40 border-b-2 border-indigo-200 dark:border-indigo-900/60 px-5 py-3.5 flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-500 flex items-center justify-center shadow-sm">
+                            <span className="text-white text-sm">⚡</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-black text-indigo-800 dark:text-indigo-200 uppercase tracking-wide">UPI Sales</div>
+                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">Instant digital transfers</div>
+                          </div>
+                        </div>
+                        <div className="p-4 min-h-36 flex flex-col justify-center">
+                          <Label className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1.5 block">UPI Sales (₹)</Label>
+                          <Input
+                            type="number"
+                            value={salesForm.upiSales}
+                            onChange={(e) => setSalesForm({ ...salesForm, upiSales: e.target.value })}
+                            className={INPUT_STYLE}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-bold text-slate-500 dark:text-slate-400">UPI Sales (₹)</Label>
-                        <Input
-    type="number"
-    value={salesForm.upiSales}
-    onChange={(e) => setSalesForm({ ...salesForm, upiSales: e.target.value })}
-    className={INPUT_STYLE}
-  />
+                      <div className="px-5 py-3 bg-indigo-500/10 dark:bg-indigo-900/30 border-t-2 border-indigo-200 dark:border-indigo-900/60 flex items-center justify-between mt-auto">
+                        <span className="text-xs font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">UPI Total</span>
+                        <span className="text-base font-black text-indigo-700 dark:text-indigo-300 font-mono">₹{upiSales.toLocaleString("en-IN")}</span>
                       </div>
-                      <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-sm font-bold text-slate-500 dark:text-slate-400">Card Settlements</Label>
+                    </div>
+
+                    {/* Card Settlement Column */}
+                    <div className="bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-200 dark:border-purple-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="bg-purple-500/15 dark:bg-purple-900/40 border-b-2 border-purple-200 dark:border-purple-900/60 px-5 py-3.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center shadow-sm">
+                              <span className="text-white text-sm">💳</span>
+                            </div>
+                            <div>
+                              <div className="text-sm font-black text-purple-800 dark:text-purple-200 uppercase tracking-wide">Card Settlements</div>
+                              <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">T+1 bank credit</div>
+                            </div>
+                          </div>
                           <Button
-    type="button"
-    onClick={() => {
-      const today = selectedDate;
-      const yesterday = new Date(new Date(selectedDate).getTime() - 864e5).toISOString().split("T")[0];
-      const defaultAccId = bankAccounts.find((b) => b.isDefault)?.id || bankAccounts[0]?.id || "";
-      setCardSettlementForm({ date: today, amount: "", bankAccountId: String(defaultAccId), salesDate: yesterday, narration: "" });
-      setIsCardSettlementOpen(true);
-    }}
-    className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-6 text-[10px] px-2 rounded-full cursor-pointer flex items-center gap-1"
-  >
+                            type="button"
+                            onClick={() => {
+                              const today = selectedDate;
+                              const yesterday = new Date(new Date(selectedDate).getTime() - 864e5).toISOString().split("T")[0];
+                              const defaultAccId = bankAccounts.find((b) => b.isDefault)?.id || bankAccounts[0]?.id || "";
+                              setCardSettlementForm({ date: today, amount: "", bankAccountId: String(defaultAccId), salesDate: yesterday, narration: "" });
+                              setIsCardSettlementOpen(true);
+                            }}
+                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-6 text-[10px] px-2 rounded-full cursor-pointer flex items-center gap-1"
+                          >
                             <Plus className="w-3 h-3" /> Log Settlement
                           </Button>
                         </div>
-                        
-                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                          {dateCardSettlements.map((cs) => <div key={cs.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 dark:border-slate-850 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="p-4 space-y-2 min-h-36">
+                          {dateCardSettlements.map((cs) => <div key={cs.id} className="flex items-center justify-between p-2 rounded-lg border border-purple-100 dark:border-purple-900/40 bg-white dark:bg-purple-950/20">
                               <div className="truncate pr-1">
                                 <p className="text-[10px] font-black text-slate-700 dark:text-slate-350">🏢 {cs.bankAccount?.name || "Bank"}</p>
-                                <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate font-semibold">
+                                <p className="text-[9px] text-slate-450 dark:text-slate-550 truncate font-semibold">
                                   {cs.narration || "Card Settlement"}
                                 </p>
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span className="text-[11px] font-black text-purple-700 dark:text-purple-400">₹{cs.amount.toLocaleString("en-IN")}</span>
                                 <Button
-    variant="ghost"
-    size="icon"
-    className="h-5 w-5 text-slate-400 hover:text-rose-500"
-    onClick={async () => {
-      if (confirm("Are you sure you want to delete this card settlement?")) {
-        await khataFetch(`/api/khata/card-settlement?id=${cs.id}`, { method: "DELETE" });
-        fetchAll();
-      }
-    }}
-  >
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 text-slate-400 hover:text-rose-500 cursor-pointer"
+                                  onClick={async () => {
+                                    if (confirm("Are you sure you want to delete this card settlement?")) {
+                                      await khataFetch(`/api/khata/card-settlement?id=${cs.id}`, { method: "DELETE" });
+                                      fetchAll();
+                                    }
+                                  }}
+                                >
                                   <Trash2 className="w-3 h-3" />
                                 </Button>
                               </div>
@@ -1149,18 +1191,26 @@ export function DailyDashboard({ mode = "dashboard" }) {
                           {dateCardSettlements.length === 0 && <p className="text-center text-[10px] text-slate-450 dark:text-slate-500 py-3 font-semibold">No card settlements logged.</p>}
                         </div>
                       </div>
+                      <div className="px-5 py-3 bg-purple-500/10 dark:bg-purple-900/30 border-t-2 border-purple-200 dark:border-purple-900/60 flex items-center justify-between mt-auto">
+                        <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider">Card Total</span>
+                        <span className="text-base font-black text-purple-700 dark:text-purple-300 font-mono">₹{swipeSales.toLocaleString("en-IN")}</span>
+                      </div>
                     </div>
 
-                    <div className="bg-brand-soft-teal dark:bg-brand-navy/10 p-3.5 rounded-xl border border-brand-light-teal/50 dark:border-slate-800 space-y-1 text-center">
-                      <span className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest font-extrabold">Total Collection</span>
-                      <span className="text-xl font-black text-brand-teal dark:text-brand-mint block">₹{totalSalesVal.toLocaleString("en-IN")}</span>
-                    </div>
                   </div>
 
                   {
-    /* 2. Calculated Cash Ledger (Cashbook) */
+    /* Combined Total Collection Bar */
   }
-                  <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-5">
+                  <div className="bg-brand-soft-teal dark:bg-brand-navy/10 p-4 rounded-xl border border-brand-light-teal/50 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest font-extrabold">Total Collection (Cash + UPI + Card)</span>
+                    <span className="text-xl font-black text-brand-teal dark:text-brand-mint">₹{totalSalesVal.toLocaleString("en-IN")}</span>
+                  </div>
+
+                  {
+    /* 2. Calculated Cash Ledger (Cashbook) — Net Cash Flow, now full width below the aligned row */
+  }
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-5">
                     <div className="flex items-center justify-between border-b pb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">📔</span>
@@ -1177,7 +1227,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* Cash Inflow Column */
   }
                       <div className="space-y-3 bg-slate-50/40 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800 p-4 rounded-xl">
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5 border-b pb-1.5 border-slate-200/60 dark:border-slate-800">
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-450 uppercase tracking-widest flex items-center gap-1.5 border-b pb-1.5 border-slate-200/60 dark:border-slate-800">
                           <TrendingUp className="w-4 h-4 text-emerald-500" /> Cash Inflows
                         </span>
                         <div className="space-y-2 text-xs">
@@ -1210,7 +1260,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     /* Cash Outflow Column */
   }
                       <div className="space-y-3 bg-slate-50/40 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800 p-4 rounded-xl">
-                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1.5 border-b pb-1.5 border-slate-200/60 dark:border-slate-800">
+                        <span className="text-xs font-bold text-rose-600 dark:text-rose-455 uppercase tracking-widest flex items-center gap-1.5 border-b pb-1.5 border-slate-200/60 dark:border-slate-800">
                           <TrendingDown className="w-4 h-4 text-rose-500" /> Cash Outflows
                         </span>
                         <div className="space-y-2 text-xs max-h-52 overflow-y-auto pr-1 scrollbar-thin">
@@ -1227,7 +1277,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
                             <span className="font-bold text-rose-650 dark:text-rose-400 font-mono">- ₹{totalPhysicalHomeExpenses.toLocaleString("en-IN")}</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850">
-                            <span className="text-slate-400 font-bold">Bank Deposits:</span>
+                            <span className="text-slate-405 font-bold">Bank Deposits:</span>
                             <span className="font-bold text-rose-650 dark:text-rose-400 font-mono">- ₹{totalBankDeposits.toLocaleString("en-IN")}</span>
                           </div>
 
@@ -1275,7 +1325,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
                   {
     /* 3. Daily Fund Flow Widget */
   }
-                  <div className="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-5">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 shadow-xs space-y-5">
                     <div className="flex items-center justify-between border-b pb-2">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">🔄</span>
@@ -1382,10 +1432,10 @@ export function DailyDashboard({ mode = "dashboard" }) {
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-xl border ${netFundFlow >= 0 ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 border-emerald-100/50" : "bg-rose-50 text-rose-600 dark:bg-rose-950/30 border-rose-100/50"}`}>
-                            <TrendingUp className="w-5 h-5" />
+                            <IndianRupee className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-black block">Today's Net Fund Flow</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-555 uppercase tracking-widest font-black block">Today's Net Fund Flow</span>
                             <span className={`text-lg font-black font-mono ${netFundFlow >= 0 ? "text-emerald-600 dark:text-emerald-450" : "text-rose-600"}`}>
                               {netFundFlow >= 0 ? "+" : ""}₹{netFundFlow.toLocaleString("en-IN")}
                             </span>
@@ -1405,7 +1455,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
                             <IndianRupee className="w-5 h-5" />
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest font-black block">Consolidated Fund Balance (Cumulative)</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-555 uppercase tracking-widest font-black block">Consolidated Fund Balance (Cumulative)</span>
                             <span className={`text-xl font-black font-mono ${consolidatedFundBalance >= 0 ? "text-brand-teal dark:text-brand-mint" : "text-rose-600"}`}>
                               ₹{consolidatedFundBalance.toLocaleString("en-IN")}
                             </span>
