@@ -86,6 +86,17 @@ export function SupplierLedger() {
     bankAccountId: ""
   });
   const [editingExpense, setEditingExpense] = useState(null);
+  const [deposits, setDeposits] = useState([]);
+  const [isDepositAddOpen, setIsDepositAddOpen] = useState(false);
+  const [isDepositEditOpen, setIsDepositEditOpen] = useState(false);
+  const [depositForm, setDepositForm] = useState({
+    amount: "",
+    bankAccountId: "",
+    reference: "",
+    narration: "",
+    isRD: false
+  });
+  const [editingDeposit, setEditingDeposit] = useState(null);
   const [isQuickBankOpen, setIsQuickBankOpen] = useState(false);
   const [quickBankForm, setQuickBankForm] = useState({
     name: "",
@@ -101,6 +112,16 @@ export function SupplierLedger() {
       const res = await khataFetch("/api/khata/expense");
       const data = await res.json();
       setExpenses(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchDeposits = async () => {
+    try {
+      const res = await khataFetch("/api/khata/bank-deposit");
+      const data = await res.json();
+      setDeposits(data || []);
     } catch (err) {
       console.error(err);
     }
@@ -180,6 +201,117 @@ export function SupplierLedger() {
         fetchExpenses();
       } else {
         alert("Failed to delete expense.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddDeposit = async (e) => {
+    e.preventDefault();
+    try {
+      if (!depositForm.bankAccountId) {
+        alert("Please select a bank account.");
+        return;
+      }
+      let refText = depositForm.reference;
+      let narrText = depositForm.narration;
+      if (depositForm.isRD) {
+        refText = refText ? `${refText} [RD]` : "[RD]";
+        narrText = narrText ? `${narrText} [RD]` : "Recurring Deposit [RD]";
+      }
+      const res = await khataFetch("/api/khata/bank-deposit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          amount: Number(depositForm.amount),
+          bankAccountId: Number(depositForm.bankAccountId),
+          reference: refText,
+          narration: narrText,
+          isRD: depositForm.isRD
+        })
+      });
+      if (res.ok) {
+        setIsDepositAddOpen(false);
+        const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
+        const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
+        setDepositForm({ amount: "", bankAccountId: defaultAccId, reference: "", narration: "", isRD: false });
+        fetchDeposits();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to add deposit");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const triggerEditDeposit = (d) => {
+    const isRD = (d.reference ?? "").toLowerCase().includes("[rd]") || (d.narration ?? "").toLowerCase().includes("[rd]");
+    const refClean = (d.reference ?? "").replace(/\[rd\]/gi, "").trim();
+    const narrClean = (d.narration ?? "").replace(/\[rd\]/gi, "").trim();
+    setEditingDeposit({
+      id: d.id,
+      date: new Date(d.date).toISOString().split("T")[0],
+      amount: String(d.amount),
+      bankAccountId: d.bankAccountId ? String(d.bankAccountId) : "",
+      reference: refClean,
+      narration: narrClean,
+      isRD
+    });
+    setIsDepositEditOpen(true);
+  };
+
+  const handleEditDepositSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingDeposit) return;
+    try {
+      if (!editingDeposit.bankAccountId) {
+        alert("Please select a bank account.");
+        return;
+      }
+      let refText = editingDeposit.reference;
+      let narrText = editingDeposit.narration;
+      if (editingDeposit.isRD) {
+        refText = refText ? `${refText} [RD]` : "[RD]";
+        narrText = narrText ? `${narrText} [RD]` : "Recurring Deposit [RD]";
+      }
+      const res = await khataFetch("/api/khata/bank-deposit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingDeposit.id,
+          date: editingDeposit.date,
+          amount: Number(editingDeposit.amount),
+          bankAccountId: Number(editingDeposit.bankAccountId),
+          reference: refText,
+          narration: narrText,
+          isRD: editingDeposit.isRD
+        })
+      });
+      if (res.ok) {
+        setIsDepositEditOpen(false);
+        setEditingDeposit(null);
+        fetchDeposits();
+      } else {
+        alert("Failed to save deposit details.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteDeposit = async (id) => {
+    if (!confirm("Are you sure you want to delete this deposit?")) return;
+    try {
+      const res = await khataFetch(`/api/khata/bank-deposit?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setIsDepositEditOpen(false);
+        setEditingDeposit(null);
+        fetchDeposits();
+      } else {
+        alert("Failed to delete bank deposit.");
       }
     } catch (err) {
       console.error(err);
@@ -329,6 +461,7 @@ export function SupplierLedger() {
     fetchSuppliers();
     fetchBankAccounts();
     fetchExpenses();
+    fetchDeposits();
   }, []);
   useEffect(() => {
     if (selectedSupplier) {
@@ -712,6 +845,14 @@ export function SupplierLedger() {
   const homeExpenses = dateExpenses.filter((e) => e.category === "Home");
   const totalShopExpenses = shopExpenses.reduce((s, e) => s + e.amount, 0);
   const totalHomeExpenses = homeExpenses.reduce((s, e) => s + e.amount, 0);
+  const dateDeposits = deposits.filter((d) => isDateMatch(d.date));
+  const recurringDeposits = dateDeposits.filter(
+    (d) => (d.reference ?? "").toLowerCase().includes("[rd]") || (d.narration ?? "").toLowerCase().includes("[rd]")
+  );
+  const standardDeposits = dateDeposits.filter((d) => !recurringDeposits.includes(d));
+  const totalStandardDeposits = standardDeposits.reduce((s, d) => s + d.amount, 0);
+  const totalRecurringDeposits = recurringDeposits.reduce((s, d) => s + d.amount, 0);
+  const totalDeposits = totalStandardDeposits + totalRecurringDeposits;
 
   return <div className="space-y-6">
       
@@ -743,7 +884,7 @@ export function SupplierLedger() {
             <div className="flex items-center gap-2">
               <span className="text-lg">💸</span>
               <CardTitle className="text-sm font-black text-brand-navy dark:text-slate-200 tracking-wide uppercase">
-                Daily Expenses
+                Daily Expenses & Deposits
               </CardTitle>
             </div>
             
@@ -780,28 +921,49 @@ export function SupplierLedger() {
               </Button>
             </div>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => {
-              const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
-              const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
-              setExpenseForm({
-                amount: "",
-                category: "Shop",
-                narration: "",
-                paymentMode: "Cash",
-                bankAccountId: defaultAccId
-              });
-              setIsExpenseAddOpen(true);
-            }}
-            className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add Expense
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
+                const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
+                setExpenseForm({
+                  amount: "",
+                  category: "Shop",
+                  narration: "",
+                  paymentMode: "Cash",
+                  bankAccountId: defaultAccId
+                });
+                setIsExpenseAddOpen(true);
+              }}
+              className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Expense
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
+                const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
+                setDepositForm({
+                  amount: "",
+                  bankAccountId: defaultAccId,
+                  reference: "",
+                  narration: "",
+                  isRD: false
+                });
+                setIsDepositAddOpen(true);
+              }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold h-8 text-xs gap-1 rounded-lg cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Deposit
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 items-stretch">
             
             {/* Shop Expenses Column */}
             <div className="bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
@@ -821,7 +983,7 @@ export function SupplierLedger() {
                   </span>
                 </div>
 
-                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
+                <div className="p-4 space-y-2.5 min-h-36">
                   {shopExpenses.map((e, idx) => (
                     <div key={e.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-blue-200/60 dark:border-blue-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-blue-950/30" : "bg-blue-50/80 dark:bg-blue-950/20"}`}>
                       <div>
@@ -869,12 +1031,12 @@ export function SupplierLedger() {
                   </span>
                 </div>
 
-                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
+                <div className="p-4 space-y-2.5 min-h-36">
                   {homeExpenses.map((e, idx) => (
                     <div key={e.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-purple-200/60 dark:border-purple-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-purple-950/30" : "bg-purple-50/80 dark:bg-purple-950/20"}`}>
                       <div>
                         <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">{e.narration}</p>
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">Voucher ID: #{e.id}</p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-550 font-semibold mt-0.5">Voucher ID: #{e.id}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-mono font-black text-red-650 dark:text-red-400">₹{e.amount.toLocaleString("en-IN")}</span>
@@ -896,6 +1058,79 @@ export function SupplierLedger() {
               <div className="px-5 py-3 bg-purple-500/10 dark:bg-purple-900/30 border-t-2 border-purple-200 dark:border-purple-900/60 flex items-center justify-between mt-auto">
                 <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider">Home Total</span>
                 <span className="text-base font-black text-purple-700 dark:text-purple-300 font-mono">₹{totalHomeExpenses.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            {/* Deposits Column (Standard + Recurring merged) */}
+            <div className="bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-200 dark:border-cyan-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="bg-cyan-500/15 dark:bg-cyan-900/40 border-b-2 border-cyan-200 dark:border-cyan-900/60 px-5 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-cyan-500 flex items-center justify-center shadow-sm">
+                      <span className="text-white text-sm">🏦</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-black text-cyan-800 dark:text-cyan-200 uppercase tracking-wide">Deposits</div>
+                      <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold">Standard + Recurring (RD)</div>
+                    </div>
+                  </div>
+                  <span className="text-xs bg-cyan-500 text-white px-2.5 py-1 rounded-full font-black shadow-sm">
+                    {dateDeposits.length} entries
+                  </span>
+                </div>
+
+                <div className="p-4 space-y-2.5 min-h-36">
+                  {standardDeposits.map((d, idx) => (
+                    <div key={d.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-cyan-200/60 dark:border-cyan-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-cyan-950/30" : "bg-cyan-50/80 dark:bg-cyan-950/20"}`}>
+                      <div>
+                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">🏢 {d.bankName}</p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
+                          Ref: {d.reference || "-"} | {d.narration || "-"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-black text-green-700 dark:text-green-400">₹{d.amount.toLocaleString("en-IN")}</span>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-cyan-450 hover:text-cyan-700 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-lg cursor-pointer" onClick={() => triggerEditDeposit(d)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {recurringDeposits.map((d, idx) => {
+                    const refClean = (d.reference ?? "").replace(/\[rd\]/gi, "").trim();
+                    const narrClean = (d.narration ?? "").replace(/\[rd\]/gi, "").trim();
+                    return (
+                      <div key={d.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-sky-200/60 dark:border-sky-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-sky-950/30" : "bg-sky-50/80 dark:bg-sky-950/20"}`}>
+                        <div>
+                          <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight flex items-center gap-1.5">
+                            🏢 {d.bankName}
+                            <span className="text-[8px] bg-sky-500 text-white px-1.5 py-0.5 rounded-full font-black uppercase tracking-wide">RD</span>
+                          </p>
+                          <p className="text-[9px] text-slate-400 dark:text-slate-505 font-semibold mt-0.5">
+                            Ref: {refClean || "-"} | {narrClean || "-"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-mono font-black text-green-700 dark:text-green-400">₹{d.amount.toLocaleString("en-IN")}</span>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-sky-450 hover:text-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-lg cursor-pointer" onClick={() => triggerEditDeposit(d)}>
+                            <Edit className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {dateDeposits.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <div className="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center text-cyan-450 text-lg">🏦</div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">No deposits logged today</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-3 bg-cyan-500/10 dark:bg-cyan-900/30 border-t-2 border-cyan-200 dark:border-cyan-900/60 flex items-center justify-between mt-auto">
+                <span className="text-xs font-black text-cyan-700 dark:text-cyan-300 uppercase tracking-wider">Deposit Total</span>
+                <span className="text-base font-black text-cyan-700 dark:text-cyan-300 font-mono">₹{totalDeposits.toLocaleString("en-IN")}</span>
               </div>
             </div>
 
@@ -1299,6 +1534,137 @@ export function SupplierLedger() {
                 </Button>
                 <div className="space-x-2">
                   <Button type="button" variant="outline" className="rounded-full cursor-pointer" onClick={() => setIsExpenseEditOpen(false)}>Cancel</Button>
+                  <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-full border-0 cursor-pointer">Save Changes</Button>
+                </div>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- ADD DEPOSIT DIALOG --- */}
+      <Dialog open={isDepositAddOpen} onOpenChange={setIsDepositAddOpen}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Log Daily Deposit</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddDeposit} className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label>Active Date</Label>
+              <Input type="date" value={selectedDate} disabled className="bg-slate-100 cursor-not-allowed font-semibold dark:bg-slate-900" />
+            </div>
+            <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
+              <input
+                type="checkbox"
+                id="addIsRD"
+                checked={depositForm.isRD}
+                onChange={(e) => setDepositForm({ ...depositForm, isRD: e.target.checked })}
+                className="h-4.5 w-4.5 rounded border-slate-350 text-brand-teal focus:ring-brand-teal cursor-pointer"
+              />
+              <Label htmlFor="addIsRD" className="cursor-pointer text-xs font-extrabold text-brand-navy dark:text-brand-mint">
+                Log as Recurring Deposit (RD) instead of Standard
+              </Label>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Bank Account</Label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickBankOpen(true)}
+                  className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
+                >
+                  ➕ Add Bank
+                </button>
+              </div>
+              <select
+                className={INPUT_STYLE}
+                value={depositForm.bankAccountId}
+                onChange={(e) => setDepositForm({ ...depositForm, bankAccountId: e.target.value })}
+                required
+              >
+                <option value="">Select Bank Account</option>
+                {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount (₹)</Label>
+              <Input type="number" value={depositForm.amount} onChange={(e) => setDepositForm({ ...depositForm, amount: e.target.value })} placeholder="0.00" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Reference Slip Number (Optional)</Label>
+              <Input value={depositForm.reference} onChange={(e) => setDepositForm({ ...depositForm, reference: e.target.value })} placeholder="e.g. DEP-294" />
+            </div>
+            <div className="space-y-2">
+              <Label>Narration / Notes (Optional)</Label>
+              <Input value={depositForm.narration} onChange={(e) => setDepositForm({ ...depositForm, narration: e.target.value })} placeholder="e.g. Self deposit" />
+            </div>
+            <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0 cursor-pointer">
+              Save Deposit
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- EDIT DEPOSIT DIALOG --- */}
+      <Dialog open={isDepositEditOpen} onOpenChange={setIsDepositEditOpen}>
+        <DialogContent className="max-w-md rounded-xl">
+          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Deposit Details</DialogTitle></DialogHeader>
+          {editingDeposit && (
+            <form onSubmit={handleEditDepositSubmit} className="space-y-4 pt-2">
+              <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
+                <input
+                  type="checkbox"
+                  id="editIsRD"
+                  checked={editingDeposit.isRD}
+                  onChange={(e) => setEditingDeposit({ ...editingDeposit, isRD: e.target.checked })}
+                  className="h-4.5 w-4.5 rounded border-slate-350 text-brand-teal focus:ring-brand-teal cursor-pointer"
+                />
+                <Label htmlFor="editIsRD" className="cursor-pointer text-xs font-extrabold text-brand-navy dark:text-brand-mint">
+                  Log as Recurring Deposit (RD)
+                </Label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Bank Account</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickBankOpen(true)}
+                    className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
+                  >
+                    ➕ Add Bank
+                  </button>
+                </div>
+                <select
+                  className={INPUT_STYLE}
+                  value={editingDeposit.bankAccountId}
+                  onChange={(e) => setEditingDeposit({ ...editingDeposit, bankAccountId: e.target.value })}
+                  required
+                >
+                  <option value="">Select Bank Account</option>
+                  {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Amount (₹)</Label>
+                <Input type="number" value={editingDeposit.amount} onChange={(e) => setEditingDeposit({ ...editingDeposit, amount: e.target.value })} required />
+              </div>
+              <div className="space-y-2">
+                <Label>Reference Slip Number (Optional)</Label>
+                <Input value={editingDeposit.reference} onChange={(e) => setEditingDeposit({ ...editingDeposit, reference: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Narration / Notes (Optional)</Label>
+                <Input value={editingDeposit.narration} onChange={(e) => setEditingDeposit({ ...editingDeposit, narration: e.target.value })} />
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => handleDeleteDeposit(editingDeposit.id)}
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Delete
+                </Button>
+                <div className="space-x-2">
+                  <Button type="button" variant="outline" className="rounded-full cursor-pointer" onClick={() => setIsDepositEditOpen(false)}>Cancel</Button>
                   <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-full border-0 cursor-pointer">Save Changes</Button>
                 </div>
               </div>

@@ -52,7 +52,6 @@ export function DailyDashboard({ mode = "dashboard" }) {
   const [isPurchaseAddOpen, setIsPurchaseAddOpen] = useState(false);
   const [addPdcDetails, setAddPdcDetails] = useState(false);
   const [isExpenseAddOpen, setIsExpenseAddOpen] = useState(false);
-  const [isDepositAddOpen, setIsDepositAddOpen] = useState(false);
   const [isRdRedeemOpen, setIsRdRedeemOpen] = useState(false);
   const [isCardSettlementOpen, setIsCardSettlementOpen] = useState(false);
   const [rdRedeemForm, setRdRedeemForm] = useState({ date: "", amount: "", redemptionType: "Cash", bankAccountId: "", narration: "", originalDepositId: null });
@@ -60,7 +59,6 @@ export function DailyDashboard({ mode = "dashboard" }) {
   const [bankAccounts, setBankAccounts] = useState([]);
   const [isPurchaseEditOpen, setIsPurchaseEditOpen] = useState(false);
   const [isExpenseEditOpen, setIsExpenseEditOpen] = useState(false);
-  const [isDepositEditOpen, setIsDepositEditOpen] = useState(false);
   const [purchaseForm, setPurchaseForm] = useState({
     supplierName: "",
     invoiceNumber: "",
@@ -85,16 +83,8 @@ export function DailyDashboard({ mode = "dashboard" }) {
     paymentMode: "Cash",
     bankAccountId: ""
   });
-  const [depositForm, setDepositForm] = useState({
-    amount: "",
-    bankAccountId: "",
-    reference: "",
-    narration: "",
-    isRD: false
-  });
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
-  const [editingDeposit, setEditingDeposit] = useState(null);
   const [isQuickBankOpen, setIsQuickBankOpen] = useState(false);
   const [quickBankForm, setQuickBankForm] = useState({
     name: "",
@@ -481,45 +471,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       console.error(err);
     }
   };
-  const handleAddDeposit = async (e) => {
-    e.preventDefault();
-    try {
-      if (!depositForm.bankAccountId) {
-        alert("Please select a bank account.");
-        return;
-      }
-      let refText = depositForm.reference;
-      let narrText = depositForm.narration;
-      if (depositForm.isRD) {
-        refText = refText ? `${refText} [RD]` : "[RD]";
-        narrText = narrText ? `${narrText} [RD]` : "Recurring Deposit [RD]";
-      }
-      const res = await khataFetch("/api/khata/bank-deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: selectedDate,
-          amount: Number(depositForm.amount),
-          bankAccountId: Number(depositForm.bankAccountId),
-          reference: refText,
-          narration: narrText,
-          isRD: depositForm.isRD
-        })
-      });
-      if (res.ok) {
-        setIsDepositAddOpen(false);
-        const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
-        const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
-        setDepositForm({ amount: "", bankAccountId: defaultAccId, reference: "", narration: "", isRD: false });
-        fetchAll();
-      } else {
-        const err = await res.json();
-        alert(err.error || "Failed to add deposit");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
   const triggerEditPurchase = (p) => {
     setEditingPurchase({
       id: p.id,
@@ -548,21 +500,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
     });
     setIsExpenseEditOpen(true);
   };
-  const triggerEditDeposit = (d) => {
-    const isRD = (d.reference ?? "").toLowerCase().includes("[rd]") || (d.narration ?? "").toLowerCase().includes("[rd]");
-    const refClean = (d.reference ?? "").replace(/\[rd\]/gi, "").trim();
-    const narrClean = (d.narration ?? "").replace(/\[rd\]/gi, "").trim();
-    setEditingDeposit({
-      id: d.id,
-      date: new Date(d.date).toISOString().split("T")[0],
-      amount: String(d.amount),
-      bankAccountId: d.bankAccountId ? String(d.bankAccountId) : "",
-      reference: refClean,
-      narration: narrClean,
-      isRD
-    });
-    setIsDepositEditOpen(true);
-  };
+
   const handleEditPurchaseSubmit = async (e) => {
     e.preventDefault();
     if (!editingPurchase) return;
@@ -641,59 +579,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       console.error(err);
     }
   };
-  const handleEditDepositSubmit = async (e) => {
-    e.preventDefault();
-    if (!editingDeposit) return;
-    try {
-      if (!editingDeposit.bankAccountId) {
-        alert("Please select a bank account.");
-        return;
-      }
-      let refText = editingDeposit.reference;
-      let narrText = editingDeposit.narration;
-      if (editingDeposit.isRD) {
-        refText = refText ? `${refText} [RD]` : "[RD]";
-        narrText = narrText ? `${narrText} [RD]` : "Recurring Deposit [RD]";
-      }
-      const res = await khataFetch("/api/khata/bank-deposit", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editingDeposit.id,
-          date: editingDeposit.date,
-          amount: Number(editingDeposit.amount),
-          bankAccountId: Number(editingDeposit.bankAccountId),
-          reference: refText,
-          narration: narrText,
-          isRD: editingDeposit.isRD
-        })
-      });
-      if (res.ok) {
-        setIsDepositEditOpen(false);
-        setEditingDeposit(null);
-        fetchAll();
-      } else {
-        alert("Failed to save deposit details.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  const handleDeleteDeposit = async (id) => {
-    if (!confirm("Are you sure you want to delete this deposit?")) return;
-    try {
-      const res = await khataFetch(`/api/khata/bank-deposit?id=${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setIsDepositEditOpen(false);
-        setEditingDeposit(null);
-        fetchAll();
-      } else {
-        alert("Failed to delete bank deposit.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
   const handleQuickBankSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -722,7 +608,6 @@ export function DailyDashboard({ mode = "dashboard" }) {
         });
         await fetchAll();
         const newBankId = String(data.id);
-        setDepositForm((prev) => ({ ...prev, bankAccountId: newBankId }));
         setPurchaseForm((prev) => ({ ...prev, bankAccountId: newBankId }));
         setExpenseForm((prev) => ({ ...prev, bankAccountId: newBankId }));
       } else {
@@ -1153,146 +1038,8 @@ export function DailyDashboard({ mode = "dashboard" }) {
             </CardContent>
           </Card> : <>
             {
-    /* Daily Expenses columns moved to Payments tab (SupplierLedger) */
-  }
-
-      {
     /* --- Side-by-Side Deposits --- */
   }
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm rounded-xl">
-        <CardHeader className="py-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🏦</span>
-            <CardTitle className="text-sm font-black text-brand-navy dark:text-slate-200 tracking-wide uppercase">
-              Bank & Recurring Deposits
-            </CardTitle>
-          </div>
-          <Button
-    size="sm"
-    onClick={() => {
-      const defaultAcc = bankAccounts.find((b) => b.isDefault) || bankAccounts[0];
-      const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
-      setDepositForm({
-        amount: "",
-        bankAccountId: defaultAccId,
-        reference: "",
-        narration: "",
-        isRD: false
-      });
-      setIsDepositAddOpen(true);
-    }}
-    className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-8 text-xs gap-1 rounded-lg"
-  >
-            <Plus className="w-3.5 h-3.5" /> Add Deposit
-          </Button>
-
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
-            
-            {
-    /* Standard Bank Deposits Column */
-  }
-            <div className="bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-200 dark:border-cyan-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="bg-cyan-500/15 dark:bg-cyan-900/40 border-b-2 border-cyan-200 dark:border-cyan-900/60 px-5 py-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-cyan-500 flex items-center justify-center shadow-sm">
-                      <span className="text-white text-sm">🏦</span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-cyan-800 dark:text-cyan-200 uppercase tracking-wide">Standard Deposits</div>
-                      <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold">Regular bank payouts</div>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-cyan-500 text-white px-2.5 py-1 rounded-full font-black shadow-sm">
-                    {bankDeposits.length} entries
-                  </span>
-                </div>
-
-                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
-                  {bankDeposits.map((d, idx) => <div key={d.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-cyan-200/60 dark:border-cyan-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-cyan-950/30" : "bg-cyan-50/80 dark:bg-cyan-950/20"}`}>
-                      <div>
-                        <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">🏢 {d.bankName}</p>
-                        <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                          Ref: {d.reference || "-"} | {d.narration || "-"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono font-black text-green-700 dark:text-green-400">₹{d.amount.toLocaleString("en-IN")}</span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-cyan-450 hover:text-cyan-700 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 rounded-lg" onClick={() => triggerEditDeposit(d)}>
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>)}
-                  {bankDeposits.length === 0 && <div className="flex flex-col items-center justify-center py-10 gap-2">
-                      <div className="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center text-cyan-450 text-lg">🏦</div>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">No bank deposits logged today</p>
-                    </div>}
-                </div>
-              </div>
-
-              <div className="px-5 py-3 bg-cyan-500/10 dark:bg-cyan-900/30 border-t-2 border-cyan-200 dark:border-cyan-900/60 flex items-center justify-between mt-auto">
-                <span className="text-xs font-black text-cyan-700 dark:text-cyan-300 uppercase tracking-wider">Deposit Total</span>
-                <span className="text-base font-black text-cyan-700 dark:text-cyan-300 font-mono">₹{totalBankDeposits.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-
-            {
-    /* Recurring Deposits (RD) Column */
-  }
-            <div className="bg-sky-50 dark:bg-sky-950/20 border-2 border-sky-200 dark:border-sky-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
-              <div>
-                <div className="bg-sky-500/15 dark:bg-sky-900/40 border-b-2 border-sky-200 dark:border-sky-900/60 px-5 py-3.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-sky-500 flex items-center justify-center shadow-sm">
-                      <span className="text-white text-sm">📈</span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-sky-800 dark:text-sky-200 uppercase tracking-wide">Recurring Deposits (RD)</div>
-                      <div className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold">Future savings reserves</div>
-                    </div>
-                  </div>
-                  <span className="text-xs bg-sky-500 text-white px-2.5 py-1 rounded-full font-black shadow-sm">
-                    {recurringDeposits.length} entries
-                  </span>
-                </div>
-
-                <div className="p-4 space-y-2.5 min-h-36 max-h-80 overflow-y-auto">
-                  {recurringDeposits.map((d, idx) => {
-    const refClean = (d.reference ?? "").replace(/\[rd\]/gi, "").trim();
-    const narrClean = (d.narration ?? "").replace(/\[rd\]/gi, "").trim();
-    return <div key={d.id} className={`flex items-center justify-between px-4 py-3 rounded-xl border border-sky-200/60 dark:border-sky-800/40 shadow-xs transition-all hover:shadow-sm hover:-translate-y-px ${idx % 2 === 0 ? "bg-white dark:bg-sky-950/30" : "bg-sky-50/80 dark:bg-sky-950/20"}`}>
-                        <div>
-                          <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">🏢 {d.bankName}</p>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
-                            RD Ref: {refClean || "-"} | {narrClean || "-"}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-mono font-black text-green-700 dark:text-green-400">₹{d.amount.toLocaleString("en-IN")}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-sky-450 hover:text-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-lg" onClick={() => triggerEditDeposit(d)}>
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </div>;
-  })}
-                  {recurringDeposits.length === 0 && <div className="flex flex-col items-center justify-center py-10 gap-2">
-                      <div className="w-10 h-10 rounded-full bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center text-sky-450 text-lg">📈</div>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">No recurring deposits logged today</p>
-                    </div>}
-                </div>
-              </div>
-
-              <div className="px-5 py-3 bg-sky-500/10 dark:bg-sky-900/30 border-t-2 border-sky-200 dark:border-sky-900/60 flex items-center justify-between mt-auto">
-                <span className="text-xs font-black text-sky-700 dark:text-sky-300 uppercase tracking-wider">Recurring Total</span>
-                <span className="text-base font-black text-sky-700 dark:text-sky-300 font-mono">₹{totalRDs.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-
-          </div>
-        </CardContent>
-      </Card>
 
       {
     /* --- Inward Collection Ledger Zone --- */
@@ -2441,156 +2188,6 @@ export function DailyDashboard({ mode = "dashboard" }) {
         </DialogContent>
       </Dialog>
 
-      {
-    /* --- ADD DEPOSIT DIALOG --- */
-  }
-      <Dialog open={isDepositAddOpen} onOpenChange={setIsDepositAddOpen}>
-        <DialogContent className="max-w-md rounded-xl">
-          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Log Daily Deposit</DialogTitle></DialogHeader>
-          <form onSubmit={handleAddDeposit} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label>Active Date</Label>
-              <Input type="date" value={selectedDate} disabled className="bg-slate-100 cursor-not-allowed font-semibold dark:bg-slate-900" />
-            </div>
-            <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
-              <input
-    type="checkbox"
-    id="addIsRD"
-    checked={depositForm.isRD}
-    onChange={(e) => setDepositForm({ ...depositForm, isRD: e.target.checked })}
-    className="h-4.5 w-4.5 rounded border-slate-350 text-brand-teal focus:ring-brand-teal cursor-pointer"
-  />
-              <Label htmlFor="addIsRD" className="cursor-pointer text-xs font-extrabold text-brand-navy dark:text-brand-mint">
-                Log as Recurring Deposit (RD) instead of Standard
-              </Label>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Bank Account</Label>
-                <div className="flex gap-2">
-                  <button
-    type="button"
-    onClick={() => setIsQuickBankOpen(true)}
-    className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
-  >
-                    ➕ Add Bank
-                  </button>
-                  <button
-    type="button"
-    onClick={() => setIsManageBanksOpen(true)}
-    className="text-[10px] text-indigo-650 hover:underline font-extrabold cursor-pointer"
-  >
-                    ⚙️ Manage
-                  </button>
-                </div>
-              </div>
-              <select
-    className={INPUT_STYLE}
-    value={depositForm.bankAccountId}
-    onChange={(e) => setDepositForm({ ...depositForm, bankAccountId: e.target.value })}
-    required
-  >
-                <option value="">Select Bank Account</option>
-                {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>Amount (₹)</Label>
-              <Input type="number" value={depositForm.amount} onChange={(e) => setDepositForm({ ...depositForm, amount: e.target.value })} placeholder="0.00" required />
-            </div>
-            <div className="space-y-2">
-              <Label>Reference Slip Number (Optional)</Label>
-              <Input value={depositForm.reference} onChange={(e) => setDepositForm({ ...depositForm, reference: e.target.value })} placeholder="e.g. DEP-294" />
-            </div>
-            <div className="space-y-2">
-              <Label>Narration / Notes (Optional)</Label>
-              <Input value={depositForm.narration} onChange={(e) => setDepositForm({ ...depositForm, narration: e.target.value })} placeholder="e.g. Self deposit" />
-            </div>
-            <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-10 rounded-full border-0">
-              Save Deposit
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {
-    /* --- EDIT DEPOSIT DIALOG --- */
-  }
-      <Dialog open={isDepositEditOpen} onOpenChange={setIsDepositEditOpen}>
-        <DialogContent className="max-w-md rounded-xl">
-          <DialogHeader><DialogTitle className="text-brand-navy dark:text-slate-100 font-bold">Edit Deposit Details</DialogTitle></DialogHeader>
-          {editingDeposit && <form onSubmit={handleEditDepositSubmit} className="space-y-4 pt-2">
-              <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-150 dark:border-slate-800">
-                <input
-    type="checkbox"
-    id="editIsRD"
-    checked={editingDeposit.isRD}
-    onChange={(e) => setEditingDeposit({ ...editingDeposit, isRD: e.target.checked })}
-    className="h-4.5 w-4.5 rounded border-slate-350 text-brand-teal focus:ring-brand-teal cursor-pointer"
-  />
-                <Label htmlFor="editIsRD" className="cursor-pointer text-xs font-extrabold text-brand-navy dark:text-brand-mint">
-                  Log as Recurring Deposit (RD)
-                </Label>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Bank Account</Label>
-                  <div className="flex gap-2">
-                    <button
-    type="button"
-    onClick={() => setIsQuickBankOpen(true)}
-    className="text-[10px] text-brand-teal hover:underline font-extrabold cursor-pointer"
-  >
-                      ➕ Add Bank
-                    </button>
-                    <button
-    type="button"
-    onClick={() => setIsManageBanksOpen(true)}
-    className="text-[10px] text-indigo-650 hover:underline font-extrabold cursor-pointer"
-  >
-                      ⚙️ Manage
-                    </button>
-                  </div>
-                </div>
-                <select
-    className={INPUT_STYLE}
-    value={editingDeposit.bankAccountId}
-    onChange={(e) => setEditingDeposit({ ...editingDeposit, bankAccountId: e.target.value })}
-    required
-  >
-                  <option value="">Select Bank Account</option>
-                  {bankAccounts.map((b) => <option key={b.id} value={b.id}>{b.name}{b.isDefault ? " (Default)" : ""}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Amount (₹)</Label>
-                <Input type="number" value={editingDeposit.amount} onChange={(e) => setEditingDeposit({ ...editingDeposit, amount: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Reference Slip Number (Optional)</Label>
-                <Input value={editingDeposit.reference} onChange={(e) => setEditingDeposit({ ...editingDeposit, reference: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Narration / Notes (Optional)</Label>
-                <Input value={editingDeposit.narration} onChange={(e) => setEditingDeposit({ ...editingDeposit, narration: e.target.value })} />
-              </div>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <Button
-    type="button"
-    variant="destructive"
-    onClick={() => handleDeleteDeposit(editingDeposit.id)}
-    className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-  >
-                  <Trash2 className="w-4 h-4 mr-1" /> Delete
-                </Button>
-                <div className="space-x-2">
-                  <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsDepositEditOpen(false)}>Cancel</Button>
-                  <Button type="submit" className="bg-brand-teal hover:bg-brand-teal/90 text-white font-bold rounded-full border-0">Save Changes</Button>
-                </div>
-              </div>
-            </form>}
-        </DialogContent>
-      </Dialog>
 
       {
     /* --- RD REDEMPTION DIALOG --- */
