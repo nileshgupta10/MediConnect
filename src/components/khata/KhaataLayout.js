@@ -65,7 +65,7 @@ export function KhaataLayout({ user }) {
           <nav className="flex flex-col gap-1">
             <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-550 block px-3 mb-2">OPERATIONS MENU</span>
             <div className="flex flex-col gap-1.5 w-full">
-              {navItems.map((item) => {
+              {navItems.filter(item => !item.disabled).map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 return (
