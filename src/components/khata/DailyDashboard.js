@@ -271,7 +271,7 @@ export function DailyDashboard({ mode = "dashboard" }) {
       setBankCharges(bcData || []);
       const defaultAcc = baData?.find((b) => b.isDefault) || baData?.[0];
       const defaultAccId = defaultAcc ? String(defaultAcc.id) : "";
-      setDepositForm((prev) => ({ ...prev, bankAccountId: prev.bankAccountId || defaultAccId }));
+
       setPurchaseForm((prev) => ({ ...prev, bankAccountId: prev.bankAccountId || defaultAccId }));
       setExpenseForm((prev) => ({ ...prev, bankAccountId: prev.bankAccountId || defaultAccId }));
       if (supData && supData.length > 0) {
@@ -719,7 +719,9 @@ export function DailyDashboard({ mode = "dashboard" }) {
   const cashSales = Number(salesForm.cashSales) || 0;
   const upiSales = Number(salesForm.upiSales) || 0;
   const dateCardSettlements = cardSettlements.filter((cs) => isDateMatch(cs.date));
-  const swipeSales = dateCardSettlements.reduce((sum, cs) => sum + cs.amount, 0);
+  const loggedSwipeSales = dateCardSettlements.reduce((sum, cs) => sum + cs.amount, 0);
+  const basicSwipeSales = Number(salesForm.swipeSales) || 0;
+  const swipeSales = dateCardSettlements.length > 0 ? loggedSwipeSales : basicSwipeSales;
   const totalSalesVal = cashSales + upiSales + swipeSales;
   const creditCashPayments = datePayments.filter(
     (p) => p.type === "Cash" && !(p.description ?? "").startsWith("Invoice #")
@@ -1139,56 +1141,63 @@ export function DailyDashboard({ mode = "dashboard" }) {
                     {/* Card Settlement Column */}
                     <div className="bg-purple-50 dark:bg-purple-950/20 border-2 border-purple-200 dark:border-purple-900/60 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
                       <div>
-                        <div className="bg-purple-500/15 dark:bg-purple-900/40 border-b-2 border-purple-200 dark:border-purple-900/60 px-5 py-3.5 flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center shadow-sm">
-                              <span className="text-white text-sm">💳</span>
-                            </div>
-                            <div>
-                              <div className="text-sm font-black text-purple-800 dark:text-purple-200 uppercase tracking-wide">Card Settlements</div>
-                              <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">T+1 bank credit</div>
-                            </div>
+                        <div className="bg-purple-500/15 dark:bg-purple-900/40 border-b-2 border-purple-200 dark:border-purple-900/60 px-5 py-3.5 flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-purple-500 flex items-center justify-center shadow-sm">
+                            <span className="text-white text-sm">💳</span>
                           </div>
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              const today = selectedDate;
-                              const yesterday = new Date(new Date(selectedDate).getTime() - 864e5).toISOString().split("T")[0];
-                              const defaultAccId = bankAccounts.find((b) => b.isDefault)?.id || bankAccounts[0]?.id || "";
-                              setCardSettlementForm({ date: today, amount: "", bankAccountId: String(defaultAccId), salesDate: yesterday, narration: "" });
-                              setIsCardSettlementOpen(true);
-                            }}
-                            className="bg-purple-600 hover:bg-purple-700 text-white font-bold h-6 text-[10px] px-2 rounded-full cursor-pointer flex items-center gap-1"
-                          >
-                            <Plus className="w-3 h-3" /> Log Settlement
-                          </Button>
+                          <div>
+                            <div className="text-sm font-black text-purple-800 dark:text-purple-200 uppercase tracking-wide">Card Settlement</div>
+                            <div className="text-[10px] text-purple-600 dark:text-purple-400 font-semibold">Card machine sales</div>
+                          </div>
                         </div>
-                        <div className="p-4 space-y-2 min-h-36">
-                          {dateCardSettlements.map((cs) => <div key={cs.id} className="flex items-center justify-between p-2 rounded-lg border border-purple-100 dark:border-purple-900/40 bg-white dark:bg-purple-950/20">
-                              <div className="truncate pr-1">
-                                <p className="text-[10px] font-black text-slate-700 dark:text-slate-350">🏢 {cs.bankAccount?.name || "Bank"}</p>
-                                <p className="text-[9px] text-slate-450 dark:text-slate-550 truncate font-semibold">
-                                  {cs.narration || "Card Settlement"}
-                                </p>
+                        <div className="p-4 min-h-36 flex flex-col justify-center gap-2">
+                          <Label className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-1.5 block">Card Sale (₹)</Label>
+                          <Input
+                            type="number"
+                            value={salesForm.swipeSales}
+                            onChange={(e) => setSalesForm({ ...salesForm, swipeSales: e.target.value })}
+                            disabled={dateCardSettlements.length > 0}
+                            className={`${INPUT_STYLE} ${dateCardSettlements.length > 0 ? "opacity-60 cursor-not-allowed" : ""}`}
+                          />
+
+                          {dateCardSettlements.length > 0 ? <div className="space-y-1.5 pt-1">
+                              <p className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">
+                                ⓘ {dateCardSettlements.length} logged settlement{dateCardSettlements.length > 1 ? "s" : ""} (₹{swipeSales.toLocaleString("en-IN")}) override the amount above
+                              </p>
+                              <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                                {dateCardSettlements.map((cs) => <div key={cs.id} className="flex items-center justify-between px-2 py-1.5 rounded-lg border border-purple-100 dark:border-purple-900/40 bg-white dark:bg-purple-950/20">
+                                    <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold truncate pr-1">🏢 {cs.bankAccount?.name || "Bank"} — {cs.narration || "Settlement"}</span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <span className="text-[10px] font-black text-purple-700 dark:text-purple-400">₹{cs.amount.toLocaleString("en-IN")}</span>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 text-slate-400 hover:text-rose-500 cursor-pointer"
+                                        onClick={async () => {
+                                          if (confirm("Are you sure you want to delete this card settlement?")) {
+                                            await khataFetch(`/api/khata/card-settlement?id=${cs.id}`, { method: "DELETE" });
+                                            fetchAll();
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>)}
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[11px] font-black text-purple-700 dark:text-purple-400">₹{cs.amount.toLocaleString("en-IN")}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-5 w-5 text-slate-400 hover:text-rose-500 cursor-pointer"
-                                  onClick={async () => {
-                                    if (confirm("Are you sure you want to delete this card settlement?")) {
-                                      await khataFetch(`/api/khata/card-settlement?id=${cs.id}`, { method: "DELETE" });
-                                      fetchAll();
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>)}
-                          {dateCardSettlements.length === 0 && <p className="text-center text-[10px] text-slate-450 dark:text-slate-500 py-3 font-semibold">No card settlements logged.</p>}
+                            </div> : <button
+                              type="button"
+                              onClick={() => {
+                                const today = selectedDate;
+                                const yesterday = new Date(new Date(selectedDate).getTime() - 864e5).toISOString().split("T")[0];
+                                const defaultAccId = bankAccounts.find((b) => b.isDefault)?.id || bankAccounts[0]?.id || "";
+                                setCardSettlementForm({ date: today, amount: "", bankAccountId: String(defaultAccId), salesDate: yesterday, narration: "" });
+                                setIsCardSettlementOpen(true);
+                              }}
+                              className="text-[10px] text-purple-600 dark:text-purple-400 hover:underline font-bold cursor-pointer text-left"
+                            >
+                              + Log a bank settlement instead (advanced, for T+1 mismatches)
+                            </button>}
                         </div>
                       </div>
                       <div className="px-5 py-3 bg-purple-500/10 dark:bg-purple-900/30 border-t-2 border-purple-200 dark:border-purple-900/60 flex items-center justify-between mt-auto">
