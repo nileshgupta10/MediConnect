@@ -19,9 +19,6 @@ export default async function handler(req, res) {
         };
       }
 
-      const tempCount = await prisma.simpleLedgerEntry.count({ where: { storeOwnerId } });
-      console.log("TEMPORARY COUNT LOG:", tempCount);
-
       const entries = await prisma.simpleLedgerEntry.findMany({
         where,
         orderBy: { date: 'asc' },
