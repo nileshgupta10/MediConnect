@@ -82,6 +82,12 @@ export default function PrescriptionVault() {
   const [noImageMode,    setNoImageMode]    = useState(false)
   const fileInputRef = useRef(null)
 
+  const [showCamera, setShowCamera] = useState(false)
+  const [cameraError, setCameraError] = useState('')
+  const [facingMode, setFacingMode] = useState('environment')
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+
   // ── record editing ─────────────────────────────────────────────
   const [editingRecId,   setEditingRecId]   = useState(null)
   const [editNoteVal,    setEditNoteVal]    = useState('')
@@ -95,6 +101,31 @@ export default function PrescriptionVault() {
 
   // ── load patients ──────────────────────────────────────────────
   useEffect(() => { if (authReady) loadPatients() }, [authReady])
+
+  useEffect(() => {
+    if (!showCamera) return
+    let cancelled = false
+    const start = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode }, audio: false,
+        })
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        streamRef.current = stream
+        if (videoRef.current) videoRef.current.srcObject = stream
+      } catch (err) {
+        setCameraError('Could not access camera. Check browser permissions, or use "Choose File" instead.')
+      }
+    }
+    start()
+    return () => {
+      cancelled = true
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop())
+        streamRef.current = null
+      }
+    }
+  }, [showCamera, facingMode])
 
   const loadPatients = async () => {
     const h = await authHeader(); if (!h) return
@@ -174,6 +205,30 @@ export default function PrescriptionVault() {
     if (!ALLOWED.includes(f.type)) { setUploadMsg('❌ Only JPG, PNG, WEBP, HEIC files allowed.'); return }
     if (f.size > MAX_MB * 1024 * 1024) { setUploadMsg(`❌ File is ${(f.size/1024/1024).toFixed(1)} MB — max ${MAX_MB} MB.`); return }
     setFile(f); setFilePreview(URL.createObjectURL(f)); setUploadMsg('')
+  }
+
+  const openCamera = () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setUploadMsg('❌ Camera not supported on this browser/device. Please use Choose File.')
+      return
+    }
+    setCameraError('')
+    setShowCamera(true)
+  }
+  const closeCamera = () => setShowCamera(false)
+  const switchCamera = () => setFacingMode(m => m === 'environment' ? 'user' : 'environment')
+  const capturePhoto = () => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0)
+    canvas.toBlob(blob => {
+      const f = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' })
+      handleFileSelect(f)
+      setShowCamera(false)
+    }, 'image/jpeg', 0.9)
   }
 
   const onDrop = useCallback((e) => {
@@ -369,22 +424,25 @@ export default function PrescriptionVault() {
                 <div style={s.uploadGrid}>
                   {/* Dropzone — compact square */}
                   {!noImageMode && (
-                    <div
-                      style={dragOver ? { ...s.dropzone, ...s.dropzoneActive } : s.dropzone}
-                      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                      onDragLeave={() => setDragOver(false)}
-                      onDrop={onDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {filePreview ? (
-                        <img src={filePreview} alt="preview" style={s.preview} />
-                      ) : (
-                        <>
-                          <span style={{ fontSize: 28 }}>📷</span>
-                          <span style={s.dropText}>Tap or drag</span>
-                          <span style={s.dropSub}>JPG PNG WEBP HEIC · max 10 MB</span>
-                        </>
-                      )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                      <div
+                        style={dragOver ? { ...s.dropzone, ...s.dropzoneActive } : s.dropzone}
+                        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={onDrop}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {filePreview ? (
+                          <img src={filePreview} alt="preview" style={s.preview} />
+                        ) : (
+                          <>
+                            <span style={{ fontSize: 28 }}>📷</span>
+                            <span style={s.dropText}>Tap or drag</span>
+                            <span style={s.dropSub}>JPG PNG WEBP HEIC · max 10 MB</span>
+                          </>
+                        )}
+                      </div>
+                      <button style={s.cameraBtn} onClick={openCamera} type="button">📷 Take Photo</button>
                     </div>
                   )}
                   <input ref={fileInputRef} type="file"
@@ -548,6 +606,17 @@ export default function PrescriptionVault() {
           </div>
         </div>
       )}
+      {showCamera && (
+        <div style={s.cameraBackdrop}>
+          <video ref={videoRef} autoPlay playsInline muted style={s.cameraVideo} />
+          {cameraError && <p style={s.cameraErrorMsg}>{cameraError}</p>}
+          <div style={s.cameraControls}>
+            <button style={s.cameraSecondaryBtn} onClick={closeCamera} type="button">Cancel</button>
+            <button style={s.cameraCaptureBtn} onClick={capturePhoto} type="button">📸 Capture</button>
+            <button style={s.cameraSecondaryBtn} onClick={switchCamera} type="button">🔄 Switch</button>
+          </div>
+        </div>
+      )}
     </StoreLayout>
   )
 }
@@ -638,4 +707,11 @@ const s = {
   modalImgWrap:      { flex: 1, overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 8 },
   modalImg:          { maxWidth: '100%', objectFit: 'contain', transformOrigin: 'top center', userSelect: 'none', display: 'block' },
   modalNotes:        { padding: '12px 16px', background: 'rgba(255,255,255,0.06)', borderTop: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 },
+  cameraBtn:          { padding: '8px 12px', background: '#f0fdfd', color: '#0e9090', border: '1.5px solid #0e9090', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer' },
+  cameraBackdrop:      { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 },
+  cameraVideo:         { width: '100%', maxWidth: 480, borderRadius: 12, background: '#000' },
+  cameraControls:      { display: 'flex', gap: 12, marginTop: 16 },
+  cameraCaptureBtn:    { padding: '12px 24px', background: '#0e9090', color: '#fff', border: 'none', borderRadius: 99, fontWeight: 800, fontSize: 15, cursor: 'pointer' },
+  cameraSecondaryBtn:  { padding: '12px 20px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: 99, fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  cameraErrorMsg:      { color: '#fca5a5', fontSize: 13, marginTop: 10, textAlign: 'center' },
 }
