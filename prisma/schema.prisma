@@ -524,6 +524,10 @@ model SimpleLedgerEntry {
   cashSales      Float    @default(0)
   upiSales       Float    @default(0)
   cardSales      Float    @default(0)
+  bankDeposit      Float    @default(0)
+  recurringDeposit Float    @default(0)
+  homeExpense      Float    @default(0)
+  shopExpense      Float    @default(0)
 
   @@unique([date, storeOwnerId])
 }

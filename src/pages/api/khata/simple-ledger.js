@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
-      const { date, cashPurchase, creditPurchase, cashSales, upiSales, cardSales } = req.body;
+      const { date, cashPurchase, creditPurchase, cashSales, upiSales, cardSales, bankDeposit, recurringDeposit, homeExpense, shopExpense } = req.body;
 
       if (!date) {
         return res.status(400).json({ error: 'Date is required' });
@@ -52,6 +52,10 @@ export default async function handler(req, res) {
           cashSales: Number(cashSales || 0),
           upiSales: Number(upiSales || 0),
           cardSales: Number(cardSales || 0),
+          bankDeposit: Number(bankDeposit || 0),
+          recurringDeposit: Number(recurringDeposit || 0),
+          homeExpense: Number(homeExpense || 0),
+          shopExpense: Number(shopExpense || 0),
         },
         create: {
           storeOwnerId,
@@ -61,6 +65,10 @@ export default async function handler(req, res) {
           cashSales: Number(cashSales || 0),
           upiSales: Number(upiSales || 0),
           cardSales: Number(cardSales || 0),
+          bankDeposit: Number(bankDeposit || 0),
+          recurringDeposit: Number(recurringDeposit || 0),
+          homeExpense: Number(homeExpense || 0),
+          shopExpense: Number(shopExpense || 0),
         },
       });
 

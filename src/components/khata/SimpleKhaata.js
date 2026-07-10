@@ -17,6 +17,10 @@ export function SimpleKhaata() {
   const [cashSales, setCashSales] = useState("0");
   const [upiSales, setUpiSales] = useState("0");
   const [cardSales, setCardSales] = useState("0");
+  const [bankDeposit, setBankDeposit] = useState("0");
+  const [recurringDeposit, setRecurringDeposit] = useState("0");
+  const [homeExpense, setHomeExpense] = useState("0");
+  const [shopExpense, setShopExpense] = useState("0");
 
   // Date range filter state (default to last 30 days)
   const [fromDate, setFromDate] = useState(() => {
@@ -70,12 +74,20 @@ export function SimpleKhaata() {
       setCashSales(String(matched.cashSales));
       setUpiSales(String(matched.upiSales));
       setCardSales(String(matched.cardSales));
+      setBankDeposit(String(matched.bankDeposit || 0));
+      setRecurringDeposit(String(matched.recurringDeposit || 0));
+      setHomeExpense(String(matched.homeExpense || 0));
+      setShopExpense(String(matched.shopExpense || 0));
     } else {
       setCashPurchase("0");
       setCreditPurchase("0");
       setCashSales("0");
       setUpiSales("0");
       setCardSales("0");
+      setBankDeposit("0");
+      setRecurringDeposit("0");
+      setHomeExpense("0");
+      setShopExpense("0");
     }
   }, [entryDate, entries]);
 
@@ -94,6 +106,10 @@ export function SimpleKhaata() {
           cashSales: Number(cashSales) || 0,
           upiSales: Number(upiSales) || 0,
           cardSales: Number(cardSales) || 0,
+          bankDeposit: Number(bankDeposit) || 0,
+          recurringDeposit: Number(recurringDeposit) || 0,
+          homeExpense: Number(homeExpense) || 0,
+          shopExpense: Number(shopExpense) || 0,
         }),
       });
 
@@ -115,10 +131,15 @@ export function SimpleKhaata() {
   // Calculate totals
   const totalCashPurchase = entries.reduce((sum, e) => sum + (e.cashPurchase || 0), 0);
   const totalCreditPurchase = entries.reduce((sum, e) => sum + (e.creditPurchase || 0), 0);
+  const totalBankDeposit = entries.reduce((sum, e) => sum + (e.bankDeposit || 0), 0);
+  const totalRecurringDeposit = entries.reduce((sum, e) => sum + (e.recurringDeposit || 0), 0);
+  const totalHomeExpense = entries.reduce((sum, e) => sum + (e.homeExpense || 0), 0);
+  const totalShopExpense = entries.reduce((sum, e) => sum + (e.shopExpense || 0), 0);
   const totalCashSales = entries.reduce((sum, e) => sum + (e.cashSales || 0), 0);
   const totalUpiSales = entries.reduce((sum, e) => sum + (e.upiSales || 0), 0);
   const totalCardSales = entries.reduce((sum, e) => sum + (e.cardSales || 0), 0);
-  const netCashFlow = (totalCashSales + totalUpiSales + totalCardSales) - totalCashPurchase;
+  
+  const netCashFlow = (totalCashSales + totalUpiSales + totalCardSales) - (totalCashPurchase + totalBankDeposit + totalRecurringDeposit + totalHomeExpense + totalShopExpense);
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8 min-h-screen text-slate-850 dark:text-slate-100">
@@ -197,6 +218,77 @@ export function SimpleKhaata() {
                     step="any"
                     value={creditPurchase}
                     onChange={(e) => setCreditPurchase(e.target.value)}
+                    className="border border-slate-200 dark:border-slate-800 font-semibold"
+                  />
+                </div>
+
+                <hr className="border-slate-100 dark:border-slate-800 my-2" />
+
+                {/* Outflows (Deposits & Expenses) Section Header */}
+                <h4 className="text-[10px] font-black text-[#0e9090] uppercase tracking-widest mt-2 mb-1">
+                  Outflows (Deposits &amp; Expenses)
+                </h4>
+
+                {/* Bank Deposit */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="bankDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                    Bank Deposit (₹)
+                  </Label>
+                  <Input
+                    id="bankDeposit"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={bankDeposit}
+                    onChange={(e) => setBankDeposit(e.target.value)}
+                    className="border border-slate-200 dark:border-slate-800 font-semibold"
+                  />
+                </div>
+
+                {/* Recurring Deposit */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="recurringDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                    Recurring Deposit / Saving (₹)
+                  </Label>
+                  <Input
+                    id="recurringDeposit"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={recurringDeposit}
+                    onChange={(e) => setRecurringDeposit(e.target.value)}
+                    className="border border-slate-200 dark:border-slate-800 font-semibold"
+                  />
+                </div>
+
+                {/* Home Expense */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="homeExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                    Home Expense (₹)
+                  </Label>
+                  <Input
+                    id="homeExpense"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={homeExpense}
+                    onChange={(e) => setHomeExpense(e.target.value)}
+                    className="border border-slate-200 dark:border-slate-800 font-semibold"
+                  />
+                </div>
+
+                {/* Shop Expense */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="shopExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                    Shop Expense (₹)
+                  </Label>
+                  <Input
+                    id="shopExpense"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={shopExpense}
+                    onChange={(e) => setShopExpense(e.target.value)}
                     className="border border-slate-200 dark:border-slate-800 font-semibold"
                   />
                 </div>
@@ -318,6 +410,10 @@ export function SimpleKhaata() {
                       <TableHead className="font-extrabold text-slate-500 text-xs px-5 py-3">Date</TableHead>
                       <TableHead className="font-extrabold text-[#0e9090] text-xs px-5 py-3 text-right">Cash Purchase</TableHead>
                       <TableHead className="font-extrabold text-slate-600 dark:text-slate-350 text-xs px-5 py-3 text-right">Credit Purchase</TableHead>
+                      <TableHead className="font-extrabold text-[#0e9090] text-xs px-5 py-3 text-right">Bank Deposit</TableHead>
+                      <TableHead className="font-extrabold text-[#0e9090] text-xs px-5 py-3 text-right">Recurring Deposit</TableHead>
+                      <TableHead className="font-extrabold text-[#0e9090] text-xs px-5 py-3 text-right">Home Expense</TableHead>
+                      <TableHead className="font-extrabold text-[#0e9090] text-xs px-5 py-3 text-right">Shop Expense</TableHead>
                       <TableHead className="font-extrabold text-purple-700 dark:text-purple-400 text-xs px-5 py-3 text-right">Cash Sales</TableHead>
                       <TableHead className="font-extrabold text-purple-700 dark:text-purple-400 text-xs px-5 py-3 text-right">UPI Sales</TableHead>
                       <TableHead className="font-extrabold text-purple-700 dark:text-purple-400 text-xs px-5 py-3 text-right">Card Sales</TableHead>
@@ -326,13 +422,13 @@ export function SimpleKhaata() {
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-slate-400 font-semibold text-xs">
+                        <TableCell colSpan={10} className="text-center py-8 text-slate-400 font-semibold text-xs">
                           Loading entries...
                         </TableCell>
                       </TableRow>
                     ) : entries.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-slate-400 font-semibold text-xs">
+                        <TableCell colSpan={10} className="text-center py-8 text-slate-400 font-semibold text-xs">
                           No simple ledger entries found for this range.
                         </TableCell>
                       </TableRow>
@@ -347,6 +443,18 @@ export function SimpleKhaata() {
                           </TableCell>
                           <TableCell className="font-bold text-xs px-5 py-3 text-right text-slate-500">
                             ₹{e.creditPurchase?.toLocaleString("en-IN") || 0}
+                          </TableCell>
+                          <TableCell className="font-bold text-xs px-5 py-3 text-right text-[#0e9090]">
+                            ₹{e.bankDeposit?.toLocaleString("en-IN") || 0}
+                          </TableCell>
+                          <TableCell className="font-bold text-xs px-5 py-3 text-right text-[#0e9090]">
+                            ₹{e.recurringDeposit?.toLocaleString("en-IN") || 0}
+                          </TableCell>
+                          <TableCell className="font-bold text-xs px-5 py-3 text-right text-[#0e9090]">
+                            ₹{e.homeExpense?.toLocaleString("en-IN") || 0}
+                          </TableCell>
+                          <TableCell className="font-bold text-xs px-5 py-3 text-right text-[#0e9090]">
+                            ₹{e.shopExpense?.toLocaleString("en-IN") || 0}
                           </TableCell>
                           <TableCell className="font-bold text-xs px-5 py-3 text-right text-purple-700 dark:text-purple-400">
                             ₹{e.cashSales?.toLocaleString("en-IN") || 0}
@@ -375,7 +483,7 @@ export function SimpleKhaata() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 
                 {/* Cash Purchases */}
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
@@ -390,6 +498,38 @@ export function SimpleKhaata() {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Credit Purchase</p>
                   <p className="text-sm font-extrabold text-slate-500">
                     ₹{totalCreditPurchase.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                {/* Bank Deposit */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Bank Deposit</p>
+                  <p className="text-sm font-extrabold text-[#0e9090]">
+                    ₹{totalBankDeposit.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                {/* Recurring Deposit */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Recurring Deposit</p>
+                  <p className="text-sm font-extrabold text-[#0e9090]">
+                    ₹{totalRecurringDeposit.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                {/* Home Expense */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Home Expense</p>
+                  <p className="text-sm font-extrabold text-[#0e9090]">
+                    ₹{totalHomeExpense.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                {/* Shop Expense */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-800/60">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Shop Expense</p>
+                  <p className="text-sm font-extrabold text-[#0e9090]">
+                    ₹{totalShopExpense.toLocaleString("en-IN")}
                   </p>
                 </div>
 
@@ -422,11 +562,11 @@ export function SimpleKhaata() {
               {/* Net Cash Flow Calculation Row */}
               <div className="bg-[#0e9090]/5 dark:bg-[#0e9090]/10 p-4 rounded-xl border border-[#0e9090]/20 dark:border-slate-800 flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4">
                 <div>
-                  <span className="text-xs text-slate-500 dark:text-slate-450 uppercase tracking-wider font-extrabold block">
+                  <span className="text-xs text-slate-500 dark:text-slate-455 uppercase tracking-wider font-extrabold block">
                     Net Cash Flow
                   </span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5">
-                    Formula: (Cash Sales + UPI Sales + Card Sales) - Cash Purchase
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold block mt-0.5 animate-in fade-in duration-300">
+                    Formula: (Cash Sales + UPI Sales + Card Sales) - (Cash Purchase + Bank Deposit + Recurring Deposit + Home Expense + Shop Expense)
                   </span>
                 </div>
                 <span className={`text-xl font-black font-mono ${
