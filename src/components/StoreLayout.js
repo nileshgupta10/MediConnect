@@ -36,7 +36,7 @@ export default function StoreLayout({ children }) {
     const hasDetails = !!profile?.store_name
     const isVerified = !!profile?.is_verified
 
-    if (path === '/bill-converter' || path === '/khata') {
+    if (path === '/bill-converter' || path === '/khata' || path === '/khata-simple') {
       if (!hasDetails) {
         router.replace('/store-profile')
       }
@@ -58,7 +58,8 @@ export default function StoreLayout({ children }) {
   const tabs = [
     { label: 'Profile', path: '/store-profile', allowed: true },
     { label: 'Bill Conv', path: '/bill-converter', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
-    { label: 'Khaata', path: '/khata', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
+    { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
+    { label: 'Khaata Premium', path: '/khata', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
     { label: 'Applicants', path: '/applicants', allowed: isVerified, lockMsg: 'Applicants tab unlocks only after your store is verified by the administrator.' },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
