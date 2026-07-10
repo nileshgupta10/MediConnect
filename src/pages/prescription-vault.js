@@ -341,10 +341,28 @@ export default function PrescriptionVault() {
   // ── RENDER ─────────────────────────────────────────────────────
   return (
     <StoreLayout>
-      <div style={s.page}>
+      <div style={s.page} className="rxv-page">
+        <style jsx>{`
+          @media (max-width: 768px) {
+            .rxv-page { flex-direction: column !important; }
+            .rxv-sidebar {
+              width: 100% !important;
+              max-height: 240px !important;
+              border-right: none !important;
+              border-bottom: 1.5px solid #e2e8f0 !important;
+              padding: 12px 14px !important;
+            }
+            .rxv-patient-list { max-height: 150px !important; overflow-y: auto !important; }
+            .rxv-main { padding: 14px !important; }
+            .rxv-thumbnail, .rxv-noimg {
+              width: 100% !important;
+              height: 160px !important;
+            }
+          }
+        `}</style>
 
         {/* ── LEFT PANEL ─────────────────────────────────────────── */}
-        <aside style={s.sidebar}>
+        <aside style={s.sidebar} className="rxv-sidebar">
           <h2 style={s.sideTitle}>Patients</h2>
 
           <form onSubmit={handleAddPatient} style={s.addForm}>
@@ -362,7 +380,7 @@ export default function PrescriptionVault() {
               onChange={e => setPatientSearch(e.target.value)} />
           )}
 
-          <div style={s.patientList}>
+          <div style={s.patientList} className="rxv-patient-list">
             {filtered.length === 0 && (
               <p style={s.emptyHint}>{patients.length === 0 ? 'Add your first patient above.' : 'No match.'}</p>
             )}
@@ -397,7 +415,7 @@ export default function PrescriptionVault() {
         </aside>
 
         {/* ── RIGHT PANEL ────────────────────────────────────────── */}
-        <main style={s.main}>
+        <main style={s.main} className="rxv-main">
           {!active ? (
             <div style={s.placeholder}>
               <div style={{ fontSize: 48 }}>🗂️</div>
@@ -495,10 +513,10 @@ export default function PrescriptionVault() {
 
                         {rec.signedUrl ? (
                           <img src={rec.signedUrl} alt={`Rx ${rec.record_date}`}
-                            loading="lazy" style={s.thumbnail}
+                            loading="lazy" style={s.thumbnail} className="rxv-thumbnail"
                             onClick={() => openModal(idx)} title="Click to zoom" />
                         ) : (
-                          <div style={s.noImgPlaceholder} onClick={() => openModal(idx)} title="View notes">
+                          <div style={s.noImgPlaceholder} className="rxv-noimg" onClick={() => openModal(idx)} title="View notes">
                             <span style={{ fontSize: 22 }}>📋</span>
                             <span style={{ fontSize: 12, color: '#64748b' }}>No image</span>
                           </div>
