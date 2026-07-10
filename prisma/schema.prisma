@@ -515,4 +515,15 @@ model distributor_formats {
 
   @@unique([store_owner_id, party_code])
 }
+model SimpleLedgerEntry {
+  id             Int      @id @default(autoincrement())
+  storeOwnerId   String
+  date           DateTime
+  cashPurchase   Float    @default(0)
+  creditPurchase Float    @default(0)
+  cashSales      Float    @default(0)
+  upiSales       Float    @default(0)
+  cardSales      Float    @default(0)
 
+  @@unique([date, storeOwnerId])
+}
