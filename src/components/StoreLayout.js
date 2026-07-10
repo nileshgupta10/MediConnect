@@ -18,7 +18,7 @@ export default function StoreLayout({ children }) {
       }
       const { data } = await supabase
         .from('store_profiles')
-        .select('store_name, is_verified')
+        .select('store_name, is_verified, khata_premium_unlocked')
         .eq('user_id', user.id)
         .maybeSingle()
       if (mounted) {
@@ -35,8 +35,19 @@ export default function StoreLayout({ children }) {
     const path = router.pathname
     const hasDetails = !!profile?.store_name
     const isVerified = !!profile?.is_verified
+    const premiumUnlocked = !!profile?.khata_premium_unlocked
 
-    if (path === '/bill-converter' || path === '/khata' || path === '/khata-simple') {
+    if (path === '/khata') {
+      if (!hasDetails) {
+        router.replace('/store-profile')
+      } else if (!premiumUnlocked) {
+        router.replace('/khata-simple')
+      }
+    } else if (path === '/khata-simple') {
+      if (!hasDetails) {
+        router.replace('/store-profile')
+      }
+    } else if (path === '/bill-converter') {
       if (!hasDetails) {
         router.replace('/store-profile')
       }
@@ -54,12 +65,13 @@ export default function StoreLayout({ children }) {
 
   const hasDetails = !!profile?.store_name
   const isVerified = !!profile?.is_verified
+  const premiumUnlocked = !!profile?.khata_premium_unlocked
 
   const tabs = [
     { label: 'Profile', path: '/store-profile', allowed: true },
     { label: 'Bill Conv', path: '/bill-converter', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
     { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
-    { label: 'Khaata Premium', path: '/khata', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
+    { label: 'Khaata Premium', path: '/khata', allowed: hasDetails && premiumUnlocked, lockMsg: !hasDetails ? 'Please complete your store profile name and location details first.' : 'Khaata Premium unlocks after your upgrade payment is verified by the admin.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
     { label: 'Applicants', path: '/applicants', allowed: isVerified, lockMsg: 'Applicants tab unlocks only after your store is verified by the administrator.' },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }

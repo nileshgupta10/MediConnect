@@ -240,6 +240,7 @@ model store_profiles {
   verification_remark  String?
   phone                String?
   address              String?
+  khata_premium_unlocked Boolean?       @default(false)
   appointments         appointments[]
   jobs                 jobs[]
 }

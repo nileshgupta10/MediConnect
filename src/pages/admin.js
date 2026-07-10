@@ -68,7 +68,7 @@ export default function AdminPage() {
   const loadStores = async (pageNum) => {
     const from = pageNum * PAGE_SIZE
     const { data } = await supabase.from('store_profiles')
-      .select('user_id, store_name, verification_status, is_verified, address, license_url, contact_person, phone, store_timings, num_vacancies, experience_required, verification_remark')
+      .select('user_id, store_name, verification_status, is_verified, address, license_url, contact_person, phone, store_timings, num_vacancies, experience_required, verification_remark, khata_premium_unlocked')
       .eq('verification_status', status).order('store_name').range(from, from + PAGE_SIZE - 1)
     if (pageNum === 0) setStores(data || [])
     else setStores(prev => [...prev, ...(data || [])])
@@ -130,6 +130,13 @@ export default function AdminPage() {
   const toggleJobDisabled = async (jobId, currentlyDisabled) => {
     await supabase.from('jobs').update({ disabled_by_admin: !currentlyDisabled }).eq('id', jobId)
     await loadJobs(0); setPage(0)
+  }
+
+  const toggleKhataPremium = async (userId, currentlyUnlocked) => {
+    try {
+      await adminUpdate('store_profiles', userId, { khata_premium_unlocked: !currentlyUnlocked })
+      await loadStores(0); setPage(0)
+    } catch (e) { alert('Error: ' + e.message) }
   }
 
   const viewLicense = async (item) => {
@@ -211,11 +218,12 @@ export default function AdminPage() {
           {filteredStores.length===0 && <p style={st.empty}>No records.</p>}
           {filteredStores.map(item => (
             <StoreCard key={item.user_id} item={item} status={status}
-  onApprove={(remarkVal)=>updateStoreStatus(item.user_id,'approved', remarkVal)}
-  onReject={(remarkVal)=>updateStoreStatus(item.user_id,'rejected', remarkVal)}
-  onSuspend={()=>updateStoreStatus(item.user_id,'suspended')}
-  onSaveRemark={(remarkVal)=>updateStoreRemark(item.user_id, remarkVal)}
-  getPerformance={getPerformance} />
+              onApprove={(remarkVal)=>updateStoreStatus(item.user_id,'approved', remarkVal)}
+              onReject={(remarkVal)=>updateStoreStatus(item.user_id,'rejected', remarkVal)}
+              onSuspend={()=>updateStoreStatus(item.user_id,'suspended')}
+              onTogglePremium={() => toggleKhataPremium(item.user_id, item.khata_premium_unlocked)}
+              onSaveRemark={(remarkVal)=>updateStoreRemark(item.user_id, remarkVal)}
+              getPerformance={getPerformance} />
           ))}
         </>}
 
@@ -337,7 +345,7 @@ function PharmacistCard({ item, status, onApprove, onReject, onSuspend, onSaveRe
   )
 }
 
-function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark, getPerformance }) {
+function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark, getPerformance, onTogglePremium }) {
   const [perf, setPerf] = useState(null)
   const [lp, setLp] = useState(false)
   const [showLicense, setShowLicense] = useState(false)
@@ -385,6 +393,7 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
       {item.num_vacancies !== undefined && item.num_vacancies !== null && <p style={st.detail}>💼 <b>Vacancies:</b> {item.num_vacancies}</p>}
       {item.experience_required && <p style={st.detail}>🎓 <b>Experience Required:</b> {item.experience_required}</p>}
       <p style={st.detail}>Status: <span style={st.badge}>{item.verification_status||'pending'}</span></p>
+      <p style={st.detail}>Khaata Premium: <span style={st.badge}>{item.khata_premium_unlocked ? 'Unlocked' : 'Locked'}</span></p>
       {item.verification_remark && <div style={st.remarkHighlight}>💬 <b>Remark:</b> {item.verification_remark}</div>}
       
       <div style={st.actions}>
@@ -429,7 +438,12 @@ function StoreCard({ item, status, onApprove, onReject, onSuspend, onSaveRemark,
             </>
           )}
           {status==='approved' && <button style={st.suspend} onClick={onSuspend}>⏸ Suspend</button>}
-{status==='suspended' && <button style={st.approve} onClick={() => onApprove(remark)}>✓ Re-approve</button>}but
+          {status==='suspended' && <button style={st.approve} onClick={() => onApprove(remark)}>✓ Re-approve</button>}
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button style={item.khata_premium_unlocked ? st.suspend : st.approve} onClick={onTogglePremium}>
+            {item.khata_premium_unlocked ? '🔒 Lock Khaata Premium' : '🔓 Unlock Khaata Premium'}
+          </button>
         </div>
       </div>
     </div>
