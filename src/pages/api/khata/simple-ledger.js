@@ -11,11 +11,16 @@ export default async function handler(req, res) {
 
       const where = { storeOwnerId };
       if (from && to) {
+        const toDateObj = new Date(to);
+        toDateObj.setHours(23, 59, 59, 999);
         where.date = {
           gte: new Date(from),
-          lte: new Date(to),
+          lte: toDateObj,
         };
       }
+
+      const tempCount = await prisma.simpleLedgerEntry.count({ where: { storeOwnerId } });
+      console.log("TEMPORARY COUNT LOG:", tempCount);
 
       const entries = await prisma.simpleLedgerEntry.findMany({
         where,
