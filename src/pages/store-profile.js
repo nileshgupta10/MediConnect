@@ -124,6 +124,7 @@ export default function StoreProfile() {
 
   const saveProfile = async () => {
     if (!storeName.trim()) { setMessage('Please enter store name.'); return }
+    if (!phone.trim()) { setMessage('Please enter a contact phone number.'); return }
     if (!latitude || !longitude) { setMessage('Please set your store location.'); return }
     setSaving(true); setMessage('Saving…')
     const { data: { user } } = await supabase.auth.getUser()
@@ -247,7 +248,7 @@ export default function StoreProfile() {
                 onChange={e => setStoreName(e.target.value)}
               />
 
-              <IL text="Phone Number" />
+              <IL text="Phone Number *" />
               <input style={s.input} placeholder="Contact number" value={phone} onChange={e => setPhone(e.target.value)} />
 
               <IL text="Store Timings" />
