@@ -51,7 +51,7 @@ export default function JobsPage() {
 
     const { data } = await supabase
       .from('jobs')
-      .select('id, title, location, shift, required_experience, num_openings, preferred_software, description, created_at, store_profiles (latitude, longitude)')
+      .select('id, title, location, shift, required_experience, num_openings, preferred_software, description, created_at, store_profiles (latitude, longitude, phone)')
       .order('created_at', { ascending: false })
     setJobs(data || [])
     setLoading(false)
@@ -193,7 +193,12 @@ export default function JobsPage() {
                   )}
                   {isVerified && (
                     applied ? (
-                      <div style={s.appliedBadge}>✓ Applied</div>
+                      <>
+                        <div style={s.appliedBadge}>✓ Applied</div>
+                        {job.store_profiles?.phone && (
+                          <p style={s.contactInfo}>📞 <b>Store Contact:</b> {job.store_profiles.phone}</p>
+                        )}
+                      </>
                     ) : (
                       <button style={s.applyBtn} onClick={() => applyForJob(job.id)}>
                         {user ? 'Apply Now →' : 'Login to Apply'}
