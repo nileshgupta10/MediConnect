@@ -33,7 +33,7 @@ async function readRawBody(req) {
   });
 }
 
-// Parse multipart/form-data manually (handles one file field "file" + text fields)
+// Parse multipart/form-data manually (handles multiple file fields "file" + text fields)
 function parseMultipart(body, boundary) {
   const parts = {};
   const boundaryBuffer = Buffer.from('--' + boundary);
@@ -59,11 +59,14 @@ function parseMultipart(body, boundary) {
     if (nameMatch) {
       const fieldName = nameMatch[1];
       if (filenameMatch) {
-        parts[fieldName] = {
+        if (!parts[fieldName]) {
+          parts[fieldName] = [];
+        }
+        parts[fieldName].push({
           filename: filenameMatch[1],
           contentType: contentTypeMatch ? contentTypeMatch[1].trim() : 'application/octet-stream',
           data,
-        };
+        });
       } else {
         parts[fieldName] = data.toString().trim();
       }
@@ -97,9 +100,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Failed to parse upload: ' + err.message });
   }
 
-  const { file, patient_id, record_date, notes } = parts;
+  const { patient_id, record_date, notes } = parts;
+  const files = Array.isArray(parts.file) ? parts.file : (parts.file ? [parts.file] : []);
 
-  const hasFile  = !!(file?.data && file.data.length > 0);
+  const hasFile  = files.length > 0;
   const hasNotes = !!(typeof notes === 'string' && notes.trim());
 
   if (!patient_id) return res.status(400).json({ error: 'patient_id is required.' });
@@ -108,17 +112,23 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Provide an image, notes, or both.' });
   }
 
-  // ── Validate file (only when a file is present) ──────────────────
-  if (hasFile) {
-    if (!ALLOWED_MIME_TYPES.includes(file.contentType)) {
+  // ── Validate files ────────────────────────────────────────────────
+  if (files.length > 5) {
+    return res.status(400).json({ error: 'Maximum 5 pages allowed per upload.' });
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const pageNum = i + 1;
+    if (!ALLOWED_MIME_TYPES.includes(f.contentType)) {
       return res.status(400).json({
-        error: `Invalid file type "${file.contentType}". Allowed: JPG, PNG, WEBP, HEIC only.`,
+        error: `Page ${pageNum}: Invalid file type "${f.contentType}". Allowed: JPG, PNG, WEBP, HEIC only.`,
       });
     }
-    if (file.data.length > MAX_FILE_SIZE_BYTES) {
-      const sizeMB = (file.data.length / (1024 * 1024)).toFixed(1);
+    if (f.data.length > MAX_FILE_SIZE_BYTES) {
+      const sizeMB = (f.data.length / (1024 * 1024)).toFixed(1);
       return res.status(400).json({
-        error: `File is ${sizeMB} MB. Maximum allowed size is 10 MB.`,
+        error: `Page ${pageNum}: File is ${sizeMB} MB. Maximum allowed size is 10 MB.`,
       });
     }
   }
@@ -136,12 +146,12 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Patient not found or access denied.' });
   }
 
-  // ── Compress + upload image (only when a file is present) ──────
-  let storagePath = null;
+  // ── Compress + upload images ────────────────────────────────────
+  const uploadedPaths = [];
+  const timestamp = Date.now();
 
-  if (hasFile) {
-    // Server-side compression via sharp — safety net after client-side resize.
-    // All formats → JPEG 75q, max 1600px longest side, never upscale.
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     let compressedBuffer;
     try {
       compressedBuffer = await sharp(file.data)
@@ -152,27 +162,38 @@ export default async function handler(req, res) {
 
       const origKB = (file.data.length / 1024).toFixed(0);
       const compKB = (compressedBuffer.length / 1024).toFixed(0);
-      console.log(`[vault/upload] compressed ${origKB} KB → ${compKB} KB (${file.contentType})`);
+      console.log(`[vault/upload] compressed page ${i} ${origKB} KB → ${compKB} KB (${file.contentType})`);
     } catch (compErr) {
-      console.error('[vault/upload] compression error:', compErr.message);
-      return res.status(500).json({ error: 'Image compression failed: ' + compErr.message });
+      console.error(`[vault/upload] page ${i} compression error:`, compErr.message);
+      if (uploadedPaths.length > 0) {
+        await supabaseAdmin.storage.from('prescription-vault').remove(uploadedPaths);
+      }
+      return res.status(500).json({ error: `Page ${i + 1} image compression failed: ` + compErr.message });
     }
 
-    storagePath = `${storeOwnerId}/${patient_id}/${Date.now()}.jpg`;
+    const storagePath = `${storeOwnerId}/${patient_id}/${timestamp}-p${i}.jpg`;
     const { error: uploadErr } = await supabaseAdmin
       .storage
       .from('prescription-vault')
       .upload(storagePath, compressedBuffer, { contentType: 'image/jpeg', upsert: false });
 
-    if (uploadErr) return res.status(500).json({ error: 'Upload failed: ' + uploadErr.message });
+    if (uploadErr) {
+      if (uploadedPaths.length > 0) {
+        await supabaseAdmin.storage.from('prescription-vault').remove(uploadedPaths);
+      }
+      return res.status(500).json({ error: `Page ${i + 1} upload failed: ` + uploadErr.message });
+    }
+
+    uploadedPaths.push(storagePath);
   }
 
   // ── Insert record ─────────────────────────────────────────────
+  const firstPath = uploadedPaths.length > 0 ? uploadedPaths[0] : null;
   const { data: record, error: insertErr } = await supabaseAdmin
     .from('vault_prescription_records')
     .insert({
       patient_id,
-      image_path: storagePath,          // null for text-only records
+      image_path: firstPath,          // null for text-only records
       record_date,
       notes: hasNotes ? notes.trim() : null,
     })
@@ -180,12 +201,47 @@ export default async function handler(req, res) {
     .single();
 
   if (insertErr) {
-    // Clean up orphaned image only if one was uploaded
-    if (storagePath) {
-      await supabaseAdmin.storage.from('prescription-vault').remove([storagePath]);
+    if (uploadedPaths.length > 0) {
+      await supabaseAdmin.storage.from('prescription-vault').remove(uploadedPaths);
     }
     return res.status(500).json({ error: 'Failed to save record: ' + insertErr.message });
   }
 
-  return res.status(201).json({ record });
+  // ── Insert pages into vault_record_images ─────────────────────
+  if (uploadedPaths.length > 0) {
+    const imageRows = uploadedPaths.map((storagePath, index) => ({
+      record_id: record.id,
+      image_path: storagePath,
+      page_order: index,
+    }));
+
+    const { error: imgInsertErr } = await supabaseAdmin
+      .from('vault_record_images')
+      .insert(imageRows);
+
+    if (imgInsertErr) {
+      console.error('[vault/upload] Failed to insert into vault_record_images:', imgInsertErr.message);
+    }
+  }
+
+  // Generate signed URLs to return a fully shaped record object
+  let images = [];
+  if (uploadedPaths.length > 0) {
+    const { data: signed } = await supabaseAdmin
+      .storage.from('prescription-vault')
+      .createSignedUrls(uploadedPaths, 900);
+    images = (signed || []).map((s, index) => ({
+      image_path: uploadedPaths[index],
+      signedUrl: s.signedUrl || null,
+      page_order: index,
+    }));
+  }
+
+  const returnedRecord = {
+    ...record,
+    signedUrl: images.length > 0 ? images[0].signedUrl : null,
+    images,
+  };
+
+  return res.status(201).json({ record: returnedRecord });
 }

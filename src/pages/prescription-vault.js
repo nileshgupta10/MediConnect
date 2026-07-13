@@ -71,8 +71,7 @@ export default function PrescriptionVault() {
   const [loadingRecords, setLoadingRecords] = useState(false)
 
   // ── upload form ────────────────────────────────────────────────
-  const [file,           setFile]           = useState(null)
-  const [filePreview,    setFilePreview]    = useState(null)
+  const [pages,          setPages]          = useState([])
   const [recordDate,     setRecordDate]     = useState(todayStr())
   const [uploadNotes,    setUploadNotes]    = useState('')
   const [uploading,      setUploading]      = useState(false)
@@ -95,6 +94,7 @@ export default function PrescriptionVault() {
 
   // ── modal ──────────────────────────────────────────────────────
   const [modalIdx,       setModalIdx]       = useState(null)  // index into records[]
+  const [imgPageIdx,     setImgPageIdx]     = useState(0)
   const modalRef         = useRef(null)
   // pinch / wheel zoom
   const zoomState        = useRef({ scale: 1, startDist: null, startScale: 1 })
@@ -200,11 +200,42 @@ export default function PrescriptionVault() {
   const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
   const MAX_MB  = 10
 
-  const handleFileSelect = (f) => {
-    if (!f) return
-    if (!ALLOWED.includes(f.type)) { setUploadMsg('❌ Only JPG, PNG, WEBP, HEIC files allowed.'); return }
-    if (f.size > MAX_MB * 1024 * 1024) { setUploadMsg(`❌ File is ${(f.size/1024/1024).toFixed(1)} MB — max ${MAX_MB} MB.`); return }
-    setFile(f); setFilePreview(URL.createObjectURL(f)); setUploadMsg('')
+  const handleFileSelect = (fOrList) => {
+    if (!fOrList) return
+    const filesToProcess = (fOrList instanceof FileList || Array.isArray(fOrList))
+      ? Array.from(fOrList)
+      : [fOrList]
+
+    setPages(prev => {
+      let newPages = [...prev]
+      for (const f of filesToProcess) {
+        if (newPages.length >= 5) {
+          setUploadMsg('❌ Maximum 5 pages allowed.')
+          break
+        }
+        if (!ALLOWED.includes(f.type)) {
+          setUploadMsg(`❌ Only JPG, PNG, WEBP, HEIC files allowed. "${f.name}" was skipped.`)
+          continue
+        }
+        if (f.size > MAX_MB * 1024 * 1024) {
+          setUploadMsg(`❌ File "${f.name}" is ${(f.size/1024/1024).toFixed(1)} MB — max ${MAX_MB} MB.`)
+          continue
+        }
+        newPages.push({ file: f, preview: URL.createObjectURL(f) })
+        setUploadMsg('')
+      }
+      return newPages
+    })
+  }
+
+  const removePage = (index) => {
+    setPages(prev => {
+      const target = prev[index]
+      if (target?.preview) {
+        URL.revokeObjectURL(target.preview)
+      }
+      return prev.filter((_, idx) => idx !== index)
+    })
   }
 
   const openCamera = () => {
@@ -225,20 +256,19 @@ export default function PrescriptionVault() {
     canvas.height = video.videoHeight
     canvas.getContext('2d').drawImage(video, 0, 0)
     canvas.toBlob(blob => {
-      const f = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' })
+      const f = new File([blob], `camera-capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
       handleFileSelect(f)
-      setShowCamera(false)
     }, 'image/jpeg', 0.9)
   }
 
   const onDrop = useCallback((e) => {
     e.preventDefault(); setDragOver(false)
-    handleFileSelect(e.dataTransfer.files?.[0])
+    handleFileSelect(e.dataTransfer.files)
   }, [])
 
   // ── upload ─────────────────────────────────────────────────────
   const handleUpload = async () => {
-    if ((!file && !uploadNotes.trim()) || !active || !recordDate) return
+    if ((pages.length === 0 && !uploadNotes.trim()) || !active || !recordDate) return
     setUploading(true); setUploadMsg(''); setUploadStep('')
 
     const h = await authHeader(); if (!h) { setUploading(false); return }
@@ -248,10 +278,12 @@ export default function PrescriptionVault() {
     form.append('record_date', recordDate)
     if (uploadNotes.trim()) form.append('notes', uploadNotes.trim())
 
-    if (file) {
-      setUploadStep('Compressing image…')
-      const compressed = await compressForUpload(file)
-      form.append('file', compressed)
+    if (pages.length > 0) {
+      setUploadStep('Compressing images…')
+      for (let i = 0; i < pages.length; i++) {
+        const compressed = await compressForUpload(pages[i].file)
+        form.append('file', compressed)
+      }
       setUploadStep('Uploading…')
     }
 
@@ -262,7 +294,12 @@ export default function PrescriptionVault() {
     if (!res.ok) { setUploadMsg(json.error || 'Upload failed.'); return }
 
     setUploadMsg('✅ Saved.')
-    setFile(null); setFilePreview(null); setRecordDate(todayStr()); setUploadNotes('')
+    pages.forEach(p => {
+      if (p.preview) URL.revokeObjectURL(p.preview)
+    })
+    setPages([])
+    setRecordDate(todayStr())
+    setUploadNotes('')
     if (fileInputRef.current) fileInputRef.current.value = ''
     setNoImageMode(false)
     loadRecords(active.id)
@@ -293,6 +330,7 @@ export default function PrescriptionVault() {
   // ── modal nav ──────────────────────────────────────────────────
   const openModal = (idx) => {
     setModalIdx(idx)
+    setImgPageIdx(0)
     zoomState.current = { scale: 1, startDist: null, startScale: 1 }
   }
   const closeModal = () => { setModalIdx(null); zoomState.current.scale = 1 }
@@ -334,7 +372,7 @@ export default function PrescriptionVault() {
   // ── derived ────────────────────────────────────────────────────
   const filtered = patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase()))
   const modalRec = modalIdx !== null ? records[modalIdx] : null
-  const canSave  = (file || uploadNotes.trim()) && !!recordDate
+  const canSave  = (pages.length > 0 || uploadNotes.trim()) && !!recordDate
 
   if (!authReady) return null
 
@@ -434,7 +472,7 @@ export default function PrescriptionVault() {
               <div style={s.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={s.cardTitle}>Add Prescription</h3>
-                  <button style={s.toggleBtn} onClick={() => { setNoImageMode(m => !m); setFile(null); setFilePreview(null); setUploadMsg('') }}>
+                  <button style={s.toggleBtn} onClick={() => { setNoImageMode(m => !m); setPages([]); setUploadMsg('') }}>
                     {noImageMode ? '📷 Add with image' : '📋 Add without image'}
                   </button>
                 </div>
@@ -450,8 +488,58 @@ export default function PrescriptionVault() {
                         onDrop={onDrop}
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        {filePreview ? (
-                          <img src={filePreview} alt="preview" style={s.preview} />
+                        {pages.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 8, justifyContent: 'center', width: '100%', height: '100%', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                            {pages.map((p, index) => (
+                              <div key={index} style={{ position: 'relative', width: 45, height: 45, borderRadius: 6, overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                                <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); removePage(index); }}
+                                  style={{
+                                    position: 'absolute',
+                                    top: 1,
+                                    right: 1,
+                                    background: 'rgba(0,0,0,0.6)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: 14,
+                                    height: 14,
+                                    fontSize: 9,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    lineHeight: 1
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                            {pages.length < 5 && (
+                              <div
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                  width: 45,
+                                  height: 45,
+                                  border: '1.5px dashed #cbd5e1',
+                                  borderRadius: 6,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: 16,
+                                  color: '#64748b',
+                                  cursor: 'pointer',
+                                  background: '#fff'
+                                }}
+                              >
+                                +
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <>
                             <span style={{ fontSize: 28 }}>📷</span>
@@ -463,9 +551,9 @@ export default function PrescriptionVault() {
                       <button style={s.cameraBtn} onClick={openCamera} type="button">📷 Take Photo</button>
                     </div>
                   )}
-                  <input ref={fileInputRef} type="file"
+                  <input ref={fileInputRef} type="file" multiple
                     accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                    style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0])} />
+                    style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} />
 
                   {/* Right column: date + notes + save */}
                   <div style={s.uploadSide}>
@@ -511,10 +599,28 @@ export default function PrescriptionVault() {
                           </div>
                         </div>
 
-                        {rec.signedUrl ? (
-                          <img src={rec.signedUrl} alt={`Rx ${rec.record_date}`}
-                            loading="lazy" style={s.thumbnail} className="rxv-thumbnail"
-                            onClick={() => openModal(idx)} title="Click to zoom" />
+                        {(rec.images && rec.images.length > 0) || rec.signedUrl ? (
+                          <div style={{ position: 'relative', width: 140, height: 100 }}>
+                            <img src={rec.images?.[0]?.signedUrl || rec.signedUrl} alt={`Rx ${rec.record_date}`}
+                              loading="lazy" style={s.thumbnail} className="rxv-thumbnail"
+                              onClick={() => openModal(idx)} title="Click to zoom" />
+                            {rec.images && rec.images.length > 1 && (
+                              <span style={{
+                                position: 'absolute',
+                                bottom: 6,
+                                right: 6,
+                                background: 'rgba(15, 52, 96, 0.9)',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                fontSize: 10,
+                                fontWeight: 800,
+                                pointerEvents: 'none'
+                              }}>
+                                {rec.images.length}p
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <div style={s.noImgPlaceholder} className="rxv-noimg" onClick={() => openModal(idx)} title="View notes">
                             <span style={{ fontSize: 22 }}>📋</span>
@@ -600,8 +706,59 @@ export default function PrescriptionVault() {
               <button style={s.modalClose} onClick={() => { closeModal(); resetZoom() }}>✕</button>
             </div>
 
+            {modalRec.images && modalRec.images.length > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 12,
+                padding: '8px 16px',
+                background: 'rgba(255,255,255,0.03)',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                flexShrink: 0
+              }}>
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    opacity: imgPageIdx === 0 ? 0.3 : 1
+                  }}
+                  disabled={imgPageIdx === 0}
+                  onClick={() => { setImgPageIdx(idx => Math.max(0, idx - 1)); resetZoom(); }}
+                >
+                  ‹
+                </button>
+                <span style={{ color: '#94a3b8', fontSize: 13, fontWeight: 700 }}>
+                  page {imgPageIdx + 1} / {modalRec.images.length}
+                </span>
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'white',
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    opacity: imgPageIdx === modalRec.images.length - 1 ? 0.3 : 1
+                  }}
+                  disabled={imgPageIdx === modalRec.images.length - 1}
+                  onClick={() => { setImgPageIdx(idx => Math.min(modalRec.images.length - 1, idx + 1)); resetZoom(); }}
+                >
+                  ›
+                </button>
+              </div>
+            )}
+
             {/* Image / no-image */}
-            {modalRec.signedUrl ? (
+            {modalRec.images && modalRec.images.length > 0 ? (
+              <div style={s.modalImgWrap}>
+                <img ref={modalRef} src={modalRec.images[imgPageIdx]?.signedUrl || modalRec.signedUrl}
+                  alt={`Rx ${modalRec.record_date} p${imgPageIdx + 1}`} style={s.modalImg}
+                  draggable={false} />
+              </div>
+            ) : modalRec.signedUrl ? (
               <div style={s.modalImgWrap}>
                 <img ref={modalRef} src={modalRec.signedUrl}
                   alt={`Rx ${modalRec.record_date}`} style={s.modalImg}
@@ -632,6 +789,7 @@ export default function PrescriptionVault() {
             <button style={s.cameraSecondaryBtn} onClick={closeCamera} type="button">Cancel</button>
             <button style={s.cameraCaptureBtn} onClick={capturePhoto} type="button">📸 Capture</button>
             <button style={s.cameraSecondaryBtn} onClick={switchCamera} type="button">🔄 Switch</button>
+            <button style={s.cameraDoneBtn} onClick={() => setShowCamera(false)} type="button">Done</button>
           </div>
         </div>
       )}
@@ -732,4 +890,5 @@ const s = {
   cameraCaptureBtn:    { padding: '12px 24px', background: '#0e9090', color: '#fff', border: 'none', borderRadius: 99, fontWeight: 800, fontSize: 15, cursor: 'pointer' },
   cameraSecondaryBtn:  { padding: '12px 20px', background: 'rgba(255,255,255,0.15)', color: '#fff', border: 'none', borderRadius: 99, fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   cameraErrorMsg:      { color: '#fca5a5', fontSize: 13, marginTop: 10, textAlign: 'center' },
+  cameraDoneBtn:       { padding: '12px 20px', background: '#0e9090', color: '#fff', border: 'none', borderRadius: 99, fontWeight: 700, fontSize: 14, cursor: 'pointer' },
 }

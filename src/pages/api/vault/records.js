@@ -44,8 +44,39 @@ export default async function handler(req, res) {
     if (recErr) return res.status(500).json({ error: recErr.message });
     if (!records?.length) return res.status(200).json({ records: [] });
 
-    // Batch signed URLs (900s = 15 min) for records that have an image
-    const paths = records.filter(r => r.image_path).map(r => r.image_path);
+    const recordIds = records.map(r => r.id);
+
+    const { data: dbImages, error: imgErr } = await supabaseAdmin
+      .from('vault_record_images')
+      .select('id, record_id, image_path, page_order')
+      .in('record_id', recordIds)
+      .order('page_order', { ascending: true });
+
+    if (imgErr) return res.status(500).json({ error: imgErr.message });
+
+    // Group dbImages by record_id
+    const dbImagesByRecordId = {};
+    (dbImages || []).forEach(img => {
+      if (!dbImagesByRecordId[img.record_id]) {
+        dbImagesByRecordId[img.record_id] = [];
+      }
+      dbImagesByRecordId[img.record_id].push(img);
+    });
+
+    // Collect all unique image paths to get signed URLs for
+    const allPathsSet = new Set();
+    records.forEach(r => {
+      const imgs = dbImagesByRecordId[r.id];
+      if (imgs && imgs.length > 0) {
+        imgs.forEach(img => {
+          if (img.image_path) allPathsSet.add(img.image_path);
+        });
+      } else if (r.image_path) {
+        allPathsSet.add(r.image_path);
+      }
+    });
+
+    const paths = Array.from(allPathsSet);
     let signedMap = {};
 
     if (paths.length > 0) {
@@ -55,13 +86,36 @@ export default async function handler(req, res) {
         .createSignedUrls(paths, 900);
 
       if (signErr) return res.status(500).json({ error: signErr.message });
-      (signed || []).forEach(s => { signedMap[s.path] = s.signedUrl; });
+      (signed || []).forEach(s => {
+        signedMap[s.path] = s.signedUrl;
+      });
     }
 
-    const enriched = records.map(r => ({
-      ...r,
-      signedUrl: r.image_path ? (signedMap[r.image_path] || null) : null,
-    }));
+    // Enrich records with images array and signedUrl
+    const enriched = records.map(r => {
+      const imgs = dbImagesByRecordId[r.id];
+      let images = [];
+
+      if (imgs && imgs.length > 0) {
+        images = imgs.map(img => ({
+          image_path: img.image_path,
+          signedUrl: img.image_path ? (signedMap[img.image_path] || null) : null,
+          page_order: img.page_order,
+        }));
+      } else if (r.image_path) {
+        images = [{
+          image_path: r.image_path,
+          signedUrl: signedMap[r.image_path] || null,
+          page_order: 0,
+        }];
+      }
+
+      return {
+        ...r,
+        signedUrl: images.length > 0 ? images[0].signedUrl : null,
+        images,
+      };
+    });
 
     return res.status(200).json({ records: enriched });
   }
@@ -85,16 +139,58 @@ export default async function handler(req, res) {
 
     if (error) return res.status(500).json({ error: error.message });
 
-    // Return with fresh signed URL if image exists
-    let signedUrl = null;
-    if (data.image_path) {
-      const { data: signed } = await supabaseAdmin
-        .storage.from('prescription-vault')
-        .createSignedUrls([data.image_path], 900);
-      signedUrl = signed?.[0]?.signedUrl || null;
+    const { data: dbImages, error: imgErr } = await supabaseAdmin
+      .from('vault_record_images')
+      .select('id, record_id, image_path, page_order')
+      .eq('record_id', data.id)
+      .order('page_order', { ascending: true });
+
+    if (imgErr) return res.status(500).json({ error: imgErr.message });
+
+    const allPathsSet = new Set();
+    if (dbImages && dbImages.length > 0) {
+      dbImages.forEach(img => {
+        if (img.image_path) allPathsSet.add(img.image_path);
+      });
+    } else if (data.image_path) {
+      allPathsSet.add(data.image_path);
     }
 
-    return res.status(200).json({ record: { ...data, signedUrl } });
+    const paths = Array.from(allPathsSet);
+    let signedMap = {};
+
+    if (paths.length > 0) {
+      const { data: signed } = await supabaseAdmin
+        .storage
+        .from('prescription-vault')
+        .createSignedUrls(paths, 900);
+      (signed || []).forEach(s => {
+        signedMap[s.path] = s.signedUrl;
+      });
+    }
+
+    let images = [];
+    if (dbImages && dbImages.length > 0) {
+      images = dbImages.map(img => ({
+        image_path: img.image_path,
+        signedUrl: img.image_path ? (signedMap[img.image_path] || null) : null,
+        page_order: img.page_order,
+      }));
+    } else if (data.image_path) {
+      images = [{
+        image_path: data.image_path,
+        signedUrl: signedMap[data.image_path] || null,
+        page_order: 0,
+      }];
+    }
+
+    const returnedRecord = {
+      ...data,
+      signedUrl: images.length > 0 ? images[0].signedUrl : null,
+      images,
+    };
+
+    return res.status(200).json({ record: returnedRecord });
   }
 
   // ── DELETE: soft-delete ───────────────────────────────────────
