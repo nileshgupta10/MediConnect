@@ -7,6 +7,7 @@ export default function StoreLayout({ children }) {
   const router = useRouter()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [unseenCount, setUnseenCount] = useState(0)
 
   useEffect(() => {
     let mounted = true
@@ -16,13 +17,38 @@ export default function StoreLayout({ children }) {
         if (mounted) setLoading(false)
         return
       }
-      const { data } = await supabase
-        .from('store_profiles')
-        .select('store_name, is_verified, khata_premium_unlocked')
-        .eq('user_id', user.id)
-        .maybeSingle()
+
+      const [profileRes, jobsRes] = await Promise.all([
+        supabase
+          .from('store_profiles')
+          .select('store_name, is_verified, khata_premium_unlocked')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('jobs')
+          .select('id')
+          .eq('store_owner_id', user.id)
+      ])
+
+      const data = profileRes.data
+      const jobs = jobsRes.data
+
+      let count = 0
+      if (jobs && jobs.length > 0) {
+        const jobIds = jobs.map(j => j.id)
+        const { count: unseenRes } = await supabase
+          .from('job_applications')
+          .select('id', { count: 'exact', head: true })
+          .in('job_id', jobIds)
+          .eq('seen', false)
+        if (unseenRes) {
+          count = unseenRes
+        }
+      }
+
       if (mounted) {
         setProfile(data)
+        setUnseenCount(count)
         setLoading(false)
       }
     }
@@ -98,7 +124,11 @@ export default function StoreLayout({ children }) {
                 }} 
                 title={tab.lockMsg}
               >
-                {tab.label} 🔒
+                {tab.label}
+                {tab.label === 'Applicants' && unseenCount > 0 && (
+                  <span style={s.badge}>{unseenCount}</span>
+                )}
+                {' '}🔒
               </span>
             )
           }
@@ -113,6 +143,9 @@ export default function StoreLayout({ children }) {
               }}
             >
               {tab.label}
+              {tab.label === 'Applicants' && unseenCount > 0 && (
+                <span style={s.badge}>{unseenCount}</span>
+              )}
             </Link>
           )
         })}
@@ -154,4 +187,17 @@ const s = {
     gap: 4
   },
   logout: { marginLeft: 'auto', padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 9999, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+  badge: {
+    backgroundColor: '#ef4444',
+    color: 'white',
+    fontSize: '10px',
+    padding: '2px 6px',
+    borderRadius: '9999px',
+    marginLeft: '6px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '800',
+    lineHeight: '1'
+  }
 }

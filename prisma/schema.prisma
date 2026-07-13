@@ -86,6 +86,7 @@ model job_applications {
   pharmacist_id       String?              @db.Uuid
   created_at          DateTime?            @default(now()) @db.Timestamptz(6)
   status              String?              @default("pending")
+  seen                Boolean?             @default(false)
   appointments        appointments[]
   jobs                jobs?                @relation(fields: [job_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   pharmacist_profiles pharmacist_profiles? @relation(fields: [pharmacist_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "job_applications_pharmacist_fkey")

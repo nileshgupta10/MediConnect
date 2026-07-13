@@ -47,6 +47,9 @@ export default function ApplicantsPage() {
     ])
 
     setApplicants(appsRes.data || [])
+    supabase.from('job_applications').update({ seen: true }).in('job_id', jobIds).eq('seen', false).then(({ error }) => {
+      if (error) console.error('Error updating seen status:', error)
+    })
     setAppointments(apptsRes.data || [])
     setLoading(false)
   }
