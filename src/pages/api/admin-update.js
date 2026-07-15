@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId)
       const pharmacistEmail = userData?.user?.email
       if (pharmacistEmail) {
-        await fetch('https://api.resend.com/emails', {
+        const resendRes = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
@@ -72,6 +72,10 @@ export default async function handler(req, res) {
             html: `<p>Hi,</p><p>MediClan left a note on your pharmacist profile:</p><blockquote>${updates.verification_remark}</blockquote><p>Please log in to MediClan and open your Profile page to respond.</p>`,
           }),
         })
+        if (!resendRes.ok) {
+          const errBody = await resendRes.text()
+          console.error('[admin-update] Resend rejected the email:', resendRes.status, errBody)
+        }
       }
     } catch (emailErr) {
       console.error('[admin-update] Resend email failed (non-fatal):', emailErr)
