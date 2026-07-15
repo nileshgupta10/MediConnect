@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { compressImage } from '../lib/imageCompress'
 import StoreLayout from '../components/StoreLayout'
@@ -23,6 +24,8 @@ export default function StoreProfile() {
   const [address, setAddress] = useState('')
   const [addressInput, setAddressInput] = useState('')
   const [ownerFirstName, setOwnerFirstName] = useState('')
+  const [showProfilePanel, setShowProfilePanel] = useState(false)
+  const router = useRouter()
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
   const storeNameInputRef = useRef(null)
@@ -64,6 +67,11 @@ export default function StoreProfile() {
   useEffect(() => { load() }, [])
 
   useEffect(() => {
+    if (!router.isReady) return
+    setShowProfilePanel(router.query.edit === '1')
+  }, [router.isReady, router.query.edit])
+
+  useEffect(() => {
     if (editing && !loading) {
       const timer = setTimeout(() => {
         storeNameInputRef.current?.focus()
@@ -93,6 +101,7 @@ export default function StoreProfile() {
       setAddressInput(data.address || '')
       if (!data.store_name) {
         setEditing(true)
+        setShowProfilePanel(true)
       }
       // Fire-and-forget: mark the remark as seen so the nav badge clears
       if (data.verification_remark && data.remark_seen === false) {
@@ -100,6 +109,7 @@ export default function StoreProfile() {
       }
     } else {
       setEditing(true)
+      setShowProfilePanel(true)
     }
     setLoading(false)
   }
@@ -190,131 +200,134 @@ export default function StoreProfile() {
         </div>
       </div>
 
-      <div style={s.cardWrap}>
-        <div style={s.card}>
-          <div style={profile?.is_verified ? s.verifiedBadge : s.pendingBadge}>
-            {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
+      {showProfilePanel && (
+        <div style={s.cardWrap}>
+          <div style={s.card}>
+            <a href="/store-profile" style={s.backLink}>← Back to Home</a>
+            <div style={profile?.is_verified ? s.verifiedBadge : s.pendingBadge}>
+              {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
+            </div>
+
+            {profile?.verification_remark && (
+              <div style={s.remarkBanner}>
+                📋 <b>Note from MediClan:</b> {profile.verification_remark}
+              </div>
+            )}
+
+            {!editing ? (
+              <div style={s.viewMode}>
+                {/* Compact summary grid */}
+                <div style={s.summaryGrid}>
+                  {storeName && (
+                    <div style={s.summaryItem}>
+                      <span style={s.summaryLabel}>🏪 Store</span>
+                      <span style={s.summaryValue}>{storeName}</span>
+                    </div>
+                  )}
+                  {phone && (
+                    <div style={s.summaryItem}>
+                      <span style={s.summaryLabel}>📞 Contact</span>
+                      <span style={s.summaryValue}>{phone}</span>
+                    </div>
+                  )}
+                  {storeTimings && (
+                    <div style={s.summaryItem}>
+                      <span style={s.summaryLabel}>⏰ Timings</span>
+                      <span style={s.summaryValue}>{storeTimings}</span>
+                    </div>
+                  )}
+                  {(address || latitude) && (
+                    <div style={{ ...s.summaryItem, gridColumn: '1 / -1' }}>
+                      <span style={s.summaryLabel}>📍 Location</span>
+                      <span style={s.summaryValue}>{address || 'Location saved'}</span>
+                    </div>
+                  )}
+                </div>
+
+                {latitude && longitude && (
+                  <button style={s.mapsBtn} onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, '_blank')}>
+                    📍 View Store on Google Maps
+                  </button>
+                )}
+
+                {/* License section in view mode */}
+                <div style={s.licenseSection}>
+                  <span style={s.licenseSectionLabel}>STORE LICENSE (OPTIONAL)</span>
+                  <div style={s.licenseBox}>
+                    {profile?.license_url ? (
+                      <span style={s.licenseOk}>
+                        ✓ Uploaded — {profile.verification_status === 'approved' ? 'Verified ✓' : profile.verification_status === 'rejected' ? 'Rejected — please re-upload' : 'Awaiting verification'}
+                      </span>
+                    ) : <span style={s.licenseNone}>⚠️ No license uploaded yet — (Optional)</span>}
+                  </div>
+                  <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
+                  <input type="file" accept="image/*" ref={galleryInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
+                  <button onClick={() => cameraInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
+                    📷 {uploading ? 'Uploading…' : profile?.license_url ? 'Replace License' : 'Take Photo of License'}
+                  </button>
+                  <button onClick={() => galleryInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
+                    🖼️ Upload from Gallery
+                  </button>
+                </div>
+
+                <button onClick={() => setEditing(true)} style={s.primaryBtn}>✏️ Edit Profile</button>
+                {!storeName && (
+                  <div style={s.wrongRoleBox}>
+                    <p style={s.wrongRoleText}>Selected the wrong role?</p>
+                    <a href="/role-select-reset" style={s.wrongRoleLink}>← Go back and change role</a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={s.editMode}>
+                <IL text="Store Name *" />
+                <input
+                  ref={storeNameInputRef}
+                  style={s.input}
+                  placeholder="Your pharmacy store name"
+                  value={storeName}
+                  onChange={e => setStoreName(e.target.value)}
+                />
+
+                <IL text="Phone Number *" />
+                <input style={s.input} placeholder="Contact number" value={phone} onChange={e => setPhone(e.target.value)} />
+
+                <IL text="Store Timings" />
+                <input style={s.input} placeholder="e.g. 9 AM - 9 PM" value={storeTimings} onChange={e => setStoreTimings(e.target.value)} />
+
+                <IL text="Store Location *" />
+                <button style={s.gpsBtn} onClick={detectLocation} disabled={locating}>
+                  {locating ? '⏳ Detecting…' : '📍 Use My Current Location (GPS)'}
+                </button>
+                <div style={s.divider}><span style={s.dividerText}>OR type address below</span></div>
+                <input
+                  id="address-input" style={s.input}
+                  placeholder="Start typing your store address…"
+                  value={addressInput}
+                  onChange={e => {
+                    setAddressInput(e.target.value)
+                    if (latitude) { setLatitude(null); setLongitude(null); setAddress('') }
+                  }}
+                />
+                <p style={s.hint}>{mapsLoaded ? '💡 Select from dropdown' : '⏳ Loading search…'}</p>
+                {address && latitude && <div style={s.addrPreview}>✓ {address}</div>}
+
+                <button onClick={saveProfile} style={s.primaryBtn} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save Profile'}
+                </button>
+                <button onClick={() => { setEditing(false); setMessage('') }} style={s.cancelBtn}>Cancel</button>
+              </div>
+            )}
+
+            {message && (
+              <p style={message.startsWith('Error') || message.startsWith('Please') || message.startsWith('Upload failed') ? s.errorMsg : s.successMsg}>
+                {message}
+              </p>
+            )}
           </div>
-
-          {profile?.verification_remark && (
-            <div style={s.remarkBanner}>
-              📋 <b>Note from MediClan:</b> {profile.verification_remark}
-            </div>
-          )}
-
-          {!editing ? (
-            <div style={s.viewMode}>
-              {/* Compact summary grid */}
-              <div style={s.summaryGrid}>
-                {storeName && (
-                  <div style={s.summaryItem}>
-                    <span style={s.summaryLabel}>🏪 Store</span>
-                    <span style={s.summaryValue}>{storeName}</span>
-                  </div>
-                )}
-                {phone && (
-                  <div style={s.summaryItem}>
-                    <span style={s.summaryLabel}>📞 Contact</span>
-                    <span style={s.summaryValue}>{phone}</span>
-                  </div>
-                )}
-                {storeTimings && (
-                  <div style={s.summaryItem}>
-                    <span style={s.summaryLabel}>⏰ Timings</span>
-                    <span style={s.summaryValue}>{storeTimings}</span>
-                  </div>
-                )}
-                {(address || latitude) && (
-                  <div style={{ ...s.summaryItem, gridColumn: '1 / -1' }}>
-                    <span style={s.summaryLabel}>📍 Location</span>
-                    <span style={s.summaryValue}>{address || 'Location saved'}</span>
-                  </div>
-                )}
-              </div>
-
-              {latitude && longitude && (
-                <button style={s.mapsBtn} onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, '_blank')}>
-                  📍 View Store on Google Maps
-                </button>
-              )}
-
-              {/* License section in view mode */}
-              <div style={s.licenseSection}>
-                <span style={s.licenseSectionLabel}>STORE LICENSE (OPTIONAL)</span>
-                <div style={s.licenseBox}>
-                  {profile?.license_url ? (
-                    <span style={s.licenseOk}>
-                      ✓ Uploaded — {profile.verification_status === 'approved' ? 'Verified ✓' : profile.verification_status === 'rejected' ? 'Rejected — please re-upload' : 'Awaiting verification'}
-                    </span>
-                  ) : <span style={s.licenseNone}>⚠️ No license uploaded yet — (Optional)</span>}
-                </div>
-                <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
-                <input type="file" accept="image/*" ref={galleryInputRef} hidden onChange={e => uploadLicense(e.target.files[0])} />
-                <button onClick={() => cameraInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
-                  📷 {uploading ? 'Uploading…' : profile?.license_url ? 'Replace License' : 'Take Photo of License'}
-                </button>
-                <button onClick={() => galleryInputRef.current.click()} style={s.secondaryBtn} disabled={uploading}>
-                  🖼️ Upload from Gallery
-                </button>
-              </div>
-
-              <button onClick={() => setEditing(true)} style={s.primaryBtn}>✏️ Edit Profile</button>
-              {!storeName && (
-                <div style={s.wrongRoleBox}>
-                  <p style={s.wrongRoleText}>Selected the wrong role?</p>
-                  <a href="/role-select-reset" style={s.wrongRoleLink}>← Go back and change role</a>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={s.editMode}>
-              <IL text="Store Name *" />
-              <input
-                ref={storeNameInputRef}
-                style={s.input}
-                placeholder="Your pharmacy store name"
-                value={storeName}
-                onChange={e => setStoreName(e.target.value)}
-              />
-
-              <IL text="Phone Number *" />
-              <input style={s.input} placeholder="Contact number" value={phone} onChange={e => setPhone(e.target.value)} />
-
-              <IL text="Store Timings" />
-              <input style={s.input} placeholder="e.g. 9 AM - 9 PM" value={storeTimings} onChange={e => setStoreTimings(e.target.value)} />
-
-              <IL text="Store Location *" />
-              <button style={s.gpsBtn} onClick={detectLocation} disabled={locating}>
-                {locating ? '⏳ Detecting…' : '📍 Use My Current Location (GPS)'}
-              </button>
-              <div style={s.divider}><span style={s.dividerText}>OR type address below</span></div>
-              <input
-                id="address-input" style={s.input}
-                placeholder="Start typing your store address…"
-                value={addressInput}
-                onChange={e => {
-                  setAddressInput(e.target.value)
-                  if (latitude) { setLatitude(null); setLongitude(null); setAddress('') }
-                }}
-              />
-              <p style={s.hint}>{mapsLoaded ? '💡 Select from dropdown' : '⏳ Loading search…'}</p>
-              {address && latitude && <div style={s.addrPreview}>✓ {address}</div>}
-
-              <button onClick={saveProfile} style={s.primaryBtn} disabled={saving}>
-                {saving ? 'Saving…' : 'Save Profile'}
-              </button>
-              <button onClick={() => { setEditing(false); setMessage('') }} style={s.cancelBtn}>Cancel</button>
-            </div>
-          )}
-
-          {message && (
-            <p style={message.startsWith('Error') || message.startsWith('Please') || message.startsWith('Upload failed') ? s.errorMsg : s.successMsg}>
-              {message}
-            </p>
-          )}
         </div>
-      </div>
-      <PharmaNewsFeed address={address} />
+      )}
+      {!showProfilePanel && <PharmaNewsFeed address={address} />}
     </div>
     </StoreLayout>
   )
@@ -379,4 +392,5 @@ const s = {
   wrongRoleText: { fontSize: 13, color: '#94a3b8', marginBottom: 6 },
   wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
   remarkBanner: { marginTop: 12, padding: '10px 14px', background: '#fef3c7', border: '1.5px dashed #d97706', borderRadius: 10, fontSize: 13, color: '#92400e', lineHeight: 1.4, textAlign: 'left' },
+  backLink: { display: 'inline-block', marginBottom: 14, fontSize: 13, fontWeight: 700, color: '#0e9090', textDecoration: 'none' },
 }

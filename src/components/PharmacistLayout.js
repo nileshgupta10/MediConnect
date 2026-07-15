@@ -62,6 +62,7 @@ export default function PharmacistLayout({ children }) {
         <a href="/jobs" style={{ ...nl('/jobs'), display: 'flex', alignItems: 'center', gap: 4 }}>
           Jobs {upcomingCount > 0 && <span style={s.badge}>{upcomingCount}</span>}
         </a>
+        <a href="/pharmacist-profile?edit=1" style={s.editLink}>✏️ Edit Profile</a>
         <button style={s.logout} onClick={handleLogout}>Logout</button>
       </nav>
       {children}
@@ -89,4 +90,5 @@ const s = {
   activeLink: { fontSize: 12, fontWeight: 800, color: '#0e9090', textDecoration: 'none', padding: '10px 7px', whiteSpace: 'nowrap', flexShrink: 0, borderBottom: '3px solid #0e9090' },
   badge: { background: '#ef4444', color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   logout: { marginLeft: 'auto', padding: '6px 10px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+  editLink: { fontSize: 12, fontWeight: 700, color: '#0e9090', textDecoration: 'none', padding: '10px 7px', whiteSpace: 'nowrap', flexShrink: 0, opacity: 0.8 },
 }

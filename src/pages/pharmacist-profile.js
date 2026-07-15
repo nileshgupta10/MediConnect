@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { compressImage } from '../lib/imageCompress'
 import PharmacistLayout from '../components/PharmacistLayout'
@@ -23,6 +24,8 @@ export default function PharmacistProfile() {
   const [address, setAddress] = useState('')
   const [addressInput, setAddressInput] = useState('')
   const [locating, setLocating] = useState(false)
+  const [showProfilePanel, setShowProfilePanel] = useState(false)
+  const router = useRouter()
   const cameraInputRef = useRef(null)
   const galleryInputRef = useRef(null)
 
@@ -62,6 +65,11 @@ export default function PharmacistProfile() {
   }, [editing, mapsLoaded])
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    if (!router.isReady) return
+    setShowProfilePanel(router.query.edit === '1')
+  }, [router.isReady, router.query.edit])
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -170,12 +178,13 @@ export default function PharmacistProfile() {
         </div>
       </div>
 
-      {/* Card */}
-      <div style={s.cardWrap}>
-        <div style={s.card}>
-          <div style={profile?.is_verified ? s.verifiedBadge : s.pendingBadge}>
-            {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
-          </div>
+      {showProfilePanel && (
+        <div style={s.cardWrap}>
+          <div style={s.card}>
+            <a href="/pharmacist-profile" style={s.backLink}>← Back to Home</a>
+            <div style={profile?.is_verified ? s.verifiedBadge : s.pendingBadge}>
+              {profile?.is_verified ? '✓ Verified' : '⏳ Verification Pending'}
+            </div>
 
           {profile?.verification_remark && (
             <div style={s.remarkBanner}>
@@ -294,7 +303,8 @@ export default function PharmacistProfile() {
           )}
         </div>
       </div>
-      <PharmaNewsFeed address={address} />
+      )}
+      {!showProfilePanel && <PharmaNewsFeed address={address} />}
     </div>
     </PharmacistLayout>
   )
@@ -358,4 +368,5 @@ const s = {
   wrongRoleText: { fontSize: 13, color: '#94a3b8', marginBottom: 6 },
   wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
   remarkBanner: { marginTop: 12, padding: '10px 14px', background: '#fef3c7', border: '1.5px dashed #d97706', borderRadius: 10, fontSize: 13, color: '#92400e', lineHeight: 1.4, textAlign: 'left' },
+  backLink: { display: 'inline-block', marginBottom: 14, fontSize: 13, fontWeight: 700, color: '#0e9090', textDecoration: 'none' },
 }

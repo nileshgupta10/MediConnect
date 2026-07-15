@@ -122,6 +122,12 @@ function pickTwo(arr) {
   return shuffle(arr).slice(0, 2)
 }
 
+function sortByDateDesc(items) {
+  return [...items]
+    .filter(it => it.pubDate && !isNaN(new Date(it.pubDate).getTime()))
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+}
+
 // ── National query pool ───────────────────────────────────────────────────────
 const NATIONAL_QUERIES = [
   'India pharma news',
@@ -159,7 +165,7 @@ export default async function handler(req, res) {
         if (city)  fetches.push(fetchRSS(`${city} pharmacy OR chemist OR medical store`, 'en-IN', 'IN', 'IN:en', 6))
         if (state) fetches.push(fetchRSS(`${state} FDA drug OR pharmacy regulation`, 'en-IN', 'IN', 'IN:en', 6))
         const results = await Promise.all(fetches)
-        const combined = dedupByLink(shuffle(results.flat())).slice(0, 6)
+        const combined = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
         local = combined
         setLocalCache(cacheKey, combined)
       }
@@ -172,7 +178,7 @@ export default async function handler(req, res) {
     } else {
       const qs = pickTwo(NATIONAL_QUERIES)
       const results = await Promise.all(qs.map(q => fetchRSS(q, 'en-IN', 'IN', 'IN:en', 6)))
-      national = dedupByLink(shuffle(results.flat())).slice(0, 6)
+      national = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
       nationalCache = national
       nationalCacheAt = Date.now()
     }
@@ -184,7 +190,7 @@ export default async function handler(req, res) {
     } else {
       const qs = pickTwo(INTL_QUERIES)
       const results = await Promise.all(qs.map(q => fetchRSS(q, 'en-US', 'US', 'US:en', 6)))
-      international = dedupByLink(shuffle(results.flat())).slice(0, 6)
+      international = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
       intlCache = international
       intlCacheAt = Date.now()
     }

@@ -154,6 +154,7 @@ export default function StoreLayout({ children }) {
             </Link>
           )
         })}
+        <Link href="/store-profile?edit=1" style={s.editLink}>✏️ Edit Profile</Link>
         <button style={s.logout} onClick={handleLogout}>Logout</button>
       </nav>
       {children}
@@ -192,6 +193,7 @@ const s = {
     gap: 4
   },
   logout: { marginLeft: 'auto', padding: '8px 16px', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: 9999, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 },
+  editLink: { fontSize: 12, fontWeight: 700, color: '#0e9090', textDecoration: 'none', padding: '14px 10px', whiteSpace: 'nowrap', flexShrink: 0, opacity: 0.8 },
   badge: {
     backgroundColor: '#ef4444',
     color: 'white',
