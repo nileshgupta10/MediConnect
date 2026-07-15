@@ -8,6 +8,7 @@ const CACHE_TTL = 5 * 60 * 1000
 export default function PharmacistLayout({ children }) {
   const router = useRouter()
   const [upcomingCount, setUpcomingCount] = useState(0)
+  const [remarkUnseen, setRemarkUnseen] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -28,6 +29,14 @@ export default function PharmacistLayout({ children }) {
       const count = data?.length || 0
       setUpcomingCount(count)
       try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ count, ts: Date.now() })) } catch {}
+
+      // Always fetch fresh — no cache — so the badge clears as soon as the pharmacist reads it
+      const { data: profileData } = await supabase
+        .from('pharmacist_profiles')
+        .select('remark_seen')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      setRemarkUnseen(profileData ? profileData.remark_seen === false : false)
     }
     load()
   }, [])
@@ -47,7 +56,9 @@ export default function PharmacistLayout({ children }) {
           <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
           <span style={s.brandTxt}>MediClan</span>
         </a>
-        <a href="/pharmacist-profile" style={nl('/pharmacist-profile')}>Profile</a>
+        <a href="/pharmacist-profile" style={{ ...nl('/pharmacist-profile'), display: 'flex', alignItems: 'center', gap: 4 }}>
+          Profile {remarkUnseen && <span style={s.badge}>!</span>}
+        </a>
         <a href="/jobs" style={{ ...nl('/jobs'), display: 'flex', alignItems: 'center', gap: 4 }}>
           Jobs {upcomingCount > 0 && <span style={s.badge}>{upcomingCount}</span>}
         </a>

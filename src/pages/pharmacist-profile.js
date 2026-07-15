@@ -67,7 +67,7 @@ export default function PharmacistProfile() {
     if (!user) { setLoading(false); return }
     const { data } = await supabase
       .from('pharmacist_profiles')
-      .select('user_id, name, years_experience, software_experience, phone, latitude, longitude, address, license_url, is_verified, verification_status, verification_remark')
+      .select('user_id, name, years_experience, software_experience, phone, latitude, longitude, address, license_url, is_verified, verification_status, verification_remark, remark_seen')
       .eq('user_id', user.id)
       .maybeSingle()
     if (data) {
@@ -82,6 +82,15 @@ export default function PharmacistProfile() {
       setAddressInput(data.address || '')
     }
     setLoading(false)
+
+    // Fire-and-forget: mark the remark as seen so the nav badge clears
+    if (data && data.verification_remark && data.remark_seen === false) {
+      supabase
+        .from('pharmacist_profiles')
+        .update({ remark_seen: true })
+        .eq('user_id', user.id)
+        .then(() => {}) // intentionally not awaited
+    }
   }
 
   const detectLocation = () => {

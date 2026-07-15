@@ -34,11 +34,49 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid table' })
   }
 
+  // Detect a pure "Save Remark" action: pharmacist_profiles, has a remark, but NOT an Approve/Reject
+  const isPureRemarkSave =
+    table === 'pharmacist_profiles' &&
+    typeof updates.verification_remark === 'string' &&
+    updates.verification_remark.trim() !== '' &&
+    !('verification_status' in updates)
+
+  // Flip remark_seen to false in the same update so the badge appears immediately
+  if (isPureRemarkSave) {
+    updates.remark_seen = false
+  }
+
   const { error } = await supabaseAdmin
     .from(table)
     .update(updates)
     .eq('user_id', userId)
 
   if (error) return res.status(500).json({ error: error.message })
+
+  // After a successful pure remark save, email the pharmacist via Resend
+  if (isPureRemarkSave) {
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId)
+      const pharmacistEmail = userData?.user?.email
+      if (pharmacistEmail) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `MediClan <${process.env.RESEND_SENDER_EMAIL}>`,
+            to: [pharmacistEmail],
+            subject: 'New note on your MediClan profile',
+            html: `<p>Hi,</p><p>MediClan left a note on your pharmacist profile:</p><blockquote>${updates.verification_remark}</blockquote><p>Please log in to MediClan and open your Profile page to respond.</p>`,
+          }),
+        })
+      }
+    } catch (emailErr) {
+      console.error('[admin-update] Resend email failed (non-fatal):', emailErr)
+    }
+  }
+
   return res.status(200).json({ success: true })
 }
