@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { compressImage } from '../lib/imageCompress'
 import StoreLayout from '../components/StoreLayout'
+import PharmaNewsFeed from '../components/PharmaNewsFeed'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1563213126-a4273aed2016?w=1200&q=80'
 
@@ -203,10 +204,34 @@ export default function StoreProfile() {
 
           {!editing ? (
             <div style={s.viewMode}>
-              <Field label="Store Name" value={storeName} />
-              <Field label="Contact" value={phone} />
-              <Field label="Timings" value={storeTimings} />
-              <Field label="Location" value={address || (latitude ? 'Location saved' : null)} />
+              {/* Compact summary grid */}
+              <div style={s.summaryGrid}>
+                {storeName && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>🏪 Store</span>
+                    <span style={s.summaryValue}>{storeName}</span>
+                  </div>
+                )}
+                {phone && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>📞 Contact</span>
+                    <span style={s.summaryValue}>{phone}</span>
+                  </div>
+                )}
+                {storeTimings && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>⏰ Timings</span>
+                    <span style={s.summaryValue}>{storeTimings}</span>
+                  </div>
+                )}
+                {(address || latitude) && (
+                  <div style={{ ...s.summaryItem, gridColumn: '1 / -1' }}>
+                    <span style={s.summaryLabel}>📍 Location</span>
+                    <span style={s.summaryValue}>{address || 'Location saved'}</span>
+                  </div>
+                )}
+              </div>
+
               {latitude && longitude && (
                 <button style={s.mapsBtn} onClick={() => window.open(`https://www.google.com/maps?q=${latitude},${longitude}`, '_blank')}>
                   📍 View Store on Google Maps
@@ -233,7 +258,7 @@ export default function StoreProfile() {
                 </button>
               </div>
 
-              <button onClick={() => setEditing(true)} style={s.primaryBtn}>Edit Profile</button>
+              <button onClick={() => setEditing(true)} style={s.primaryBtn}>✏️ Edit Profile</button>
               {!storeName && (
                 <div style={s.wrongRoleBox}>
                   <p style={s.wrongRoleText}>Selected the wrong role?</p>
@@ -289,6 +314,7 @@ export default function StoreProfile() {
           )}
         </div>
       </div>
+      <PharmaNewsFeed address={address} />
     </div>
     </StoreLayout>
   )
@@ -327,6 +353,10 @@ const s = {
   verifiedBadge: { display: 'inline-block', background: '#d1fae5', color: '#065f46', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, marginBottom: 16 },
   pendingBadge: { display: 'inline-block', background: '#fef3c7', color: '#92400e', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, marginBottom: 16 },
   viewMode: { display: 'flex', flexDirection: 'column', gap: 4 },
+  summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', marginBottom: 4 },
+  summaryItem: { display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 10px', background: '#f8fafc', borderRadius: 10 },
+  summaryLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 },
+  summaryValue: { fontSize: 13, color: '#0f172a', fontWeight: 700, wordBreak: 'break-word' },
   editMode: { display: 'flex', flexDirection: 'column', gap: 2 },
   input: { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' },
   gpsBtn: { width: '100%', padding: 11, background: '#0f3460', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700 },

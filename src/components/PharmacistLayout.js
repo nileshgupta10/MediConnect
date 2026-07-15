@@ -57,7 +57,7 @@ export default function PharmacistLayout({ children }) {
           <span style={s.brandTxt}>MediClan</span>
         </a>
         <a href="/pharmacist-profile" style={{ ...nl('/pharmacist-profile'), display: 'flex', alignItems: 'center', gap: 4 }}>
-          Profile {remarkUnseen && <span style={s.badge}>!</span>}
+          Home {remarkUnseen && <span style={s.badge}>!</span>}
         </a>
         <a href="/jobs" style={{ ...nl('/jobs'), display: 'flex', alignItems: 'center', gap: 4 }}>
           Jobs {upcomingCount > 0 && <span style={s.badge}>{upcomingCount}</span>}

@@ -96,7 +96,7 @@ export default function StoreLayout({ children }) {
   const premiumUnlocked = !!profile?.khata_premium_unlocked
 
   const tabs = [
-    { label: 'Profile', path: '/store-profile', allowed: true },
+    { label: 'Home', path: '/store-profile', allowed: true },
     { label: 'Bill Conv', path: '/bill-converter', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
     { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Khaata Premium', path: '/khata', allowed: hasDetails && premiumUnlocked, lockMsg: !hasDetails ? 'Please complete your store profile name and location details first.' : 'Khaata Premium unlocks after your upgrade payment is verified by the admin.', isKhaata: true },
@@ -148,7 +148,7 @@ export default function StoreLayout({ children }) {
               {tab.label === 'Applicants' && unseenCount > 0 && (
                 <span style={s.badge}>{unseenCount}</span>
               )}
-              {tab.label === 'Profile' && remarkUnseen && (
+              {tab.label === 'Home' && remarkUnseen && (
                 <span style={s.badge}>!</span>
               )}
             </Link>

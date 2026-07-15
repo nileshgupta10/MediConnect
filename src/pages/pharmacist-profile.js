@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { compressImage } from '../lib/imageCompress'
 import PharmacistLayout from '../components/PharmacistLayout'
+import PharmaNewsFeed from '../components/PharmaNewsFeed'
 
 const BANNER_IMG = 'https://images.unsplash.com/photo-1585435557343-3b092031a831?w=1200&q=80'
 
@@ -184,12 +185,40 @@ export default function PharmacistProfile() {
 
           {!editing ? (
             <div style={s.viewMode}>
-              <Field label="Name" value={name} />
-              <Field label="Experience" value={yearsExperience ? yearsExperience + ' years' : null} />
-              <Field label="Software" value={softwareExperience} />
-              <Field label="Phone" value={phone} />
-              <Field label="Location" value={address || (latitude ? '📍 Saved' : null)} />
-              <button onClick={() => setEditing(true)} style={s.primaryBtn}>Edit Profile</button>
+              {/* Compact summary grid */}
+              <div style={s.summaryGrid}>
+                {name && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>👤 Name</span>
+                    <span style={s.summaryValue}>{name}</span>
+                  </div>
+                )}
+                {phone && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>📞 Phone</span>
+                    <span style={s.summaryValue}>{phone}</span>
+                  </div>
+                )}
+                {yearsExperience && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>🏅 Exp</span>
+                    <span style={s.summaryValue}>{yearsExperience} yrs</span>
+                  </div>
+                )}
+                {softwareExperience && (
+                  <div style={s.summaryItem}>
+                    <span style={s.summaryLabel}>💻 Software</span>
+                    <span style={s.summaryValue}>{softwareExperience}</span>
+                  </div>
+                )}
+                {(address || latitude) && (
+                  <div style={{ ...s.summaryItem, gridColumn: '1 / -1' }}>
+                    <span style={s.summaryLabel}>📍 Location</span>
+                    <span style={s.summaryValue}>{address || '📍 Saved'}</span>
+                  </div>
+                )}
+              </div>
+              <button onClick={() => setEditing(true)} style={s.primaryBtn}>✏️ Edit Profile</button>
               <a href="/jobs" style={s.jobsLink}>Browse Jobs →</a>
               {!name && (
                 <div style={s.wrongRoleBox}>
@@ -265,6 +294,7 @@ export default function PharmacistProfile() {
           )}
         </div>
       </div>
+      <PharmaNewsFeed address={address} />
     </div>
     </PharmacistLayout>
   )
@@ -303,6 +333,10 @@ const s = {
   verifiedBadge: { display: 'inline-block', background: '#d1fae5', color: '#065f46', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, marginBottom: 16 },
   pendingBadge: { display: 'inline-block', background: '#fef3c7', color: '#92400e', padding: '4px 14px', borderRadius: 20, fontSize: 12, fontWeight: 800, marginBottom: 16 },
   viewMode: { display: 'flex', flexDirection: 'column' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px', marginBottom: 4 },
+  summaryItem: { display: 'flex', flexDirection: 'column', gap: 2, padding: '8px 10px', background: '#f8fafc', borderRadius: 10 },
+  summaryLabel: { fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 },
+  summaryValue: { fontSize: 13, color: '#0f172a', fontWeight: 700, wordBreak: 'break-word' },
   editMode: { display: 'flex', flexDirection: 'column', gap: 2 },
   input: { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' },
   gpsBtn: { width: '100%', padding: 11, background: '#0f3460', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700 },
