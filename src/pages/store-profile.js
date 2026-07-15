@@ -78,7 +78,7 @@ export default function StoreProfile() {
     setOwnerFirstName(fullName.split(' ')[0] || '')
     const { data } = await supabase
       .from('store_profiles')
-      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, license_url, is_verified, verification_status, verification_remark')
+      .select('user_id, store_name, phone, store_timings, latitude, longitude, address, license_url, is_verified, verification_status, verification_remark, remark_seen')
       .eq('user_id', user.id)
       .maybeSingle()
     if (data) {
@@ -92,6 +92,10 @@ export default function StoreProfile() {
       setAddressInput(data.address || '')
       if (!data.store_name) {
         setEditing(true)
+      }
+      // Fire-and-forget: mark the remark as seen so the nav badge clears
+      if (data.verification_remark && data.remark_seen === false) {
+        supabase.from('store_profiles').update({ remark_seen: true }).eq('user_id', user.id).then(() => {})
       }
     } else {
       setEditing(true)

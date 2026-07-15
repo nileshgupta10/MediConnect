@@ -8,6 +8,7 @@ export default function StoreLayout({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [unseenCount, setUnseenCount] = useState(0)
+  const [remarkUnseen, setRemarkUnseen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -21,7 +22,7 @@ export default function StoreLayout({ children }) {
       const [profileRes, jobsRes] = await Promise.all([
         supabase
           .from('store_profiles')
-          .select('store_name, is_verified, khata_premium_unlocked')
+          .select('store_name, is_verified, khata_premium_unlocked, remark_seen')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase
@@ -48,6 +49,7 @@ export default function StoreLayout({ children }) {
 
       if (mounted) {
         setProfile(data)
+        setRemarkUnseen(data ? data.remark_seen === false : false)
         setUnseenCount(count)
         setLoading(false)
       }
@@ -145,6 +147,9 @@ export default function StoreLayout({ children }) {
               {tab.label}
               {tab.label === 'Applicants' && unseenCount > 0 && (
                 <span style={s.badge}>{unseenCount}</span>
+              )}
+              {tab.label === 'Profile' && remarkUnseen && (
+                <span style={s.badge}>!</span>
               )}
             </Link>
           )

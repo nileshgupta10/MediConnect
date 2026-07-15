@@ -46,6 +46,18 @@ export default async function handler(req, res) {
     updates.remark_seen = false
   }
 
+  // Detect a pure "Save Remark" action for store_profiles
+  const isPureStoreRemarkSave =
+    table === 'store_profiles' &&
+    typeof updates.verification_remark === 'string' &&
+    updates.verification_remark.trim() !== '' &&
+    !('verification_status' in updates)
+
+  // Flip remark_seen to false in the same update so the store badge appears immediately
+  if (isPureStoreRemarkSave) {
+    updates.remark_seen = false
+  }
+
   const { error } = await supabaseAdmin
     .from(table)
     .update(updates)
@@ -79,6 +91,35 @@ export default async function handler(req, res) {
       }
     } catch (emailErr) {
       console.error('[admin-update] Resend email failed (non-fatal):', emailErr)
+    }
+  }
+
+  // After a successful pure store remark save, email the store owner via Resend
+  if (isPureStoreRemarkSave) {
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId)
+      const storeEmail = userData?.user?.email
+      if (storeEmail) {
+        const resendRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: `MediClan <${process.env.RESEND_SENDER_EMAIL}>`,
+            to: [storeEmail],
+            subject: 'New note on your MediClan store profile',
+            html: `<p>Hi,</p><p>MediClan left a note on your store profile:</p><blockquote>${updates.verification_remark}</blockquote><p>Please log in to MediClan and open your Profile page to respond.</p>`,
+          }),
+        })
+        if (!resendRes.ok) {
+          const errBody = await resendRes.text()
+          console.error('[admin-update] Resend rejected the store email:', resendRes.status, errBody)
+        }
+      }
+    } catch (emailErr) {
+      console.error('[admin-update] Resend store email failed (non-fatal):', emailErr)
     }
   }
 
