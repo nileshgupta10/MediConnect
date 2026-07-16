@@ -130,16 +130,22 @@ export default function PharmacistProfile() {
   const saveProfile = async () => {
     if (!name.trim()) { setMessage('Please enter your name.'); return }
     setSaving(true); setMessage('Saving…')
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('pharmacist_profiles').upsert({
-      user_id: user.id, name: name.trim(),
-      years_experience: yearsExperience,
-      software_experience: softwareExperience.trim(),
-      phone: phone.trim(), latitude, longitude, address,
-    })
-    setSaving(false)
-    if (error) { setMessage('Error: ' + error.message); return }
-    await load(); setMessage('Profile saved.'); setEditing(false)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setMessage('Session expired. Please log in again.'); return }
+      const { error } = await supabase.from('pharmacist_profiles').upsert({
+        user_id: user.id, name: name.trim(),
+        years_experience: yearsExperience,
+        software_experience: softwareExperience.trim(),
+        phone: phone.trim(), latitude, longitude, address,
+      })
+      if (error) { setMessage('Error: ' + error.message); return }
+      await load(); setMessage('Profile saved.'); setEditing(false)
+    } catch (e) {
+      setMessage('Error: ' + e.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const uploadLicense = async (file) => {
