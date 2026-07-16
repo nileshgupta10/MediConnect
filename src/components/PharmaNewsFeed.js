@@ -26,14 +26,46 @@ function SkeletonCard() {
   )
 }
 
+function initials(source) {
+  if (!source) return '\ud83d\udcf0'
+  return source.trim().charAt(0).toUpperCase()
+}
+
+function monogramColor(source) {
+  const colors = ['#0e9090', '#6366f1', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6', '#ec4899', '#0ea5e9']
+  if (!source) return colors[0]
+  let hash = 0
+  for (let i = 0; i < source.length; i++) hash = source.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
+}
+
 function ArticleCard({ article }) {
+  const [imgError, setImgError] = useState(false)
+  const showImage = article.image && !imgError
   return (
     <a href={article.link} target="_blank" rel="noopener noreferrer" style={ns.articleCard}>
-      <div style={ns.articleTitle}>{article.title}</div>
-      <div style={ns.articleMeta}>
-        {article.source && <span style={ns.articleSource}>{article.source}</span>}
-        {article.source && article.pubDate && <span style={ns.dot}>·</span>}
-        {article.pubDate && <span style={ns.articleTime}>{relativeTime(article.pubDate)}</span>}
+      <div style={ns.thumbWrap}>
+        {showImage ? (
+          <img
+            src={article.image}
+            alt=""
+            style={ns.thumbImg}
+            onError={() => setImgError(true)}
+            loading="lazy"
+          />
+        ) : (
+          <div style={{ ...ns.thumbFallback, background: monogramColor(article.source) }}>
+            {initials(article.source)}
+          </div>
+        )}
+      </div>
+      <div style={ns.articleBody}>
+        <div style={ns.articleTitle}>{article.title}</div>
+        <div style={ns.articleMeta}>
+          {article.source && <span style={ns.articleSource}>{article.source}</span>}
+          {article.source && article.pubDate && <span style={ns.dot}>·</span>}
+          {article.pubDate && <span style={ns.articleTime}>{relativeTime(article.pubDate)}</span>}
+        </div>
       </div>
     </a>
   )
@@ -181,11 +213,40 @@ const ns = {
     color: '#0f3460',
   },
   articleCard: {
-    display: 'block',
+    display: 'flex',
+    gap: 10,
+    alignItems: 'flex-start',
     padding: '10px 0',
     borderBottom: '1px solid #f1f5f9',
     textDecoration: 'none',
     cursor: 'pointer',
+  },
+  thumbWrap: {
+    flexShrink: 0,
+    width: 56,
+    height: 56,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  thumbImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    display: 'block',
+  },
+  thumbFallback: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontWeight: 900,
+    fontSize: 20,
+  },
+  articleBody: {
+    flex: 1,
+    minWidth: 0,
   },
   articleTitle: {
     fontSize: 13,

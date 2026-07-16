@@ -104,6 +104,35 @@ async function fetchRSS(query, hl, gl, ceid, cap = 6) {
   }
 }
 
+async function fetchOgImage(link) {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 3000)
+    const res = await fetch(link, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MediClanNewsBot/1.0)' },
+    })
+    clearTimeout(timer)
+    if (!res.ok) return null
+    const html = await res.text()
+    const ogMatch =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+    if (!ogMatch) return null
+    return decodeEntities(ogMatch[1].trim())
+  } catch {
+    return null
+  }
+}
+
+async function attachImages(items) {
+  return Promise.all(items.map(async (it) => {
+    const image = await fetchOgImage(it.link)
+    return { ...it, image }
+  }))
+}
+
 function shuffle(arr) {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
@@ -166,8 +195,9 @@ export default async function handler(req, res) {
         if (state) fetches.push(fetchRSS(`${state} FDA drug OR pharmacy regulation`, 'en-IN', 'IN', 'IN:en', 6))
         const results = await Promise.all(fetches)
         const combined = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
-        local = combined
-        setLocalCache(cacheKey, combined)
+        const withImages = await attachImages(combined)
+        local = withImages
+        setLocalCache(cacheKey, withImages)
       }
     }
 
@@ -178,7 +208,8 @@ export default async function handler(req, res) {
     } else {
       const qs = pickTwo(NATIONAL_QUERIES)
       const results = await Promise.all(qs.map(q => fetchRSS(q, 'en-IN', 'IN', 'IN:en', 6)))
-      national = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
+      const combined = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
+      national = await attachImages(combined)
       nationalCache = national
       nationalCacheAt = Date.now()
     }
@@ -190,7 +221,8 @@ export default async function handler(req, res) {
     } else {
       const qs = pickTwo(INTL_QUERIES)
       const results = await Promise.all(qs.map(q => fetchRSS(q, 'en-US', 'US', 'US:en', 6)))
-      international = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
+      const combined = dedupByLink(sortByDateDesc(results.flat())).slice(0, 6)
+      international = await attachImages(combined)
       intlCache = international
       intlCacheAt = Date.now()
     }
