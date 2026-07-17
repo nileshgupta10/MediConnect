@@ -45,15 +45,52 @@ export default async function handler(req, res) {
     const resultAccounts = [];
 
     for (const acc of accounts) {
-      // 2. Fetch all bank account transactions once to compute timezone-safe daily starting balances
-      const [deposits, rdRedemptions, clearedCheques, bankCharges, cardSettlements, expenses, dailySales] = await Promise.all([
-        prisma.bankDeposit.findMany({ where: { storeOwnerId, bankAccountId: acc.id } }),
-        prisma.rDRedemption.findMany({ where: { storeOwnerId, bankAccountId: acc.id, redemptionType: 'Account' } }),
-        prisma.cheque.findMany({ where: { storeOwnerId, bankAccountId: acc.id, status: 'Cleared' } }),
-        prisma.bankCharge.findMany({ where: { storeOwnerId, bankAccountId: acc.id } }),
-        prisma.cardSettlement.findMany({ where: { storeOwnerId, bankAccountId: acc.id } }),
-        prisma.expense.findMany({ where: { storeOwnerId, bankAccountId: acc.id, paymentMode: { in: ['Bank', 'UPI'] } } }),
-        prisma.dailySales.findMany({ where: { storeOwnerId, upiAccountId: acc.id } }),
+      // Date boundaries as Date objects for Prisma where clauses
+      const fromDate = new Date(from);
+      const toDate = new Date(to);
+      toDate.setHours(23, 59, 59, 999);
+
+      // 2. Two sets of queries per account:
+      //    (a) Pre-period: date < fromDate  → only used for opening-balance carry-forward
+      //    (b) In-period:  fromDate <= date <= toDate → used for daily projections
+      //    Cheque uses chequeDate instead of date.
+      const [
+        preDeposits, inDeposits,
+        preRd, inRd,
+        preCheques, inCheques,
+        preCharges, inCharges,
+        preCard, inCard,
+        preExpenses, inExpenses,
+        preSales, inSales,
+      ] = await Promise.all([
+        // BankDeposit — pre
+        prisma.bankDeposit.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { lt: fromDate } } }),
+        // BankDeposit — in
+        prisma.bankDeposit.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { gte: fromDate, lte: toDate } } }),
+        // RDRedemption — pre
+        prisma.rDRedemption.findMany({ where: { storeOwnerId, bankAccountId: acc.id, redemptionType: 'Account', date: { lt: fromDate } } }),
+        // RDRedemption — in
+        prisma.rDRedemption.findMany({ where: { storeOwnerId, bankAccountId: acc.id, redemptionType: 'Account', date: { gte: fromDate, lte: toDate } } }),
+        // Cheque — pre (uses chequeDate)
+        prisma.cheque.findMany({ where: { storeOwnerId, bankAccountId: acc.id, status: 'Cleared', chequeDate: { lt: fromDate } } }),
+        // Cheque — in
+        prisma.cheque.findMany({ where: { storeOwnerId, bankAccountId: acc.id, status: 'Cleared', chequeDate: { gte: fromDate, lte: toDate } } }),
+        // BankCharge — pre
+        prisma.bankCharge.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { lt: fromDate } } }),
+        // BankCharge — in
+        prisma.bankCharge.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { gte: fromDate, lte: toDate } } }),
+        // CardSettlement — pre
+        prisma.cardSettlement.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { lt: fromDate } } }),
+        // CardSettlement — in
+        prisma.cardSettlement.findMany({ where: { storeOwnerId, bankAccountId: acc.id, date: { gte: fromDate, lte: toDate } } }),
+        // Expense — pre
+        prisma.expense.findMany({ where: { storeOwnerId, bankAccountId: acc.id, paymentMode: { in: ['Bank', 'UPI'] }, date: { lt: fromDate } } }),
+        // Expense — in
+        prisma.expense.findMany({ where: { storeOwnerId, bankAccountId: acc.id, paymentMode: { in: ['Bank', 'UPI'] }, date: { gte: fromDate, lte: toDate } } }),
+        // DailySales — pre
+        prisma.dailySales.findMany({ where: { storeOwnerId, upiAccountId: acc.id, date: { lt: fromDate } } }),
+        // DailySales — in
+        prisma.dailySales.findMany({ where: { storeOwnerId, upiAccountId: acc.id, date: { gte: fromDate, lte: toDate } } }),
       ]);
 
       // Calculate baseline opening balance before `from` date (in local time)
@@ -66,95 +103,96 @@ export default async function handler(req, res) {
         activeTransactions[d] = { credits: 0, debits: 0 };
       }
 
-      // 2.1 Process Deposits
-      for (const d of deposits) {
+      // 2.1 Process Deposits — pre-period for balance, in-period for projection
+      for (const d of preDeposits) {
         const localDate = getLocalDateStr(d.date);
         if (openingDateStr && localDate < openingDateStr) continue;
         const amount = d.amount;
-        if (localDate < from) {
-          balance += d.isRD ? -amount : amount;
-        } else if (localDate <= to) {
-          if (d.isRD) {
-            activeTransactions[localDate].debits += amount;
-          } else {
-            activeTransactions[localDate].credits += amount;
-          }
+        balance += d.isRD ? -amount : amount;
+      }
+      for (const d of inDeposits) {
+        const localDate = getLocalDateStr(d.date);
+        if (d.isRD) {
+          activeTransactions[localDate].debits += d.amount;
+        } else {
+          activeTransactions[localDate].credits += d.amount;
         }
       }
 
       // 2.2 Process RD Redemptions
-      for (const r of rdRedemptions) {
+      for (const r of preRd) {
         const localDate = getLocalDateStr(r.date);
         if (openingDateStr && localDate < openingDateStr) continue;
-        if (localDate < from) {
-          balance += r.amount;
-        } else if (localDate <= to) {
-          activeTransactions[localDate].credits += r.amount;
-        }
+        balance += r.amount;
+      }
+      for (const r of inRd) {
+        const localDate = getLocalDateStr(r.date);
+        activeTransactions[localDate].credits += r.amount;
       }
 
       // 2.3 Process Cleared Cheques (Customer is credit +, Supplier is debit -)
-      for (const c of clearedCheques) {
+      for (const c of preCheques) {
         const localDate = getLocalDateStr(c.chequeDate);
         if (openingDateStr && localDate < openingDateStr) continue;
         const total = c.amount + (c.bankCharge || 0);
-        if (localDate < from) {
-          if (c.partyType === 'Customer') {
-            balance += c.amount;
-          } else {
-            balance -= total;
-          }
-        } else if (localDate <= to) {
-          if (c.partyType === 'Customer') {
-            activeTransactions[localDate].credits += c.amount;
-          } else {
-            activeTransactions[localDate].debits += total;
-          }
+        if (c.partyType === 'Customer') {
+          balance += c.amount;
+        } else {
+          balance -= total;
+        }
+      }
+      for (const c of inCheques) {
+        const localDate = getLocalDateStr(c.chequeDate);
+        const total = c.amount + (c.bankCharge || 0);
+        if (c.partyType === 'Customer') {
+          activeTransactions[localDate].credits += c.amount;
+        } else {
+          activeTransactions[localDate].debits += total;
         }
       }
 
       // 2.4 Process Bank Charges
-      for (const bc of bankCharges) {
+      for (const bc of preCharges) {
         const localDate = getLocalDateStr(bc.date);
         if (openingDateStr && localDate < openingDateStr) continue;
-        if (localDate < from) {
-          balance -= bc.amount;
-        } else if (localDate <= to) {
-          activeTransactions[localDate].debits += bc.amount;
-        }
+        balance -= bc.amount;
+      }
+      for (const bc of inCharges) {
+        const localDate = getLocalDateStr(bc.date);
+        activeTransactions[localDate].debits += bc.amount;
       }
 
       // 2.5 Process Card Settlements
-      for (const cs of cardSettlements) {
+      for (const cs of preCard) {
         const localDate = getLocalDateStr(cs.date);
         if (openingDateStr && localDate < openingDateStr) continue;
-        if (localDate < from) {
-          balance += cs.amount;
-        } else if (localDate <= to) {
-          activeTransactions[localDate].credits += cs.amount;
-        }
+        balance += cs.amount;
+      }
+      for (const cs of inCard) {
+        const localDate = getLocalDateStr(cs.date);
+        activeTransactions[localDate].credits += cs.amount;
       }
 
       // 2.6 Process UPI Sales
-      for (const s of dailySales) {
+      for (const s of preSales) {
         const localDate = getLocalDateStr(s.date);
         if (openingDateStr && localDate < openingDateStr) continue;
-        if (localDate < from) {
-          balance += s.upiSales;
-        } else if (localDate <= to) {
-          activeTransactions[localDate].credits += s.upiSales;
-        }
+        balance += s.upiSales;
+      }
+      for (const s of inSales) {
+        const localDate = getLocalDateStr(s.date);
+        activeTransactions[localDate].credits += s.upiSales;
       }
 
       // 2.7 Process Expenses
-      for (const e of expenses) {
+      for (const e of preExpenses) {
         const localDate = getLocalDateStr(e.date);
         if (openingDateStr && localDate < openingDateStr) continue;
-        if (localDate < from) {
-          balance -= e.amount;
-        } else if (localDate <= to) {
-          activeTransactions[localDate].debits += e.amount;
-        }
+        balance -= e.amount;
+      }
+      for (const e of inExpenses) {
+        const localDate = getLocalDateStr(e.date);
+        activeTransactions[localDate].debits += e.amount;
       }
 
       // 3. Step through active date range day-by-day to assign daily starting balances

@@ -350,6 +350,7 @@ model DailyLedger {
   totalOut       Float
 
   @@unique([date, storeOwnerId])
+  @@index([storeOwnerId])
 }
 
 model Purchase {
@@ -362,6 +363,8 @@ model Purchase {
   paymentType   String
   chequeId      Int?
   cheque        Cheque?  @relation(fields: [chequeId], references: [id])
+
+  @@index([storeOwnerId])
 }
 
 model Cheque {
@@ -381,6 +384,8 @@ model Cheque {
   partyType     String       @default("Supplier")
   customerId    Int?
   customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([storeOwnerId])
 }
 
 model KhataSupplier {
@@ -393,6 +398,7 @@ model KhataSupplier {
   gstNumber    String?
 
   @@unique([name, storeOwnerId])
+  @@index([storeOwnerId])
 }
 
 model Payment {
@@ -403,6 +409,8 @@ model Payment {
   payee        String
   type         String
   description  String?
+
+  @@index([storeOwnerId])
 }
 
 model Expense {
@@ -415,6 +423,8 @@ model Expense {
   paymentMode   String       @default("Cash")
   bankAccountId Int?
   bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([storeOwnerId])
 }
 
 model BankDeposit {
@@ -429,6 +439,8 @@ model BankDeposit {
   maturityDate  DateTime?
   bankAccountId Int?
   bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+
+  @@index([storeOwnerId])
 }
 
 model RDRedemption {
@@ -442,6 +454,8 @@ model RDRedemption {
   originalDepositId Int?
   maturityDate      DateTime?
   narration         String?
+
+  @@index([storeOwnerId])
 }
 
 model BankCharge {
@@ -453,6 +467,8 @@ model BankCharge {
   bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
   chargeType    String
   narration     String?
+
+  @@index([storeOwnerId])
 }
 
 model CardSettlement {
@@ -464,6 +480,8 @@ model CardSettlement {
   bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
   salesDate     DateTime?
   narration     String?
+
+  @@index([storeOwnerId])
 }
 
 model DailySales {
@@ -477,6 +495,7 @@ model DailySales {
   swipeAccountId Int?
 
   @@unique([date, storeOwnerId])
+  @@index([storeOwnerId])
 }
 
 model Customer {
@@ -491,6 +510,7 @@ model Customer {
   cheques      Cheque[]
 
   @@unique([customerId, storeOwnerId])
+  @@index([storeOwnerId])
 }
 
 model CustomerTransaction {
@@ -504,6 +524,8 @@ model CustomerTransaction {
   narration     String?
   invoiceNumber String?
   createdAt     DateTime @default(now())
+
+  @@index([storeOwnerId])
 }
 
 model distributor_formats {
@@ -532,4 +554,5 @@ model SimpleLedgerEntry {
   shopExpense      Float    @default(0)
 
   @@unique([date, storeOwnerId])
+  @@index([storeOwnerId])
 }
