@@ -36,7 +36,26 @@ function parseLeapItems(lines) {
     const hsn  = startMatch[2]
     const rest = (startMatch[3] || '').trim()
 
-    const tokens = rest.split(/\s+/).filter(Boolean)
+    let tokens = rest.split(/\s+/).filter(Boolean)
+
+    // NEW-LAYOUT FIX: some invoices append the SCH-disc% breakdown string
+    // (e.g. "0.00+6+0+0+0") to the END of the item line, with its
+    // remaining decimal wrapping onto the NEXT line as an orphan (e.g.
+    // ".00"), followed by the real discAmt/taxable/gstPer/gstAmt/net
+    // values. Detect this by checking if the last token contains a '+'
+    // (real data tokens never contain '+') and merge in the next line's
+    // data if so.
+    if (tokens.length && /\+/.test(tokens[tokens.length - 1])) {
+      tokens = tokens.slice(0, -1) // drop the junk SCH-string token
+
+      const nextLineRaw = (lines[i + 1] || '').trim()
+      const contTokens = nextLineRaw.split(/\s+/).filter(Boolean)
+      const dataTokens = (contTokens[0] && /^\.\d+$/.test(contTokens[0]))
+        ? contTokens.slice(1)
+        : contTokens
+
+      tokens = tokens.concat(dataTokens)
+    }
 
     // Need at least 8 tokens: mrp qty rate gross discAmt taxable gst% gstAmt net
     // (item 17 has 8 because discAmt is missing; all others have 9+)
