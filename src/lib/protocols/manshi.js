@@ -140,13 +140,10 @@ function parseRowLine(line) {
   // Handle free-qty encoded in pack string (e.g. "17PADS" = 1 free + "7PADS" pack)
   let freeQty = freeQtyFromScm
   if (!freeQty && pack) {
-    if (
-      pack.startsWith('1') &&
-      pack.length > 3 &&
-      (pack.includes('+') || pack.includes('PADS') || pack.includes('T') || pack.includes('='))
-    ) {
+    const packSchemeMatch = pack.match(/^1(\d+)(PADS|TAB|CAP)$/i)
+    if (packSchemeMatch) {
       freeQty = 1
-      pack = pack.substring(1)
+      pack = packSchemeMatch[1] + packSchemeMatch[2]
     }
   }
 
