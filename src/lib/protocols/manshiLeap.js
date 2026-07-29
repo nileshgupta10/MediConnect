@@ -105,8 +105,23 @@ function parseLeapItems(lines) {
     // (e.g. "ANTI-HAIR FALL BHRINGARAJA SHAMPOO 0.00+6+0+0+0" appears on line i-1)
     if (i > 0) {
       const prevLine = lines[i - 1].trim()
+
+      // A line counts as "pure data" (never real description text) if EVERY
+      // whitespace-separated token on it is either a plain number/decimal
+      // (e.g. ".00", "7.43") or an SCH-string fragment (e.g. "0.00+6+0+0+0").
+      // This catches the new-layout continuation line (".00 7.43 116.45 5 5.82 122.27")
+      // which the old single-token check (/^[\d.]+$/) missed because it has spaces.
+      const isPureDataLine = prevLine.length > 0 && prevLine.split(/\s+/).every(
+        tok => /^[\d.]+$/.test(tok) || /^[\d.]+\+[\d+.]+$/.test(tok)
+      )
+
+      // Isolated table-header fragments (e.g. "AMOUNT", "NET", "GST") can land on
+      // the line right before item 1 due to how unpdf wraps the header row — never
+      // treat these as description continuation either.
+      const isHeaderFragment = /^(SN\.?|HSN|CODE|PRODUCT|DESCRIPTION|M\.R\.P\.?|QTY|R|P|U|GROSS|AMT|SCH\.?|DIS%?|DISC|TAXABLE|AMOUNT|GST|NET|%)$/i.test(prevLine)
+
       // If prev line has no 8-digit HSN and no serial pattern, it may contain desc words
-      if (prevLine && !/^\d+\s+\d{8}/.test(prevLine) && !/^[\d.]+$/.test(prevLine)) {
+      if (prevLine && !/^\d+\s+\d{8}/.test(prevLine) && !isPureDataLine && !isHeaderFragment) {
         // Strip any trailing SCH disc string (the +0+0 part)
         const prevDesc = prevLine.replace(/\s*0\.00\+[\d+.]+$/, '').trim()
         if (prevDesc && !/^(TOTAL|SALE|DISC|TAXABLE|SGST|CGST|PAYMENT|STOCKIST|BEAT|SUBJECT)/i.test(prevDesc)) {

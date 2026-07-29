@@ -22,15 +22,20 @@
       if (!Array.isArray(lines)) lines = String(lines || '').split('\n')
       const cleaned = lines.map(x => String(x || '').trim()).filter(Boolean)
 
+      // ROW LAYOUT FIX: rows are seq, PCode(8-digit), Item Description (text),
+      // HSN(8-digit), UPC, MRP, Cs, Pcs, PcPrice, GrossAmt, SCHAmt, Disc%, DiscAmt,
+      // TaxableAmt, GST%, IGST/CGSTAmt, SGSTAmt, TCSAmt, NetAmt.
+      // HSN is NOT adjacent to PCode — the item description sits between them —
+      // so a row starts with seq + 8-digit PCode + a non-digit (the description).
       const merged = []
       for (let i = 0; i < cleaned.length; i++) {
         const line = cleaned[i]
 
-        if (/^\d+\s+\d{8}\s+\d{8}\s+/.test(line)) {
+        if (/^\d+\s+\d{8}\s+[^\d\s]/.test(line)) {
           const next = cleaned[i + 1] || ''
 
           // Some rows are wrapped; merge continuation line if needed
-          if (!hasNumericTail(line) && next && !/^\d+\s+\d{8}\s+\d{8}\s+/.test(next)) {
+          if (!hasNumericTail(line) && next && !/^\d+\s+\d{8}\s+[^\d\s]/.test(next)) {
             merged.push(`${line} ${next}`.replace(/\s+/g, ' ').trim())
             i++
           } else {
@@ -46,22 +51,24 @@
         if (tokens.length < 18) continue
 
         const seq = tokens[0]
-        const hsn = tokens[1]
-        const pcode = tokens[2]
+        const pcode = tokens[1]
 
-        if (!/^\d+$/.test(seq) || !/^\d{8}$/.test(hsn) || !/^\d{8}$/.test(pcode)) continue
+        if (!/^\d+$/.test(seq) || !/^\d{8}$/.test(pcode)) continue
 
-        const tailLen = 15
-        if (tokens.length <= 3 + tailLen) continue
+        // Tail now includes HSN as its first element (16 fields total), since
+        // HSN comes after the description rather than being a fixed leading token.
+        const tailLen = 16
+        if (tokens.length <= 2 + tailLen) continue
 
-        const descTokens = tokens.slice(3, tokens.length - tailLen)
+        const descTokens = tokens.slice(2, tokens.length - tailLen)
         const tail = tokens.slice(tokens.length - tailLen)
 
         const [
+          hsnToken,
+          upcToken,
           mrpToken,
           csToken,
           pcsToken,
-          upcToken,
           pcPriceToken,
           grossAmtToken,
           schAmtToken,
@@ -75,6 +82,9 @@
           netAmtToken
         ] = tail
 
+        if (!/^\d{6,8}$/.test(hsnToken)) continue
+
+        const hsn = hsnToken
         const productName = descTokens.join(' ').trim()
         if (!productName) continue
 
