@@ -9,6 +9,7 @@ export default function StoreLayout({ children }) {
   const [loading, setLoading] = useState(true)
   const [unseenCount, setUnseenCount] = useState(0)
   const [remarkUnseen, setRemarkUnseen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -86,7 +87,13 @@ export default function StoreLayout({ children }) {
     }
   }, [loading, profile, router.pathname])
 
+  // Close mobile menu on route changes
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [router.pathname])
+
   const handleLogout = async () => {
+    setMobileMenuOpen(false)
     await supabase.auth.signOut()
     router.push('/')
   }
@@ -105,6 +112,56 @@ export default function StoreLayout({ children }) {
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
   ]
 
+  const renderTab = (tab, isMobile = false) => {
+    const isActive = router.pathname === tab.path
+    const style = isActive ? s.activeLink : (tab.allowed ? s.link : s.lockedLink)
+    const combinedStyle = isMobile ? { ...style, ...s.mobileTabLink } : style
+
+    if (!tab.allowed) {
+      return (
+        <span 
+          key={tab.path} 
+          style={{
+            ...combinedStyle,
+            ...(tab.isKhaata ? { fontVariant: 'small-caps', textTransform: 'none' } : {})
+          }} 
+          title={tab.lockMsg}
+          onClick={() => {
+            if (isMobile) {
+              alert(tab.lockMsg)
+            }
+          }}
+        >
+          {tab.label}
+          {tab.label === 'Applicants' && unseenCount > 0 && (
+            <span style={s.badge}>{unseenCount}</span>
+          )}
+          {' '}🔒
+        </span>
+      )
+    }
+
+    return (
+      <Link 
+        key={tab.path} 
+        href={tab.path} 
+        onClick={() => setMobileMenuOpen(false)}
+        style={{
+          ...combinedStyle,
+          ...(tab.isKhaata ? { fontVariant: 'small-caps', textTransform: 'none' } : {})
+        }}
+      >
+        {tab.label}
+        {tab.label === 'Applicants' && unseenCount > 0 && (
+          <span style={s.badge}>{unseenCount}</span>
+        )}
+        {tab.label === 'Home' && remarkUnseen && (
+          <span style={s.badge}>!</span>
+        )}
+      </Link>
+    )
+  }
+
   return (
     <div style={s.wrap}>
       <nav style={s.nav}>
@@ -112,51 +169,68 @@ export default function StoreLayout({ children }) {
           <img src="/brand/mediclan-logo.png" alt="" style={s.logo} />
           <span style={s.brandTxt}>MediClan</span>
         </Link>
-        {tabs.map((tab) => {
-          const isActive = router.pathname === tab.path
-          const style = isActive ? s.activeLink : (tab.allowed ? s.link : s.lockedLink)
-          
-          if (!tab.allowed) {
-            return (
-              <span 
-                key={tab.path} 
-                style={{
-                  ...style,
-                  ...(tab.isKhaata ? { fontVariant: 'small-caps', textTransform: 'none' } : {})
-                }} 
-                title={tab.lockMsg}
-              >
-                {tab.label}
-                {tab.label === 'Applicants' && unseenCount > 0 && (
-                  <span style={s.badge}>{unseenCount}</span>
-                )}
-                {' '}🔒
-              </span>
-            )
-          }
 
-          return (
-            <Link 
-              key={tab.path} 
-              href={tab.path} 
-              style={{
-                ...style,
-                ...(tab.isKhaata ? { fontVariant: 'small-caps', textTransform: 'none' } : {})
-              }}
-            >
-              {tab.label}
-              {tab.label === 'Applicants' && unseenCount > 0 && (
-                <span style={s.badge}>{unseenCount}</span>
-              )}
-              {tab.label === 'Home' && remarkUnseen && (
-                <span style={s.badge}>!</span>
-              )}
-            </Link>
-          )
-        })}
-        <Link href="/store-profile?edit=1" style={s.editLink}>✏️ Edit Profile</Link>
-        <button style={s.logout} onClick={handleLogout}>Logout</button>
+        {/* Hamburger Button (visible on mobile only) */}
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="nav-hamburger"
+          style={s.hamburger}
+        >
+          {mobileMenuOpen ? '✕' : '☰'}
+        </button>
+
+        {/* Desktop Links (hidden on mobile) */}
+        <div className="nav-desktop-links">
+          {tabs.map((tab) => renderTab(tab, false))}
+          <Link href="/store-profile?edit=1" style={s.editLink}>✏️ Edit Profile</Link>
+          <button style={s.logout} onClick={handleLogout}>Logout</button>
+        </div>
+
+        {/* Mobile Dropdown Menu */}
+        {mobileMenuOpen && (
+          <div className="nav-mobile-panel" style={s.mobilePanel}>
+            {tabs.map((tab) => renderTab(tab, true))}
+            <Link href="/store-profile?edit=1" style={{ ...s.editLink, ...s.mobileTabLink }} onClick={() => setMobileMenuOpen(false)}>✏️ Edit Profile</Link>
+            <div style={s.mobileLogoutWrapper}>
+              <button style={{ ...s.logout, ...s.mobileLogoutBtn }} onClick={handleLogout}>Logout</button>
+            </div>
+          </div>
+        )}
       </nav>
+
+      {/* Styled JSX overrides */}
+      <style jsx global>{`
+        @media (max-width: 767px) {
+          nav {
+            overflow-x: visible !important;
+            position: relative !important;
+          }
+          .nav-desktop-links {
+            display: none !important;
+          }
+          .nav-hamburger {
+            display: flex !important;
+          }
+          .nav-mobile-panel {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 768px) {
+          .nav-desktop-links {
+            display: flex !important;
+            align-items: center;
+            flex-grow: 1;
+            gap: 4px;
+          }
+          .nav-hamburger {
+            display: none !important;
+          }
+          .nav-mobile-panel {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {children}
     </div>
   )
@@ -206,5 +280,55 @@ const s = {
     justifyContent: 'center',
     fontWeight: '800',
     lineHeight: '1'
+  },
+  hamburger: {
+    background: 'transparent',
+    border: 'none',
+    fontSize: 24,
+    cursor: 'pointer',
+    padding: '8px 12px',
+    color: '#0f3460',
+    outline: 'none',
+    marginLeft: 'auto',
+  },
+  mobilePanel: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: 'white',
+    borderBottom: '2px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+    display: 'flex',
+    flexDirection: 'column',
+    zIndex: 1000,
+  },
+  mobileTabLink: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '14px 20px',
+    fontSize: '14px',
+    borderBottom: '1px solid #f1f5f9',
+    width: '100%',
+    boxSizing: 'border-box',
+    textAlign: 'left',
+    cursor: 'pointer',
+    flexShrink: 0,
+    marginLeft: 0,
+    marginRight: 0,
+  },
+  mobileLogoutWrapper: {
+    padding: '12px 20px',
+    display: 'flex',
+    justifyContent: 'flex-start',
+    background: '#fafafa',
+  },
+  mobileLogoutBtn: {
+    marginLeft: 0,
+    width: '100%',
+    textAlign: 'center',
+    justifyContent: 'center',
+    display: 'flex',
   }
 }
