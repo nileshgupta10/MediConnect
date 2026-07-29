@@ -4,8 +4,23 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { formatDate, khataFetch } from "../../lib/khata-utils";
+import { formatDate, khataFetch, cn } from "../../lib/khata-utils";
 import { Save, Calendar, ArrowRightLeft, TrendingUp } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  Legend
+} from "recharts";
 
 export function SimpleKhaata() {
   const todayLocal = new Date().toLocaleDateString("en-CA");
@@ -21,6 +36,7 @@ export function SimpleKhaata() {
   const [recurringDeposit, setRecurringDeposit] = useState("0");
   const [homeExpense, setHomeExpense] = useState("0");
   const [shopExpense, setShopExpense] = useState("0");
+  const [activeFormTab, setActiveFormTab] = useState("purchases");
 
   // Date range filter state (default to last 30 days)
   const [fromDate, setFromDate] = useState(() => {
@@ -141,6 +157,30 @@ export function SimpleKhaata() {
   
   const netCashFlow = (totalCashSales + totalUpiSales + totalCardSales) - (totalCashPurchase + totalBankDeposit + totalRecurringDeposit + totalHomeExpense + totalShopExpense);
 
+  const chartData = [...entries]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(e => {
+      const sales = (e.cashSales || 0) + (e.upiSales || 0) + (e.cardSales || 0);
+      const purchases = (e.cashPurchase || 0) + (e.creditPurchase || 0);
+      const outflows = (e.cashPurchase || 0) + (e.bankDeposit || 0) + (e.recurringDeposit || 0) + (e.homeExpense || 0) + (e.shopExpense || 0);
+      const netFlow = sales - outflows;
+      return {
+        date: formatDate(e.date),
+        netFlow,
+        sales,
+        purchases
+      };
+    });
+
+  const totalSalesVal = totalCashSales + totalUpiSales + totalCardSales;
+  const pieData = [
+    { name: "Cash Sales", value: totalCashSales },
+    { name: "UPI Sales", value: totalUpiSales },
+    { name: "Card Sales", value: totalCardSales }
+  ].filter(item => item.value > 0);
+
+  const COLORS = ["#0e9090", "#7e22ce", "#3b82f6"];
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-8 min-h-screen text-slate-850 dark:text-slate-100">
       
@@ -183,170 +223,229 @@ export function SimpleKhaata() {
                   />
                 </div>
 
-                <hr className="border-slate-100 dark:border-slate-800 my-2" />
+                <hr className="border-slate-100 dark:border-slate-800 my-1" />
 
-                {/* Purchases Section Header */}
-                <h4 className="text-[10px] font-black text-[#0e9090] uppercase tracking-widest mt-2 mb-1">
-                  Outflows (Purchases)
-                </h4>
-
-                {/* Cash Purchase */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="cashPurchase" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Cash Purchase (₹)
-                  </Label>
-                  <Input
-                    id="cashPurchase"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={cashPurchase}
-                    onChange={(e) => setCashPurchase(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
+                {/* Tab switcher */}
+                <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setActiveFormTab("purchases")}
+                    className={cn(
+                      "flex-1 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all cursor-pointer outline-none border-0",
+                      activeFormTab === "purchases"
+                        ? "bg-white dark:bg-slate-700 text-[#0f3460] dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 bg-transparent"
+                    )}
+                  >
+                    Purchases
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFormTab("sales")}
+                    className={cn(
+                      "flex-1 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all cursor-pointer outline-none border-0",
+                      activeFormTab === "sales"
+                        ? "bg-white dark:bg-slate-700 text-[#0f3460] dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 bg-transparent"
+                    )}
+                  >
+                    Sales
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveFormTab("deposits_expenses")}
+                    className={cn(
+                      "flex-1 py-1.5 text-[11px] sm:text-xs font-bold rounded-md transition-all cursor-pointer outline-none border-0",
+                      activeFormTab === "deposits_expenses"
+                        ? "bg-white dark:bg-slate-700 text-[#0f3460] dark:text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400 bg-transparent"
+                    )}
+                  >
+                    Deposits & Exp
+                  </button>
                 </div>
 
-                {/* Credit Purchase */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="creditPurchase" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Credit Purchase (₹)
-                  </Label>
-                  <Input
-                    id="creditPurchase"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={creditPurchase}
-                    onChange={(e) => setCreditPurchase(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
+                {/* Section Progress Indicator */}
+                <div className="flex items-center justify-between text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider py-1">
+                  <span>
+                    {activeFormTab === "purchases" && "Section 1 of 3: Purchases"}
+                    {activeFormTab === "sales" && "Section 2 of 3: Sales"}
+                    {activeFormTab === "deposits_expenses" && "Section 3 of 3: Deposits & Expenses"}
+                  </span>
+                  <div className="flex gap-1">
+                    <div className={cn("h-1 w-6 rounded-full transition-all", activeFormTab === "purchases" ? "bg-[#0e9090]" : "bg-slate-200 dark:bg-slate-800")} />
+                    <div className={cn("h-1 w-6 rounded-full transition-all", activeFormTab === "sales" ? "bg-purple-600" : "bg-slate-200 dark:bg-slate-800")} />
+                    <div className={cn("h-1 w-6 rounded-full transition-all", activeFormTab === "deposits_expenses" ? "bg-amber-600" : "bg-slate-200 dark:bg-slate-800")} />
+                  </div>
                 </div>
 
-                <hr className="border-slate-100 dark:border-slate-800 my-2" />
+                <hr className="border-slate-100 dark:border-slate-800 my-1" />
 
-                {/* Outflows (Deposits & Expenses) Section Header */}
-                <h4 className="text-[10px] font-black text-[#0e9090] uppercase tracking-widest mt-2 mb-1">
-                  Outflows (Deposits &amp; Expenses)
-                </h4>
+                {/* Tab content */}
+                {activeFormTab === "purchases" && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <h4 className="text-[10px] font-black text-[#0e9090] uppercase tracking-widest mb-1">
+                      Outflows (Purchases)
+                    </h4>
+                    {/* Cash Purchase */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cashPurchase" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Cash Purchase (₹)
+                      </Label>
+                      <Input
+                        id="cashPurchase"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={cashPurchase}
+                        onChange={(e) => setCashPurchase(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* Bank Deposit */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="bankDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Bank Deposit (₹)
-                  </Label>
-                  <Input
-                    id="bankDeposit"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={bankDeposit}
-                    onChange={(e) => setBankDeposit(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                    {/* Credit Purchase */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="creditPurchase" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Credit Purchase (₹)
+                      </Label>
+                      <Input
+                        id="creditPurchase"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={creditPurchase}
+                        onChange={(e) => setCreditPurchase(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
+                  </div>
+                )}
 
-                {/* Recurring Deposit */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="recurringDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Recurring Deposit / Saving (₹)
-                  </Label>
-                  <Input
-                    id="recurringDeposit"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={recurringDeposit}
-                    onChange={(e) => setRecurringDeposit(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                {activeFormTab === "sales" && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <h4 className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mb-1">
+                      Inflows (Sales)
+                    </h4>
+                    {/* Cash Sales */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cashSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Cash Sales (₹)
+                      </Label>
+                      <Input
+                        id="cashSales"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={cashSales}
+                        onChange={(e) => setCashSales(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* Home Expense */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="homeExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Home Expense (₹)
-                  </Label>
-                  <Input
-                    id="homeExpense"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={homeExpense}
-                    onChange={(e) => setHomeExpense(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                    {/* UPI Sales */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="upiSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        UPI Sales (₹)
+                      </Label>
+                      <Input
+                        id="upiSales"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={upiSales}
+                        onChange={(e) => setUpiSales(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* Shop Expense */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="shopExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Shop Expense (₹)
-                  </Label>
-                  <Input
-                    id="shopExpense"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={shopExpense}
-                    onChange={(e) => setShopExpense(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                    {/* Card Sales */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cardSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Card Sales (₹)
+                      </Label>
+                      <Input
+                        id="cardSales"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={cardSales}
+                        onChange={(e) => setCardSales(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
+                  </div>
+                )}
 
-                <hr className="border-slate-100 dark:border-slate-800 my-2" />
+                {activeFormTab === "deposits_expenses" && (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    <h4 className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-1">
+                      Outflows (Deposits &amp; Expenses)
+                    </h4>
+                    {/* Bank Deposit */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="bankDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Bank Deposit (₹)
+                      </Label>
+                      <Input
+                        id="bankDeposit"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={bankDeposit}
+                        onChange={(e) => setBankDeposit(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* Sales Section Header */}
-                <h4 className="text-[10px] font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest mt-2 mb-1">
-                  Inflows (Sales)
-                </h4>
+                    {/* Recurring Deposit */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="recurringDeposit" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Recurring Deposit / Saving (₹)
+                      </Label>
+                      <Input
+                        id="recurringDeposit"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={recurringDeposit}
+                        onChange={(e) => setRecurringDeposit(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* Cash Sales */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="cashSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Cash Sales (₹)
-                  </Label>
-                  <Input
-                    id="cashSales"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={cashSales}
-                    onChange={(e) => setCashSales(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                    {/* Home Expense */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="homeExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Home Expense (₹)
+                      </Label>
+                      <Input
+                        id="homeExpense"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={homeExpense}
+                        onChange={(e) => setHomeExpense(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
 
-                {/* UPI Sales */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="upiSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    UPI Sales (₹)
-                  </Label>
-                  <Input
-                    id="upiSales"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={upiSales}
-                    onChange={(e) => setUpiSales(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
-
-                {/* Card Sales */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="cardSales" className="text-xs font-bold text-slate-600 dark:text-slate-350">
-                    Card Sales (₹)
-                  </Label>
-                  <Input
-                    id="cardSales"
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={cardSales}
-                    onChange={(e) => setCardSales(e.target.value)}
-                    className="border border-slate-200 dark:border-slate-800 font-semibold"
-                  />
-                </div>
+                    {/* Shop Expense */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="shopExpense" className="text-xs font-bold text-slate-600 dark:text-slate-350">
+                        Shop Expense (₹)
+                      </Label>
+                      <Input
+                        id="shopExpense"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={shopExpense}
+                        onChange={(e) => setShopExpense(e.target.value)}
+                        className="border border-slate-200 dark:border-slate-800 font-semibold"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {message && (
                   <div className={`p-3 rounded-lg text-xs font-bold ${
@@ -373,6 +472,125 @@ export function SimpleKhaata() {
 
         {/* History & Table Panel (Right side / Column 2) */}
         <div className="lg:col-span-8 space-y-6">
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Chart 1: Net Cash Flow Trend */}
+            <Card className="border border-slate-200/60 dark:border-slate-800/60 shadow-xs bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
+              <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/60 px-4 py-3">
+                <CardTitle className="text-xs font-bold text-[#0f3460] dark:text-white uppercase tracking-wider">
+                  Net Cash Flow Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 flex flex-col items-center justify-center min-h-[220px]">
+                {entries.length === 0 ? (
+                  <div className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    Not enough data yet
+                  </div>
+                ) : (
+                  <div className="w-full h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
+                        <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700 }} stroke="#94a3b8" />
+                        <YAxis tick={{ fontSize: 9, fontWeight: 700 }} stroke="#94a3b8" />
+                        <Tooltip
+                          contentStyle={{ fontSize: 10, borderRadius: 8, fontWeight: 700 }}
+                          formatter={(value) => ["₹" + Number(value).toLocaleString("en-IN"), "Net Flow"]}
+                        />
+                        <Line type="monotone" dataKey="netFlow" stroke="#0e9090" strokeWidth={2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Chart 2: Sales Split */}
+            <Card className="border border-slate-200/60 dark:border-slate-800/60 shadow-xs bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
+              <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/60 px-4 py-3">
+                <CardTitle className="text-xs font-bold text-[#0f3460] dark:text-white uppercase tracking-wider">
+                  Sales Split
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 flex flex-col items-center justify-center min-h-[220px]">
+                {totalSalesVal === 0 ? (
+                  <div className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    Not enough data yet
+                  </div>
+                ) : (
+                  <div className="w-full h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="45%"
+                          innerRadius={40}
+                          outerRadius={55}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ fontSize: 10, borderRadius: 8, fontWeight: 700 }}
+                          formatter={(value) => "₹" + Number(value).toLocaleString("en-IN")}
+                        />
+                        <Legend
+                          verticalAlign="bottom"
+                          iconSize={6}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: 8, fontWeight: 700 }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Chart 3: Purchases vs Sales */}
+            <Card className="border border-slate-200/60 dark:border-slate-800/60 shadow-xs bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
+              <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/60 px-4 py-3">
+                <CardTitle className="text-xs font-bold text-[#0f3460] dark:text-white uppercase tracking-wider">
+                  Purchases vs Sales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 flex flex-col items-center justify-center min-h-[220px]">
+                {entries.length === 0 ? (
+                  <div className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    Not enough data yet
+                  </div>
+                ) : (
+                  <div className="w-full h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-slate-800" />
+                        <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700 }} stroke="#94a3b8" />
+                        <YAxis tick={{ fontSize: 9, fontWeight: 700 }} stroke="#94a3b8" />
+                        <Tooltip
+                          contentStyle={{ fontSize: 10, borderRadius: 8, fontWeight: 700 }}
+                          formatter={(value) => "₹" + Number(value).toLocaleString("en-IN")}
+                        />
+                        <Legend
+                          verticalAlign="bottom"
+                          iconSize={6}
+                          iconType="circle"
+                          wrapperStyle={{ fontSize: 8, fontWeight: 700 }}
+                        />
+                        <Bar dataKey="sales" name="Sales" fill="#0e9090" radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="purchases" name="Purchases" fill="#7e22ce" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="border border-slate-200/60 dark:border-slate-800/60 shadow-xs bg-white dark:bg-slate-900 rounded-xl overflow-hidden">
             <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/60 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <CardTitle className="text-sm font-bold text-[#0f3460] dark:text-white flex items-center gap-2">
@@ -403,7 +621,8 @@ export function SimpleKhaata() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader className="bg-slate-50/70 dark:bg-slate-800/30 border-b border-slate-150 dark:border-slate-800">
                     <TableRow>
@@ -470,6 +689,43 @@ export function SimpleKhaata() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile Card List View */}
+              <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {loading ? (
+                  <div className="text-center py-8 text-slate-400 font-semibold text-xs">
+                    Loading entries...
+                  </div>
+                ) : entries.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 font-semibold text-xs">
+                    No simple ledger entries found for this range.
+                  </div>
+                ) : (
+                  entries.map((e) => {
+                    const daySales = (e.cashSales || 0) + (e.upiSales || 0) + (e.cardSales || 0);
+                    const dayPurchases = (e.cashPurchase || 0) + (e.creditPurchase || 0);
+                    const dayOutflows = (e.cashPurchase || 0) + (e.bankDeposit || 0) + (e.recurringDeposit || 0) + (e.homeExpense || 0) + (e.shopExpense || 0);
+                    const dayNetFlow = daySales - dayOutflows;
+                    return (
+                      <div key={e.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <div className="space-y-1">
+                          <p className="font-bold text-xs text-slate-700 dark:text-slate-355 font-sans">
+                            {formatDate(e.date)}
+                          </p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                            Sales: ₹{daySales.toLocaleString("en-IN")} · Purchases: ₹{dayPurchases.toLocaleString("en-IN")}
+                          </p>
+                        </div>
+                        <span className={`text-sm font-black font-mono ${
+                          dayNetFlow >= 0 ? "text-[#0e9090]" : "text-rose-600 dark:text-rose-400"
+                        }`}>
+                          {dayNetFlow >= 0 ? "+" : ""}₹{dayNetFlow.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
