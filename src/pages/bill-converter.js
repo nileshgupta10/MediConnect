@@ -110,6 +110,30 @@ export default function BillConverter() {
           )}
         </div>
 
+        <div style={st.explainBox}>
+          <p style={st.explainTitle}>What this does</p>
+          <p style={st.explainText}>
+            This tool reads a distributor's bill (CSV or PDF format) and automatically converts it into a protocol-ready file matching that distributor's exact format, allowing you to load it straight into the <b>CARE</b> software without manual data entry.
+          </p>
+          <p style={{ ...st.explainText, fontWeight: 700, marginTop: 8 }}>
+            Supported Distributors:
+          </p>
+          <ul style={st.explainList}>
+            <li style={st.explainListItem}>• Patwari Pharma</li>
+            <li style={st.explainListItem}>• Medica (Prem Agency)</li>
+            <li style={st.explainListItem}>• C G Marketing</li>
+            <li style={st.explainListItem}>• Beauty Cosmetics</li>
+            <li style={st.explainListItem}>• Manshi Agencies</li>
+            <li style={st.explainListItem}>• Navkar Cosmetics</li>
+            <li style={st.explainListItem}>• Navkar Pharma</li>
+            <li style={st.explainListItem}>• AB Marketing</li>
+            <li style={st.explainListItem}>• Medicine House</li>
+          </ul>
+          <p style={{ ...st.explainText, marginTop: 8 }}>
+            The converted file downloads directly to your device and is ready to copy into your CARE software's download folder with no manual editing needed.
+          </p>
+        </div>
+
         <div style={st.infoBox}>
           <p style={st.infoTitle}>How to use:</p>
           <p style={st.infoText}>1. Select your distributor bill file (CSV or PDF format).</p>
@@ -137,4 +161,9 @@ const st = {
   infoBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 },
   infoTitle: { fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' },
   infoText: { fontSize: 13, color: '#64748b', margin: '4px 0' },
+  explainBox: { background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 10, padding: 16, marginBottom: 20 },
+  explainTitle: { fontSize: 14, fontWeight: 700, marginBottom: 8, color: '#0e7c7c' },
+  explainText: { fontSize: 13, color: '#0f3460', margin: '4px 0', lineHeight: 1.5 },
+  explainList: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: '4px 8px', margin: '8px 0', paddingLeft: 0, listStyle: 'none' },
+  explainListItem: { fontSize: 12, color: '#0e9090', fontWeight: 700, display: 'flex', alignItems: 'center' },
 }
