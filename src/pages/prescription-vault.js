@@ -379,7 +379,11 @@ export default function PrescriptionVault() {
   // ── RENDER ─────────────────────────────────────────────────────
   return (
     <StoreLayout>
-      <div style={s.page} className="rxv-page">
+      <div style={s.pageWrap}>
+        <div style={s.explainBanner}>
+          ℹ️ This page is used to maintain and store the prescription records of regular/repeat customers, so past prescriptions can be quickly found and referenced later.
+        </div>
+        <div style={s.pageRow} className="rxv-page">
         <style jsx>{`
           @media (max-width: 768px) {
             .rxv-page { flex-direction: column !important; }
@@ -654,6 +658,7 @@ export default function PrescriptionVault() {
           )}
         </main>
       </div>
+      </div>
 
       {/* ── CONFIRM DELETE PATIENT ─────────────────────────────────── */}
       {deletingPatId && (
@@ -799,7 +804,9 @@ export default function PrescriptionVault() {
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const s = {
-  page:              { display: 'flex', minHeight: 'calc(100vh - 56px)', background: '#f0fdfd' },
+  pageWrap:          { display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 56px)', background: '#f0fdfd' },
+  pageRow:           { display: 'flex', flex: 1, background: '#f0fdfd' },
+  explainBanner:     { background: '#e0f2f1', borderBottom: '1px solid #b2dfdb', color: '#0f3460', padding: '12px 24px', fontSize: 13, fontWeight: 700, lineHeight: 1.5 },
 
   // sidebar
   sidebar:           { width: 248, flexShrink: 0, background: '#fff', borderRight: '1.5px solid #e2e8f0', display: 'flex', flexDirection: 'column', padding: '20px 14px', gap: 8 },
