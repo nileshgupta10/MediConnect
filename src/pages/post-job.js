@@ -236,6 +236,19 @@ export default function PostJob() {
                 <span style={s.tabCount}>{tabCount(tab)}</span>
               </button>
             ))}
+            <button 
+              onClick={() => router.push('/applicants')}
+              style={{ 
+                ...s.tab, 
+                background: '#e0f2f2', 
+                color: '#0e9090', 
+                borderRadius: '8px 8px 0 0', 
+                borderBottom: '3px solid transparent',
+                marginLeft: 'auto'
+              }}
+            >
+              👥 View Applicants
+            </button>
           </div>
 
           {filteredJobs.length === 0 && <div style={s.empty}>No {activeTab} jobs.</div>}

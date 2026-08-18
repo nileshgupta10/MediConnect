@@ -108,7 +108,6 @@ export default function StoreLayout({ children }) {
     { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Khaata Premium', path: '/khata', allowed: hasDetails && premiumUnlocked, lockMsg: !hasDetails ? 'Please complete your store profile name and location details first.' : 'Khaata Premium unlocks after your upgrade payment is verified by the admin.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
-    { label: 'Applicants', path: '/applicants', allowed: isVerified, lockMsg: 'Applicants tab unlocks only after your store is verified by the administrator.' },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
   ]
 
@@ -133,7 +132,7 @@ export default function StoreLayout({ children }) {
           }}
         >
           {tab.label}
-          {tab.label === 'Applicants' && unseenCount > 0 && (
+          {tab.label === 'Jobs' && unseenCount > 0 && (
             <span style={s.badge}>{unseenCount}</span>
           )}
           {' '}🔒
@@ -152,7 +151,7 @@ export default function StoreLayout({ children }) {
         }}
       >
         {tab.label}
-        {tab.label === 'Applicants' && unseenCount > 0 && (
+        {tab.label === 'Jobs' && unseenCount > 0 && (
           <span style={s.badge}>{unseenCount}</span>
         )}
         {tab.label === 'Home' && remarkUnseen && (
