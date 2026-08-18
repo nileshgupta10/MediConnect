@@ -113,7 +113,7 @@ export default function BillConverter() {
         <div style={st.explainBox}>
           <p style={st.explainTitle}>What this does</p>
           <p style={st.explainText}>
-            This tool reads a distributor's bill (CSV or PDF format) and automatically converts it into a protocol-ready file matching that distributor's exact format, allowing you to load it straight into the <b>CARE</b> software without manual data entry.
+            Upload the bill file you get from your distributor. This tool reads it and turns it into a file that CARE understands — so you don't have to type each item into CARE by hand.
           </p>
           <p style={{ ...st.explainText, fontWeight: 700, marginTop: 8 }}>
             Supported Distributors:
