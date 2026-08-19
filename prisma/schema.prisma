@@ -150,6 +150,7 @@ model pharmacist_profiles {
   latitude            Float?
   longitude           Float?
   address             String?
+  remark_seen         Boolean?           @default(true)
   appointments        appointments[]
   job_applications    job_applications[]
 }
@@ -224,26 +225,27 @@ model return_requests {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model store_profiles {
-  id                   String         @id @default(dbgenerated("auth.uid()")) @db.Uuid
-  user_id              String         @unique(map: "store_profiles_user_id_unique") @default(dbgenerated("auth.uid()")) @db.Uuid
-  name                 String?
-  num_vacancies        Int?
-  experience_required  String?
-  store_name           String?
-  contact_person       String?
-  latitude             Float?
-  longitude            Float?
-  store_timings        String?
-  license_url          String?
-  is_verified          Boolean?       @default(false)
-  is_training_eligible Boolean?       @default(false)
-  verification_status  String?        @default("pending")
-  verification_remark  String?
-  phone                String?
-  address              String?
+  id                     String         @id @default(dbgenerated("auth.uid()")) @db.Uuid
+  user_id                String         @unique(map: "store_profiles_user_id_unique") @default(dbgenerated("auth.uid()")) @db.Uuid
+  name                   String?
+  num_vacancies          Int?
+  experience_required    String?
+  store_name             String?
+  contact_person         String?
+  latitude               Float?
+  longitude              Float?
+  store_timings          String?
+  license_url            String?
+  is_verified            Boolean?       @default(false)
+  is_training_eligible   Boolean?       @default(false)
+  verification_status    String?        @default("pending")
+  verification_remark    String?
+  phone                  String?
+  address                String?
   khata_premium_unlocked Boolean?       @default(false)
-  appointments         appointments[]
-  jobs                 jobs[]
+  remark_seen            Boolean?       @default(true)
+  appointments           appointments[]
+  jobs                   jobs[]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -305,11 +307,6 @@ model vacancies {
   pharmacies           pharmacies? @relation(fields: [pharmacy_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MediCLan Khaata Models — multi-tenant accounts management system
-// All queries are filtered by storeOwnerId (= Supabase auth user.id)
-// ─────────────────────────────────────────────────────────────────────────────
-
 model AppSettings {
   id           Int    @id @default(autoincrement())
   storeOwnerId String @unique
@@ -330,12 +327,12 @@ model BankAccount {
   openingBalanceDate DateTime?
   isDefault          Boolean          @default(false)
   isActive           Boolean          @default(true)
-  bankDeposits       BankDeposit[]
-  cheques            Cheque[]
   bankCharges        BankCharge[]
-  rdRedemptions      RDRedemption[]
+  bankDeposits       BankDeposit[]
   cardSettlements    CardSettlement[]
+  cheques            Cheque[]
   expenses           Expense[]
+  rdRedemptions      RDRedemption[]
 
   @@unique([name, storeOwnerId])
 }
@@ -379,11 +376,11 @@ model Cheque {
   paymentMode   String?
   bankCharge    Float?
   bankAccountId Int?
-  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
-  purchases     Purchase[]
   partyType     String       @default("Supplier")
   customerId    Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
   customer      Customer?    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  purchases     Purchase[]
 
   @@index([storeOwnerId])
 }
@@ -450,10 +447,10 @@ model RDRedemption {
   amount            Float
   redemptionType    String
   bankAccountId     Int?
-  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
   originalDepositId Int?
   maturityDate      DateTime?
   narration         String?
+  bankAccount       BankAccount? @relation(fields: [bankAccountId], references: [id])
 
   @@index([storeOwnerId])
 }
@@ -464,9 +461,9 @@ model BankCharge {
   date          DateTime
   amount        Float
   bankAccountId Int
-  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
   chargeType    String
   narration     String?
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
 
   @@index([storeOwnerId])
 }
@@ -477,9 +474,9 @@ model CardSettlement {
   date          DateTime
   amount        Float
   bankAccountId Int
-  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
   salesDate     DateTime?
   narration     String?
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id])
 
   @@index([storeOwnerId])
 }
@@ -506,8 +503,8 @@ model Customer {
   phone        String
   address      String?               @default("")
   createdAt    DateTime              @default(now())
-  transactions CustomerTransaction[]
   cheques      Cheque[]
+  transactions CustomerTransaction[]
 
   @@unique([customerId, storeOwnerId])
   @@index([storeOwnerId])
@@ -517,37 +514,26 @@ model CustomerTransaction {
   id            Int      @id @default(autoincrement())
   storeOwnerId  String
   customerId    Int
-  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   type          String
   date          DateTime
   amount        Float
   narration     String?
   invoiceNumber String?
   createdAt     DateTime @default(now())
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@index([storeOwnerId])
 }
 
-model distributor_formats {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  store_owner_id          String?   @db.Uuid
-  party_code              String
-  party_name              String
-  format_notes            Json      @default("{}")
-  last_successful_invoice String?
-  updated_at              DateTime? @default(now()) @db.Timestamptz(6)
-
-  @@unique([store_owner_id, party_code])
-}
 model SimpleLedgerEntry {
-  id             Int      @id @default(autoincrement())
-  storeOwnerId   String
-  date           DateTime
-  cashPurchase   Float    @default(0)
-  creditPurchase Float    @default(0)
-  cashSales      Float    @default(0)
-  upiSales       Float    @default(0)
-  cardSales      Float    @default(0)
+  id               Int      @id @default(autoincrement())
+  storeOwnerId     String
+  date             DateTime @db.Timestamptz(6)
+  cashPurchase     Float    @default(0)
+  creditPurchase   Float    @default(0)
+  cashSales        Float    @default(0)
+  upiSales         Float    @default(0)
+  cardSales        Float    @default(0)
   bankDeposit      Float    @default(0)
   recurringDeposit Float    @default(0)
   homeExpense      Float    @default(0)
@@ -555,4 +541,78 @@ model SimpleLedgerEntry {
 
   @@unique([date, storeOwnerId])
   @@index([storeOwnerId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insurance_agents {
+  user_id    String    @id @db.Uuid
+  name       String?
+  phone      String?
+  email      String?
+  is_active  Boolean?  @default(true)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insurance_lead_updates {
+  id              String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  lead_id         String          @db.Uuid
+  status          String
+  note            String?
+  amount          String?
+  created_by      String          @db.Uuid
+  created_at      DateTime?       @default(now()) @db.Timestamptz(6)
+  insurance_leads insurance_leads @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model insurance_leads {
+  id                     String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  store_owner_id         String                   @db.Uuid
+  customer_name          String
+  customer_phone         String
+  customer_age           Int?
+  status                 String                   @default("new")
+  assigned_agent_id      String?                  @db.Uuid
+  claimed_at             DateTime?                @db.Timestamptz(6)
+  created_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime?                @default(now()) @db.Timestamptz(6)
+  insurance_lead_updates insurance_lead_updates[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model vault_patients {
+  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                       String
+  created_at                 DateTime                     @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  store_id                   String                       @db.Uuid
+  deleted_at                 DateTime?                    @db.Timestamptz(6)
+  vault_prescription_records vault_prescription_records[]
+
+  @@unique([store_id, name], map: "unique_vault_patient_per_store")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model vault_prescription_records {
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  patient_id          String                @db.Uuid
+  image_path          String?
+  record_date         DateTime              @db.Date
+  uploaded_at         DateTime              @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  deleted_at          DateTime?             @db.Timestamptz(6)
+  notes               String?
+  vault_patients      vault_patients        @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  vault_record_images vault_record_images[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model vault_record_images {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  record_id                  String                     @db.Uuid
+  image_path                 String
+  page_order                 Int                        @default(0)
+  created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
+  vault_prescription_records vault_prescription_records @relation(fields: [record_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([record_id], map: "idx_vault_record_images_record_id")
 }
