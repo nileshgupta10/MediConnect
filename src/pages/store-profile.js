@@ -200,6 +200,18 @@ export default function StoreProfile() {
         </div>
       </div>
 
+      {/* Insurance Leads quick-access card */}
+      <div style={s.insuranceCardWrap}>
+        <a href="/insurance-leads" style={s.insuranceCard}>
+          <div style={s.insuranceCardIcon}>🛡️</div>
+          <div style={s.insuranceCardText}>
+            <div style={s.insuranceCardTitle}>Insurance Leads</div>
+            <div style={s.insuranceCardSub}>Submit and track insurance leads for your customers</div>
+          </div>
+          <div style={s.insuranceCardArrow}>→</div>
+        </a>
+      </div>
+
       {showProfilePanel && (
         <div style={s.cardWrap}>
           <div style={s.card}>
@@ -393,4 +405,16 @@ const s = {
   wrongRoleLink: { fontSize: 13, color: '#dc2626', fontWeight: 700, textDecoration: 'none' },
   remarkBanner: { marginTop: 12, padding: '10px 14px', background: '#fef3c7', border: '1.5px dashed #d97706', borderRadius: 10, fontSize: 13, color: '#92400e', lineHeight: 1.4, textAlign: 'left' },
   backLink: { display: 'inline-block', marginBottom: 14, fontSize: 13, fontWeight: 700, color: '#0e9090', textDecoration: 'none' },
+  insuranceCardWrap: { display: 'flex', justifyContent: 'center', padding: '0 16px', marginTop: -20, marginBottom: 24, position: 'relative', zIndex: 2 },
+  insuranceCard: {
+    display: 'flex', alignItems: 'center', gap: 14, background: 'white',
+    padding: '16px 20px', borderRadius: 16, maxWidth: 460, width: '100%',
+    boxShadow: '0 8px 30px rgba(0,0,0,0.08)', textDecoration: 'none',
+    border: '1.5px solid #e0f2fe', transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+  },
+  insuranceCardIcon: { fontSize: 32, lineHeight: 1 },
+  insuranceCardText: { flex: 1 },
+  insuranceCardTitle: { fontSize: 16, fontWeight: 800, color: '#0f3460', margin: 0 },
+  insuranceCardSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  insuranceCardArrow: { fontSize: 20, fontWeight: 800, color: '#0e9090' },
 }
