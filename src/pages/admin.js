@@ -64,10 +64,17 @@ export default function AdminPage() {
   }
 
   const loadInsuranceAgents = async () => {
-    const { data } = await supabase.from('insurance_agents')
-      .select('user_id, name, phone, email, is_active, created_at')
-      .order('created_at', { ascending: false })
-    setInsuranceAgents(data || [])
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/insurance/create-agent', {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      console.error('[admin] Failed to load insurance_agents:', json.error)
+      setInsuranceAgents([])
+      return
+    }
+    setInsuranceAgents(json.agents || [])
   }
 
   const handleCreateAgent = async () => {
