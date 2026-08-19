@@ -29,6 +29,13 @@ export default function AdminPage() {
   const [pharmacists, setPharmacists] = useState([])
   const [stores, setStores] = useState([])
   const [jobs, setJobs] = useState([])
+  const [insuranceAgents, setInsuranceAgents] = useState([])
+  const [agentName, setAgentName] = useState('')
+  const [agentPhone, setAgentPhone] = useState('')
+  const [agentEmail, setAgentEmail] = useState('')
+  const [agentPassword, setAgentPassword] = useState('')
+  const [agentMsg, setAgentMsg] = useState('')
+  const [agentCreating, setAgentCreating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(false)
@@ -53,6 +60,41 @@ export default function AdminPage() {
     if (activeSection === 'pharmacists') await loadPharmacists(pageNum)
     else if (activeSection === 'stores') await loadStores(pageNum)
     else if (activeSection === 'jobs') await loadJobs(pageNum)
+    else if (activeSection === 'insurance_agents') await loadInsuranceAgents()
+  }
+
+  const loadInsuranceAgents = async () => {
+    const { data } = await supabase.from('insurance_agents')
+      .select('user_id, name, phone, email, is_active, created_at')
+      .order('created_at', { ascending: false })
+    setInsuranceAgents(data || [])
+  }
+
+  const handleCreateAgent = async () => {
+    if (!agentName.trim() || !agentPhone.trim() || !agentEmail.trim() || !agentPassword.trim()) {
+      setAgentMsg('All fields are required.')
+      return
+    }
+    setAgentCreating(true)
+    setAgentMsg('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/insurance/create-agent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ name: agentName, phone: agentPhone, email: agentEmail, password: agentPassword }),
+    })
+    const json = await res.json()
+    setAgentCreating(false)
+    if (!res.ok) {
+      setAgentMsg('Error: ' + (json.error || 'Unknown error'))
+    } else {
+      setAgentMsg('✅ Agent created successfully.')
+      setAgentName(''); setAgentPhone(''); setAgentEmail(''); setAgentPassword('')
+      await loadInsuranceAgents()
+    }
   }
 
   const loadPharmacists = async (pageNum) => {
@@ -188,9 +230,14 @@ export default function AdminPage() {
               {s.charAt(0).toUpperCase()+s.slice(1)}
             </button>
           ))}
+          <button style={activeSection==='insurance_agents' ? st.activeTab : st.tab} onClick={() => setActiveSection('insurance_agents')}>
+            Insurance Agents
+          </button>
         </div>
-        <input style={st.search} placeholder={activeSection==='pharmacists'?'Search pharmacist…':activeSection==='stores'?'Search store…':'Search job…'} value={search} onChange={e=>setSearch(e.target.value)} />
-        {activeSection !== 'jobs' && (
+        {activeSection !== 'jobs' && activeSection !== 'insurance_agents' && (
+          <input style={st.search} placeholder={activeSection==='pharmacists'?'Search pharmacist…':'Search store…'} value={search} onChange={e=>setSearch(e.target.value)} />
+        )}
+        {activeSection !== 'jobs' && activeSection !== 'insurance_agents' && (
           <div style={st.statusRow}>
             {['pending','approved','rejected','suspended'].map(s => (
               <button key={s} style={status===s ? st.activeBtn : st.btn} onClick={() => setStatus(s)}>
@@ -198,6 +245,9 @@ export default function AdminPage() {
               </button>
             ))}
           </div>
+        )}
+        {activeSection === 'jobs' && (
+          <input style={st.search} placeholder="Search job…" value={search} onChange={e=>setSearch(e.target.value)} />
         )}
 
         {activeSection === 'pharmacists' && <>
@@ -245,7 +295,47 @@ export default function AdminPage() {
           ))}
         </>}
 
-        {hasMore && <button style={st.loadMore} onClick={loadMore}>Load More</button>}
+        {activeSection === 'insurance_agents' && <>
+          <h2 style={st.sub}>Insurance Agents</h2>
+
+          {/* Create Agent Form */}
+          <div style={{...st.card, marginBottom: 24}}>
+            <h3 style={st.cardTitle}>Create New Agent</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input style={st.search} placeholder="Name *" value={agentName} onChange={e => setAgentName(e.target.value)} />
+              <input style={st.search} placeholder="Phone *" value={agentPhone} onChange={e => setAgentPhone(e.target.value)} />
+              <input style={st.search} placeholder="Email *" type="email" value={agentEmail} onChange={e => setAgentEmail(e.target.value)} />
+              <input style={st.search} placeholder="Password *" type="password" value={agentPassword} onChange={e => setAgentPassword(e.target.value)} />
+              <button
+                style={agentCreating ? {...st.approve, opacity: 0.6, cursor: 'not-allowed'} : st.approve}
+                onClick={handleCreateAgent}
+                disabled={agentCreating}
+              >
+                {agentCreating ? 'Creating…' : '+ Create Agent'}
+              </button>
+              {agentMsg && (
+                <p style={{ fontSize: 14, fontWeight: 600, color: agentMsg.startsWith('✅') ? '#16a34a' : '#dc2626', margin: 0 }}>
+                  {agentMsg}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Agents List */}
+          <h3 style={{...st.sub, marginBottom: 12}}>Existing Agents ({insuranceAgents.length})</h3>
+          {insuranceAgents.length === 0 && <p style={st.empty}>No agents yet.</p>}
+          {insuranceAgents.map(agent => (
+            <div key={agent.user_id} style={st.card}>
+              <h3 style={st.cardTitle}>{agent.name || 'Unnamed'}</h3>
+              <p style={st.detail}><b>Phone:</b> {agent.phone || '—'}</p>
+              <p style={st.detail}><b>Email:</b> {agent.email || '—'}</p>
+              <p style={st.detail}><b>Active:</b> <span style={st.badge}>{agent.is_active ? 'Yes' : 'No'}</span></p>
+              <p style={st.detail}><b>Created:</b> {new Date(agent.created_at).toLocaleDateString('en-IN')}</p>
+            </div>
+          ))}
+        </>}
+
+        {hasMore && activeSection !== 'insurance_agents' && <button style={st.loadMore} onClick={loadMore}>Load More</button>}
       </div>
     </AdminLayout>
   )
