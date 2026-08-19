@@ -108,6 +108,7 @@ export default function StoreLayout({ children }) {
     { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Khaata Premium', path: '/khata', allowed: hasDetails && premiumUnlocked, lockMsg: !hasDetails ? 'Please complete your store profile name and location details first.' : 'Khaata Premium unlocks after your upgrade payment is verified by the admin.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
+    { label: 'Insurance', path: '/insurance-leads', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
   ]
 
