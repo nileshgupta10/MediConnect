@@ -53,15 +53,13 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (loading) return
-    setPage(0); setSearch(''); fetchData(0)
+    setPage(0); setSearch('')
+    if (activeSection === 'pharmacists') loadPharmacists(0)
+    else if (activeSection === 'stores') loadStores(0)
+    else if (activeSection === 'jobs') loadJobs(0)
+    else if (activeSection === 'insurance_agents') loadInsuranceAgents()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection, status, loading])
-
-  const fetchData = async (pageNum) => {
-    if (activeSection === 'pharmacists') await loadPharmacists(pageNum)
-    else if (activeSection === 'stores') await loadStores(pageNum)
-    else if (activeSection === 'jobs') await loadJobs(pageNum)
-    else if (activeSection === 'insurance_agents') await loadInsuranceAgents()
-  }
 
   const loadInsuranceAgents = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -74,6 +72,7 @@ export default function AdminPage() {
       setInsuranceAgents([])
       return
     }
+    console.log('[admin] loadInsuranceAgents raw response:', json, 'agents array:', json.agents)
     setInsuranceAgents(json.agents || [])
   }
 
@@ -134,7 +133,12 @@ export default function AdminPage() {
     setHasMore((data || []).length === PAGE_SIZE)
   }
 
-  const loadMore = () => { const next = page + 1; setPage(next); fetchData(next) }
+  const loadMore = () => {
+    const next = page + 1; setPage(next)
+    if (activeSection === 'pharmacists') loadPharmacists(next)
+    else if (activeSection === 'stores') loadStores(next)
+    else if (activeSection === 'jobs') loadJobs(next)
+  }
 
   const updatePharmacistStatus = async (userId, newStatus, remarkVal) => {
     try {
