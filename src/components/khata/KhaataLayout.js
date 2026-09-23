@@ -3,15 +3,13 @@ import { DailyDashboard } from './DailyDashboard';
 import { SupplierLedger } from './SupplierLedger';
 import { PDCChequeLedger } from './PDCChequeLedger';
 import { MasterLedger } from './MasterLedger';
-import { CustomerCreditManager } from './CustomerCreditManager';
 import { MediClanLogo } from './MediClanLogo';
 import { 
   ShoppingBag, 
   CreditCard, 
   LayoutDashboard, 
   CalendarDays, 
-  Layers, 
-  Users
+  Layers
 } from 'lucide-react';
 
 export function KhaataLayout({ user }) {
@@ -23,7 +21,6 @@ export function KhaataLayout({ user }) {
     { id: 'daily', label: 'Inward', icon: LayoutDashboard },
     { id: 'pdc', label: 'Cheque Flow', icon: CalendarDays, disabled: true },
     { id: 'master-ledger', label: 'Accounts Hub', icon: Layers },
-    { id: 'customer-credit', label: 'Customers', icon: Users },
   ];
 
   return (
@@ -114,7 +111,6 @@ export function KhaataLayout({ user }) {
             {activeTab === 'daily' && <DailyDashboard mode="dashboard" />}
             {activeTab === 'pdc' && <PDCChequeLedger />}
             {activeTab === 'master-ledger' && <MasterLedger />}
-            {activeTab === 'customer-credit' && <CustomerCreditManager />}
           </div>
         </main>
       </div>
