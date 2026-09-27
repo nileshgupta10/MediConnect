@@ -18,10 +18,32 @@ import {
   Send, 
   RefreshCw, 
   TrendingUp, 
-  TrendingDown 
+  TrendingDown,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 
 const INPUT_STYLE = "flex h-10 w-full rounded-lg border border-brand-light-teal bg-white dark:bg-slate-900/50 dark:border-slate-800 px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-teal disabled:cursor-not-allowed disabled:opacity-50 font-semibold text-brand-navy dark:text-slate-200";
+
+function compressTransactionImage(file) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    img.onload = () => {
+      const MAX = 1000;
+      const scale = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        resolve(new File([blob], 'receipt.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.6);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export function CustomerCreditManager() {
   const [customers, setCustomers] = useState([]);
@@ -45,15 +67,17 @@ export function CustomerCreditManager() {
   const [custForm, setCustForm] = useState({ name: '', phone: '', address: '' });
   const [editCustForm, setEditCustForm] = useState({ id: 0, name: '', phone: '', address: '' });
   const [saleForm, setSaleForm] = useState({ date: new Date().toISOString().split('T')[0], amount: '', narration: '', invoiceNumber: '' });
+  const [saleImage, setSaleImage] = useState(null);
   const [payForm, setPayForm] = useState({ 
     date: new Date().toISOString().split('T')[0], 
     amount: '', 
-    narration: '',
-    mode: 'Cash',
-    chequeNumber: '',
-    chequeDate: new Date().toISOString().split('T')[0],
-    bankAccountId: '',
+    narration: '', 
+    mode: 'Cash', 
+    chequeNumber: '', 
+    chequeDate: new Date().toISOString().split('T')[0], 
+    bankAccountId: '', 
   });
+  const [payImage, setPayImage] = useState(null);
 
   const [bankAccounts, setBankAccounts] = useState([]);
 
@@ -205,6 +229,22 @@ export function CustomerCreditManager() {
         }),
       });
       if (res.ok) {
+        const created = await res.json();
+        if (saleImage && created?.id) {
+          try {
+            const compressed = await compressTransactionImage(saleImage);
+            const formData = new FormData();
+            formData.append('transactionId', String(created.id));
+            formData.append('file', compressed);
+            await khataFetch('/api/khata/customer-transaction-image', {
+              method: 'POST',
+              body: formData,
+            });
+          } catch (imgErr) {
+            console.error('Failed to upload sale receipt photo:', imgErr);
+          }
+        }
+        setSaleImage(null);
         setSaleForm({ date: new Date().toISOString().split('T')[0], amount: '', narration: '', invoiceNumber: '' });
         setIsLogSaleOpen(false);
         if (selectedCustomerId) fetchTransactions(selectedCustomerId);
@@ -254,6 +294,22 @@ export function CustomerCreditManager() {
       });
 
       if (res.ok) {
+        const created = await res.json();
+        if (payImage && created?.id) {
+          try {
+            const compressed = await compressTransactionImage(payImage);
+            const formData = new FormData();
+            formData.append('transactionId', String(created.id));
+            formData.append('file', compressed);
+            await khataFetch('/api/khata/customer-transaction-image', {
+              method: 'POST',
+              body: formData,
+            });
+          } catch (imgErr) {
+            console.error('Failed to upload payment receipt photo:', imgErr);
+          }
+        }
+        setPayImage(null);
         setPayForm({ 
           date: new Date().toISOString().split('T')[0], 
           amount: '', 
@@ -278,6 +334,11 @@ export function CustomerCreditManager() {
   const handleDeleteTransaction = async (txId) => {
     if (!confirm('Are you sure you want to delete this transaction record?')) return;
     try {
+      try {
+        await khataFetch(`/api/khata/customer-transaction-image?transactionId=${txId}`, { method: 'DELETE' });
+      } catch (imgErr) {
+        console.error('Failed to delete transaction image:', imgErr);
+      }
       const res = await khataFetch(`/api/khata/customer-transaction?id=${txId}`, { method: 'DELETE' });
       if (res.ok) {
         if (selectedCustomerId) fetchTransactions(selectedCustomerId);
@@ -330,6 +391,14 @@ export function CustomerCreditManager() {
     c.phone.includes(searchQuery)
   );
 
+  const isSearching = searchQuery.trim().length > 0;
+  const recentCustomers = [...customers].slice(-5).reverse();
+  const visibleCustomers = isSearching ? filteredCustomers : recentCustomers;
+  const isSelectedInVisible = visibleCustomers.some(c => c.id === selectedCustomerId);
+  const pinnedSelectedCustomer = (!isSearching && selectedCustomerId && !isSelectedInVisible)
+    ? customers.find(c => c.id === selectedCustomerId)
+    : null;
+
   // Compute running balances chronologically (oldest to newest)
   let currentSum = 0;
   const computedTransactions = transactions.map(t => {
@@ -355,6 +424,46 @@ export function CustomerCreditManager() {
 
   const totalOutstandingCredit = customers.reduce((sum, c) => sum + (c.outstandingBalance || 0), 0);
   const activeDebtorsCount = customers.filter(c => c.outstandingBalance > 0).length;
+
+  const renderCustomerRow = (c) => {
+    const isSelected = c.id === selectedCustomerId;
+    return (
+      <div
+        key={c.id}
+        onClick={() => setSelectedCustomerId(c.id)}
+        className={`p-4 transition-all duration-150 flex items-center justify-between cursor-pointer border-l-4 ${
+          isSelected 
+            ? 'bg-brand-soft-teal border-brand-teal' 
+            : 'border-transparent hover:bg-slate-50/50'
+        }`}
+      >
+        <div className="space-y-1 max-w-[75%]">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-extrabold text-brand-navy truncate">
+              {c.name}
+            </span>
+            <span className="text-[9px] bg-brand-soft-teal text-brand-teal font-mono font-bold px-1.5 py-0.2 rounded border border-brand-light-teal/50">
+              {c.customerId}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
+            <Phone className="w-3 h-3 text-slate-400" />
+            <span>{c.phone}</span>
+          </div>
+        </div>
+        
+        <div className="text-right shrink-0">
+          <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-full ${
+            c.outstandingBalance > 0 
+              ? 'bg-rose-100 text-rose-800' 
+              : 'bg-emerald-100 text-emerald-800'
+          }`}>
+            ₹{c.outstandingBalance.toLocaleString('en-IN')}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -457,45 +566,15 @@ export function CustomerCreditManager() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {filteredCustomers.map(c => {
-                    const isSelected = c.id === selectedCustomerId;
-                    return (
-                      <div
-                        key={c.id}
-                        onClick={() => setSelectedCustomerId(c.id)}
-                        className={`p-4 transition-all duration-150 flex items-center justify-between cursor-pointer border-l-4 ${
-                          isSelected 
-                            ? 'bg-brand-soft-teal border-brand-teal' 
-                            : 'border-transparent hover:bg-slate-50/50'
-                        }`}
-                      >
-                        <div className="space-y-1 max-w-[75%]">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-extrabold text-brand-navy truncate">
-                              {c.name}
-                            </span>
-                            <span className="text-[9px] bg-brand-soft-teal text-brand-teal font-mono font-bold px-1.5 py-0.2 rounded border border-brand-light-teal/50">
-                              {c.customerId}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            <span>{c.phone}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right shrink-0">
-                          <span className={`text-xs font-black font-mono px-2 py-0.5 rounded-full ${
-                            c.outstandingBalance > 0 
-                              ? 'bg-rose-100 text-rose-800' 
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            ₹{c.outstandingBalance.toLocaleString('en-IN')}
-                          </span>
-                        </div>
+                  {visibleCustomers.map(c => renderCustomerRow(c))}
+                  {pinnedSelectedCustomer && (
+                    <>
+                      <div className="px-4 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border-y border-slate-100">
+                        Selected Account
                       </div>
-                    );
-                  })}
+                      {renderCustomerRow(pinnedSelectedCustomer)}
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -708,6 +787,21 @@ export function CustomerCreditManager() {
                               </TableCell>
                               <TableCell className="text-xs text-slate-650 px-4 py-3 max-w-[200px] truncate" title={t.narration}>
                                 {t.narration || '—'}
+                                {t.imagePath && (
+                                  <button
+                                    onClick={async () => {
+                                      const res = await khataFetch(`/api/khata/customer-transaction-image?transactionId=${t.id}`);
+                                      if (res.ok) {
+                                        const { signedUrl } = await res.json();
+                                        window.open(signedUrl, '_blank');
+                                      }
+                                    }}
+                                    className="ml-1.5 inline-flex text-brand-teal hover:text-brand-teal/70"
+                                    title="View attached photo"
+                                  >
+                                    <ImageIcon className="w-3.5 h-3.5 inline" />
+                                  </button>
+                                )}
                               </TableCell>
                               <TableCell className="px-4 py-3 text-right font-semibold font-mono text-xs">
                                 {isSale ? (
@@ -880,6 +974,17 @@ export function CustomerCreditManager() {
                 className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-slate-600 font-semibold">Attach Photo (Optional)</Label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment"
+                onChange={e => setSaleImage(e.target.files?.[0] || null)}
+                className="text-xs font-semibold text-slate-600"
+              />
+              {saleImage && <p className="text-[10px] text-emerald-600 font-bold">📎 {saleImage.name}</p>}
+            </div>
             <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold h-11 mt-2 rounded-full shadow-sm cursor-pointer border-0">
               Record Credit Sale (Debit)
             </Button>
@@ -977,6 +1082,18 @@ export function CustomerCreditManager() {
                 placeholder="e.g. GPay, cash drawer collection, part collection" 
                 className="rounded-lg h-10 border-brand-light-teal px-4 font-semibold text-brand-navy focus-visible:ring-brand-teal shadow-xs"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-slate-600 font-semibold">Attach Photo (Optional)</Label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment"
+                onChange={e => setPayImage(e.target.files?.[0] || null)}
+                className="text-xs font-semibold text-slate-600"
+              />
+              {payImage && <p className="text-[10px] text-emerald-600 font-bold">📎 {payImage.name}</p>}
             </div>
 
             <Button type="submit" className="w-full bg-brand-teal hover:bg-brand-teal/90 text-white font-bold h-11 mt-2 rounded-full shadow-sm cursor-pointer border-0">

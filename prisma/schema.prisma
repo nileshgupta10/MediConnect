@@ -519,6 +519,7 @@ model CustomerTransaction {
   amount        Float
   narration     String?
   invoiceNumber String?
+  imagePath     String?
   createdAt     DateTime @default(now())
   customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
