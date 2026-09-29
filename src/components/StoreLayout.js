@@ -102,12 +102,12 @@ export default function StoreLayout({ children }) {
     { label: 'Home', path: '/store-profile', allowed: true },
     { label: 'Bill Conv', path: '/bill-converter', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
     { label: 'Khaata', path: '/khata-simple', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
-    { label: 'Khaata Premium', path: '/khata', allowed: false, lockMsg: 'Khaata Premium is temporarily disabled.', isKhaata: true },
+    { label: 'Khaata Premium', path: '/khata', allowed: false, lockMsg: 'Khaata Premium is temporarily disabled.', isKhaata: true, hidden: true },
     { label: 'Udhaar', path: '/udhaar', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
-    { label: 'Insurance', path: '/insurance-leads', allowed: false, lockMsg: 'Insurance is temporarily disabled.' },
+    { label: 'Insurance', path: '/insurance-leads', allowed: false, lockMsg: 'Insurance is temporarily disabled.', hidden: true },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
-  ]
+  ].filter(tab => !tab.hidden)
 
   const renderTab = (tab, isMobile = false) => {
     const isActive = router.pathname === tab.path
