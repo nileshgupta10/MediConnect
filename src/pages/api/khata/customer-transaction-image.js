@@ -1,4 +1,4 @@
-﻿// src/pages/api/khata/customer-transaction-image.js
+// src/pages/api/khata/customer-transaction-image.js
 // Handles photo attachment uploads, signed URL retrieval, and cleanup for customer credit transactions
 
 import sharp from 'sharp';
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
       const { data: signed, error: signErr } = await supabaseAdmin
         .storage
         .from(BUCKET_NAME)
-        .createSignedUrl(txRecord.imagePath, 900);
+        .createSignedUrl(txRecord.imagePath, 86400);
 
       if (signErr || !signed?.signedUrl) {
         return res.status(500).json({ error: 'Failed to generate signed URL: ' + (signErr?.message || 'Unknown error') });

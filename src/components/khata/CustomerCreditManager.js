@@ -57,6 +57,8 @@ export function CustomerCreditManager() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  const [isDispatchingWA, setIsDispatchingWA] = useState(false);
+
   // Dialogs
   const [isAddCustOpen, setIsAddCustOpen] = useState(false);
   const [isEditCustOpen, setIsEditCustOpen] = useState(false);
@@ -352,36 +354,74 @@ export function CustomerCreditManager() {
   };
 
   // WhatsApp Sender (100% Free wa.me redirection)
-  const handleWhatsAppDispatch = () => {
-    if (!activeCustomer) return;
-    
-    // Add default country code '91' if the number is exactly 10 digits
-    let cleanPhone = activeCustomer.phone.replace(/\D/g, '');
-    if (cleanPhone.length === 10) {
-      cleanPhone = '91' + cleanPhone;
+  const handleWhatsAppDispatch = async () => {
+    if (!activeCustomer || isDispatchingWA) return;
+    setIsDispatchingWA(true);
+    try {
+      let cleanPhone = activeCustomer.phone.replace(/\D/g, '');
+      if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+      // Opening balance = running balance just before the "From" date
+      const beforeRange = computedTransactions.filter(t => {
+        const txDate = new Date(t.date).toLocaleDateString('en-CA');
+        return startDate && txDate < startDate;
+      });
+      const openingBalance = beforeRange.length > 0
+        ? beforeRange[beforeRange.length - 1].runningBalance
+        : 0;
+
+      const chronologicalFiltered = [...filteredTransactions].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      // Fetch signed photo URLs (24h) in parallel for any transaction that has one
+      const withPhotos = chronologicalFiltered.filter(t => t.imagePath);
+      const signedUrlEntries = await Promise.all(
+        withPhotos.map(async (t) => {
+          try {
+            const res = await khataFetch(`/api/khata/customer-transaction-image?transactionId=${t.id}`);
+            if (res.ok) {
+              const { signedUrl } = await res.json();
+              return [t.id, signedUrl];
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          return [t.id, null];
+        })
+      );
+      const signedUrlMap = Object.fromEntries(signedUrlEntries);
+
+      const ledgerLines = chronologicalFiltered.map((t) => {
+        const isSale = t.type === 'Sale';
+        const dStr = new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        let line = isSale
+          ? `• ${dStr} | Credit Sale: ₹${t.amount.toLocaleString('en-IN')}${t.invoiceNumber ? ` (Inv: #${t.invoiceNumber})` : ''}${t.narration ? ` - ${t.narration}` : ''}`
+          : `• ${dStr} | Payment Recd: ₹${t.amount.toLocaleString('en-IN')}${t.narration ? ` - ${t.narration}` : ''}`;
+        if (signedUrlMap[t.id]) {
+          line += `\n   📷 Photo: ${signedUrlMap[t.id]}`;
+        }
+        return line;
+      });
+
+      const periodLine = (startDate || endDate)
+        ? `Period: ${startDate ? new Date(startDate).toLocaleDateString('en-IN') : 'Beginning'} to ${endDate ? new Date(endDate).toLocaleDateString('en-IN') : 'Today'}\n`
+        : '';
+
+      const closingBalance = chronologicalFiltered.length > 0
+        ? chronologicalFiltered[chronologicalFiltered.length - 1].runningBalance
+        : openingBalance;
+
+      const header = `*CUSTOMER CREDIT STATEMENT*\n*-------------------------*\nCustomer: *${activeCustomer.name}* (${activeCustomer.customerId})\nPhone: ${activeCustomer.phone}\n${periodLine}Date: ${new Date().toLocaleDateString('en-IN')}\n\n*OPENING BALANCE: ₹${openingBalance.toLocaleString('en-IN')}*\n\n*TRANSACTION HISTORY:*\n`;
+      const ledgerJoined = ledgerLines.length > 0 ? ledgerLines.join('\n') : '• No transactions in this period.';
+      const footer = `\n\n*CLOSING BALANCE: ₹${closingBalance.toLocaleString('en-IN')}*\n*-------------------------*\nPlease clear the outstanding dues. Thank you for your business!`;
+
+      const fullMessage = header + ledgerJoined + footer;
+      const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fullMessage)}`;
+      window.open(waUrl, 'WhatsAppTab');
+    } finally {
+      setIsDispatchingWA(false);
     }
-
-    // Sort chronologically for WhatsApp dispatch readability
-    const chronologicalFiltered = [...filteredTransactions].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    const ledgerLines = chronologicalFiltered.map((t) => {
-      const isSale = t.type === 'Sale';
-      const dStr = new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-      if (isSale) {
-        return `• ${dStr} | Credit Sale: ₹${t.amount.toLocaleString('en-IN')}${t.invoiceNumber ? ` (Inv: #${t.invoiceNumber})` : ''}${t.narration ? ` - ${t.narration}` : ''}`;
-      } else {
-        return `• ${dStr} | Payment Recd: ₹${t.amount.toLocaleString('en-IN')}${t.narration ? ` - ${t.narration}` : ''}`;
-      }
-    });
-
-    const header = `*CUSTOMER CREDIT STATEMENT*\n*-------------------------*\nCustomer: *${activeCustomer.name}* (${activeCustomer.customerId})\nPhone: ${activeCustomer.phone}\nDate: ${new Date().toLocaleDateString('en-IN')}\n\n*TRANSACTION HISTORY:*\n`;
-    const ledgerJoined = ledgerLines.length > 0 ? ledgerLines.join('\n') : '• No transaction history logged yet.';
-    const footer = `\n\n*TOTAL OUTSTANDING CREDIT BALANCE: ₹${(activeCustomer.outstandingBalance || 0).toLocaleString('en-IN')}*\n*-------------------------*\nPlease clear the outstanding dues. Thank you for your business!`;
-
-    const fullMessage = header + ledgerJoined + footer;
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fullMessage)}`;
-    window.open(waUrl, 'WhatsAppTab');
   };
 
   // Filtered customer list
@@ -661,10 +701,20 @@ export function CustomerCreditManager() {
                     
                     <Button
                       onClick={handleWhatsAppDispatch}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4"
+                      disabled={isDispatchingWA}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs h-8.5 gap-1.5 cursor-pointer border-0 shadow-xs px-4 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      WhatsApp Ledger
+                      {isDispatchingWA ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          Preparing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          WhatsApp Ledger
+                        </>
+                      )}
                     </Button>
                     
                     <Button
