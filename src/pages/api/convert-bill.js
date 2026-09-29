@@ -271,15 +271,14 @@ export default async function handler(req, res) {
 
     const protocol = detectProtocol(textContent)
 
-    // ── AUTO-FALLBACK: If no protocol matched (e.g. image-based PDF logo), use Gemini AI ──
+    // ── AUTO-FALLBACK: only for PDFs (e.g. image-based PDF logo) — never for CSV ──
     if (!protocol) {
-      console.log('[convert-bill] Protocol not identified — auto-routing to Gemini AI fallback')
-      let mimeType = 'image/jpeg'
-      const lowerName = fileName.toLowerCase()
-      if (lowerName.endsWith('.pdf')) mimeType = 'application/pdf'
-      else if (lowerName.endsWith('.png')) mimeType = 'image/png'
-      else if (lowerName.endsWith('.webp')) mimeType = 'image/webp'
-      return await convertViaGemini(fileBuffer, mimeType, fileName, res)
+      if (!isPDF) {
+        console.log('[convert-bill] CSV protocol not identified — rejecting without Gemini fallback')
+        return res.status(400).json({ error: 'Could not identify distributor for this CSV file. Please check the file matches a supported distributor format.' })
+      }
+      console.log('[convert-bill] PDF protocol not identified — auto-routing to Gemini AI fallback')
+      return await convertViaGemini(fileBuffer, 'application/pdf', fileName, res)
     }
 
     // For PDFs — pass raw text to protocol

@@ -97,7 +97,7 @@ export default function PrescriptionVault() {
   const [imgPageIdx,     setImgPageIdx]     = useState(0)
   const modalRef         = useRef(null)
   // pinch / wheel zoom
-  const zoomState        = useRef({ scale: 1, startDist: null, startScale: 1 })
+  const zoomState        = useRef({ scale: 1, startDist: null, startScale: 1, x: 0, y: 0, panStartX: 0, panStartY: 0, dragging: false })
 
   // ── load patients ──────────────────────────────────────────────
   useEffect(() => { if (authReady) loadPatients() }, [authReady])
@@ -331,42 +331,72 @@ export default function PrescriptionVault() {
   const openModal = (idx) => {
     setModalIdx(idx)
     setImgPageIdx(0)
-    zoomState.current = { scale: 1, startDist: null, startScale: 1 }
+    zoomState.current = { scale: 1, startDist: null, startScale: 1, x: 0, y: 0, panStartX: 0, panStartY: 0, dragging: false }
   }
-  const closeModal = () => { setModalIdx(null); zoomState.current.scale = 1 }
+  const closeModal = () => { setModalIdx(null); zoomState.current.scale = 1; zoomState.current.x = 0; zoomState.current.y = 0 }
 
-  // Pinch zoom (touch)
+  // Applies current scale + pan offset to the image
+  const applyTransform = () => {
+    if (modalRef.current) {
+      modalRef.current.style.transform = `translate(${zoomState.current.x}px, ${zoomState.current.y}px) scale(${zoomState.current.scale})`
+    }
+  }
+
+  // Pinch zoom + single-finger pan (touch)
   const onTouchStart = (e) => {
     if (e.touches.length === 2) {
       const dx = e.touches[0].clientX - e.touches[1].clientX
       const dy = e.touches[0].clientY - e.touches[1].clientY
       zoomState.current.startDist  = Math.hypot(dx, dy)
       zoomState.current.startScale = zoomState.current.scale
+    } else if (e.touches.length === 1 && zoomState.current.scale > 1) {
+      zoomState.current.panStartX = e.touches[0].clientX - zoomState.current.x
+      zoomState.current.panStartY = e.touches[0].clientY - zoomState.current.y
     }
   }
   const onTouchMove = (e) => {
-    if (e.touches.length !== 2 || !zoomState.current.startDist) return
-    const dx   = e.touches[0].clientX - e.touches[1].clientX
-    const dy   = e.touches[0].clientY - e.touches[1].clientY
-    const dist = Math.hypot(dx, dy)
-    const next = Math.min(5, Math.max(0.5, zoomState.current.startScale * (dist / zoomState.current.startDist)))
-    zoomState.current.scale = next
-    if (modalRef.current) modalRef.current.style.transform = `scale(${next})`
+    if (e.touches.length === 2 && zoomState.current.startDist) {
+      const dx   = e.touches[0].clientX - e.touches[1].clientX
+      const dy   = e.touches[0].clientY - e.touches[1].clientY
+      const dist = Math.hypot(dx, dy)
+      zoomState.current.scale = Math.min(5, Math.max(0.5, zoomState.current.startScale * (dist / zoomState.current.startDist)))
+      applyTransform()
+    } else if (e.touches.length === 1 && zoomState.current.scale > 1) {
+      zoomState.current.x = e.touches[0].clientX - zoomState.current.panStartX
+      zoomState.current.y = e.touches[0].clientY - zoomState.current.panStartY
+      applyTransform()
+    }
   }
   const onTouchEnd = () => { zoomState.current.startDist = null }
 
   // Wheel zoom (trackpad / mouse)
   const onWheel = (e) => {
     e.preventDefault()
-    const next = Math.min(5, Math.max(0.5, zoomState.current.scale - e.deltaY * 0.002))
-    zoomState.current.scale = next
-    if (modalRef.current) modalRef.current.style.transform = `scale(${next})`
+    zoomState.current.scale = Math.min(5, Math.max(0.5, zoomState.current.scale - e.deltaY * 0.002))
+    applyTransform()
   }
+
+  // Drag to pan (mouse) — only active once zoomed in
+  const onMouseDown = (e) => {
+    if (zoomState.current.scale <= 1) return
+    zoomState.current.panStartX = e.clientX - zoomState.current.x
+    zoomState.current.panStartY = e.clientY - zoomState.current.y
+    zoomState.current.dragging = true
+  }
+  const onMouseMove = (e) => {
+    if (!zoomState.current.dragging) return
+    zoomState.current.x = e.clientX - zoomState.current.panStartX
+    zoomState.current.y = e.clientY - zoomState.current.panStartY
+    applyTransform()
+  }
+  const onMouseUp = () => { zoomState.current.dragging = false }
 
   // Reset zoom on close
   const resetZoom = () => {
     zoomState.current.scale = 1
-    if (modalRef.current) modalRef.current.style.transform = 'scale(1)'
+    zoomState.current.x = 0
+    zoomState.current.y = 0
+    applyTransform()
   }
 
   // ── derived ────────────────────────────────────────────────────
@@ -694,7 +724,9 @@ export default function PrescriptionVault() {
           onClick={() => { closeModal(); resetZoom() }}>
           <div style={s.modalShell} onClick={e => e.stopPropagation()}
             onWheel={onWheel} onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+            onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+            onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
 
             {/* Header bar */}
             <div style={s.modalHeader}>

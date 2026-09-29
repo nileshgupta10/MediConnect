@@ -121,14 +121,10 @@ export default function BillConverter() {
           <ul style={st.explainList}>
             <li style={st.explainListItem}>• Patwari Pharma</li>
             <li style={st.explainListItem}>• Medica (Prem Agency)</li>
-            <li style={st.explainListItem}>• C G Marketing</li>
-            <li style={st.explainListItem}>• Beauty Cosmetics</li>
-            <li style={st.explainListItem}>• Manshi Agencies</li>
-            <li style={st.explainListItem}>• Navkar Cosmetics</li>
-            <li style={st.explainListItem}>• Navkar Pharma</li>
-            <li style={st.explainListItem}>• AB Marketing</li>
-            <li style={st.explainListItem}>• Medicine House</li>
           </ul>
+          <p style={{ ...st.explainText, marginTop: 4, fontStyle: 'italic' }}>
+            Many others coming soon.
+          </p>
           <p style={{ ...st.explainText, marginTop: 8 }}>
             The converted file downloads directly to your device and is ready to copy into your CARE software's download folder with no manual editing needed.
           </p>

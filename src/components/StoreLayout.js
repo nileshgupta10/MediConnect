@@ -105,7 +105,7 @@ export default function StoreLayout({ children }) {
     { label: 'Khaata Premium', path: '/khata', allowed: false, lockMsg: 'Khaata Premium is temporarily disabled.', isKhaata: true },
     { label: 'Udhaar', path: '/udhaar', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.', isKhaata: true },
     { label: 'Jobs', path: '/post-job', allowed: isVerified, lockMsg: 'Jobs tab unlocks only after your store is verified by the administrator.' },
-    { label: 'Insurance', path: '/insurance-leads', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' },
+    { label: 'Insurance', path: '/insurance-leads', allowed: false, lockMsg: 'Insurance is temporarily disabled.' },
     { label: 'Rx Vault', path: '/prescription-vault', allowed: hasDetails, lockMsg: 'Please complete your store profile name and location details first.' }
   ]
 
