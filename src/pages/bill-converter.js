@@ -126,15 +126,34 @@ export default function BillConverter() {
             Many others coming soon.
           </p>
           <p style={{ ...st.explainText, marginTop: 8 }}>
-            The converted file downloads directly to your device and is ready to copy into your CARE software's download folder with no manual editing needed.
+            The converted file downloads to your device. Check it against your bill first (see the yellow box below), then copy it into your CARE software.
+          </p>
+        </div>
+
+        <div style={{ ...st.explainBox, background: '#fffbeb', border: '1px solid #fcd34d' }}>
+          <p style={{ ...st.explainTitle, color: '#92400e' }}>Please check before you save</p>
+          <p style={st.explainText}>
+            Always compare the converted entry with your original bill: items, quantity, rate, GST and bill total. Fix any mistake before you save it in your software. You are responsible for the data you save in your stock, books and GST returns.
+          </p>
+          <p style={st.explainText}>
+            MediClan is an independent service and is not affiliated with CARE or its makers. The name CARE is used only to say which file type this tool creates.
           </p>
         </div>
 
         <div style={st.infoBox}>
-          <p style={st.infoTitle}>How to use:</p>
-          <p style={st.infoText}>1. Select your distributor bill file (CSV or PDF format).</p>
-          <p style={st.infoText}>2. Click <b>Convert &amp; Download</b> — the app identifies your distributor automatically.</p>
-          <p style={st.infoText}>3. Copy the downloaded .SMS file to your CARE PC&apos;s <b>C:\download\</b> folder and click <b>DwnLd Purch</b>.</p>
+          <p style={st.infoTitle}>How to use (5 easy steps)</p>
+          <p style={st.infoText}><b>Step 1.</b> Tap the file box and choose the bill you got from your distributor (CSV or PDF).</p>
+          <p style={st.infoText}><b>Step 2.</b> Tap <b>Convert &amp; Download</b> and wait a few seconds. A file ending in .SMS will download.</p>
+          <p style={st.infoText}><b>Step 3.</b> Copy that .SMS file into the <b>C:\download\</b> folder on your CARE computer. (If it downloaded on your phone, send it to the CARE computer first.)</p>
+          <p style={st.infoText}><b>Step 4.</b> In CARE, click <b>DwnLd Purch</b>.</p>
+          <p style={st.infoText}><b>Step 5.</b> Check the items, quantity, rate, GST and total against your bill. Correct anything wrong, then save.</p>
+        </div>
+
+        <div style={{ ...st.infoBox, marginTop: 12 }}>
+          <p style={st.infoTitle}>Your privacy</p>
+          <p style={st.infoText}>
+            We do not save your bill file or the items, prices or quantities in it. We only remember the distributor&apos;s name, your last invoice number and the bill&apos;s column layout, so the next conversion is quicker. PDF bills may be read by an AI service (Google Gemini) only to convert them. See our <a href="/privacy-policy" style={{ color: '#0e9090', fontWeight: 700 }}>Privacy Policy</a>.
+          </p>
         </div>
       </div>
     </StoreLayout>

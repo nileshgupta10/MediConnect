@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
             <li style={s.listItem}><b>Profile Information:</b> Pharmacy license details (for pharmacists), store name and location (for store owners), phone number, work experience, and software experience</li>
             <li style={s.listItem}><b>Job Information:</b> Job postings, applications, and appointment details</li>
             <li style={s.listItem}><b>Location Data:</b> Approximate location (latitude/longitude) to show nearby job opportunities</li>
-            <li style={s.listItem}><b>Distributor Bill Files:</b> Bills you upload to the bill converter, which may contain distributor names, product, price, batch and invoice details</li>
+            <li style={s.listItem}><b>Distributor Bill Files:</b> Bills you upload to the bill converter are used only to create your converted file. We do not save the bill file or its items. We keep only a small note per distributor: distributor name, your last invoice number and the bill&apos;s column layout</li>
             <li style={s.listItem}><b>Prescription Vault Records (store owners):</b> Patient names, contact details, prescription images and notes that you choose to upload for your own customers</li>
             <li style={s.listItem}><b>Customer Ledger Entries (store owners):</b> Customer names, phone numbers, addresses and credit amounts that you enter</li>
           </ul>
