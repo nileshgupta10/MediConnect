@@ -3,7 +3,7 @@ export default function TermsOfService() {
     <div style={s.page}>
       <div style={s.container}>
         <h1 style={s.title}>Terms of Service</h1>
-        <p style={s.date}>Last updated: February 18, 2026</p>
+        <p style={s.date}>Last updated: October 1, 2026</p>
 
         <section style={s.section}>
           <h2 style={s.heading}>Agreement to Terms</h2>
@@ -105,6 +105,19 @@ export default function TermsOfService() {
           <p style={s.text}>
             MediClan shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service. We are not responsible for disputes between pharmacists and store owners.
           </p>
+        </section>
+
+        <section style={s.section}>
+          <h2 style={s.heading}>Bill Converter and Third-Party Software</h2>
+          <p style={s.text}>
+            The MediClan bill converter is a convenience tool. It reads distributor bills and creates files that you may import into your own billing software. MediClan is independent and is not affiliated with, endorsed by, or sponsored by CARE or any other billing software maker or distributor. Product and software names are used only to describe compatibility and belong to their respective owners.
+          </p>
+          <ul style={s.list}>
+            <li style={s.listItem}>You must have the right to use your billing software and the bills you upload, and you must not use the converter in a way that breaches your software licence or your distributors&apos; terms.</li>
+            <li style={s.listItem}>Converted files may contain errors or omissions. You must check every converted file against the original bill, and take a backup of your software data, before importing.</li>
+            <li style={s.listItem}>MediClan does not guarantee the accuracy of converted files and is not liable for stock errors, GST or input tax credit differences, or any other loss arising from data imported without checking.</li>
+            <li style={s.listItem}>You are responsible for the accuracy of your own books, stock records and tax filings.</li>
+          </ul>
         </section>
 
         <section style={s.section}>

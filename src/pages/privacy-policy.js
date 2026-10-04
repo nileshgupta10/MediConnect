@@ -8,7 +8,7 @@ export default function PrivacyPolicy() {
   <span style={{ fontSize: 16, fontWeight: 900, color: '#0f3460' }}>MediClan</span>
 </Link>
         <h1 style={s.title}>Privacy Policy</h1>
-        <p style={s.date}>Last updated: February 18, 2026</p>
+        <p style={s.date}>Last updated: October 1, 2026</p>
 
         <section style={s.section}>
           <h2 style={s.heading}>Introduction</h2>
@@ -25,6 +25,9 @@ export default function PrivacyPolicy() {
             <li style={s.listItem}><b>Profile Information:</b> Pharmacy license details (for pharmacists), store name and location (for store owners), phone number, work experience, and software experience</li>
             <li style={s.listItem}><b>Job Information:</b> Job postings, applications, and appointment details</li>
             <li style={s.listItem}><b>Location Data:</b> Approximate location (latitude/longitude) to show nearby job opportunities</li>
+            <li style={s.listItem}><b>Distributor Bill Files:</b> Bills you upload to the bill converter, which may contain distributor names, product, price, batch and invoice details</li>
+            <li style={s.listItem}><b>Prescription Vault Records (store owners):</b> Patient names, contact details, prescription images and notes that you choose to upload for your own customers</li>
+            <li style={s.listItem}><b>Customer Ledger Entries (store owners):</b> Customer names, phone numbers, addresses and credit amounts that you enter</li>
           </ul>
         </section>
 
@@ -49,6 +52,27 @@ export default function PrivacyPolicy() {
             <li style={s.listItem}><b>With Admin:</b> MediClan admin can view profiles for verification purposes only</li>
             <li style={s.listItem}>We do NOT sell your personal information to third parties</li>
           </ul>
+        </section>
+
+        <section style={s.section}>
+          <h2 style={s.heading}>Third-Party Services</h2>
+          <p style={s.text}>
+            To provide the Service we use third-party providers, including Supabase and Vercel for hosting and storage. To read uploaded distributor bills, we may send the bill file to an AI service (currently Google Gemini). These providers may process data on servers outside India. We share only what is needed to provide the feature, and we do not sell your data.
+          </p>
+        </section>
+
+        <section style={s.section}>
+          <h2 style={s.heading}>Patient and Health Information (Prescription Vault)</h2>
+          <p style={s.text}>
+            Store owners who upload patient or prescription information are responsible for having the patient&apos;s consent and for using that information lawfully. MediClan processes it only to provide the Prescription Vault to that store. Records are intended to be accessible only to the store account that created them. We do not sell this information or use it for advertising.
+          </p>
+        </section>
+
+        <section style={s.section}>
+          <h2 style={s.heading}>Data Retention and Deletion</h2>
+          <p style={s.text}>
+            We keep your data while your account is active. You can ask us to correct or delete your account and associated data by emailing askmediclan@gmail.com. We aim to act within 30 days, except where the law requires us to keep certain records. We handle personal data in accordance with applicable Indian law, including the Digital Personal Data Protection Act, 2023, as it comes into force.
+          </p>
         </section>
 
         <section style={s.section}>
@@ -91,6 +115,9 @@ export default function PrivacyPolicy() {
           <p style={s.text}>
             Email: <a href="mailto:askmediclan@gmail.com" style={{ color: '#0e9090', fontWeight: 700 }}>askmediclan@gmail.com</a><br />
             Website: mediclan.in
+          </p>
+          <p style={s.text}>
+            Grievance contact: Founder, MediClan - askmediclan@gmail.com. We aim to acknowledge complaints within 48 hours and resolve them within 30 days.
           </p>
         </section>
 
