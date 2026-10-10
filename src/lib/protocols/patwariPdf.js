@@ -79,7 +79,7 @@ module.exports = {
       // ITEM ROWS: an item row anchor is an item with x between 668 and 712 whose s matches /^\d{8}$/ (the HSN code).
       // For each anchor, take all items on the same page with |y - anchor.y| <= 3.
       // Output rows ordered by page ascending, then y descending (top to bottom).
-      const anchors = allItems.filter(it => it.x >= 668 && it.x < 712 && /^\d{8}$/.test(it.s))
+      const anchors = allItems.filter(it => it.x >= 668 && it.x < 712 && /^\d{6,8}$/.test(it.s))
       anchors.sort((a, b) => {
         if (a.page !== b.page) return a.page - b.page
         return b.y - a.y
@@ -97,8 +97,9 @@ module.exports = {
         const getCol = (minX, maxX) => rowItems.filter(it => it.x >= minX && it.x < maxX)
 
         // Column extraction by coordinate range [minX, maxX)
-        const qty = parseCleanFloat(getCol(70, 105)[0]?.s)
-        const freeQty = parseCleanFloat(getCol(105, 128)[0]?.s)
+        const qtyZone = getCol(70, 128).sort((a, b) => a.x - b.x)
+        const qty = parseCleanFloat(qtyZone.find(it => !it.s.startsWith('+'))?.s)
+        const freeQty = parseCleanFloat(qtyZone.find(it => it.s.startsWith('+'))?.s)
         const nameItems = getCol(128, 265).sort((a, b) => a.x - b.x)
         const productName = nameItems.map(it => it.s).join(' ').trim()
         const packItems = getCol(295, 330).sort((a, b) => a.x - b.x)
@@ -191,6 +192,21 @@ module.exports = {
         const diff = grandTotal - currentTotal
         if (Math.abs(diff) < 1.0 && items[0].qty > 0) {
           items[0].taxable = round2(items[0].taxable + diff)
+        }
+      }
+
+      // Quantity check: the printed "Tot Qty" equals billed qty + free qty of all items (returns are not counted).
+      const totQtyLabel = allItems.filter(it => it.s.toLowerCase().startsWith('tot qty')).pop()
+      if (totQtyLabel) {
+        const totQtyItem = allItems
+          .filter(it => it.page === totQtyLabel.page && Math.abs(it.y - totQtyLabel.y) <= 3 && it.x > totQtyLabel.x && /^\d+$/.test(it.s))
+          .sort((a, b) => a.x - b.x)[0]
+        if (totQtyItem) {
+          const printedTotQty = parseInt(totQtyItem.s, 10)
+          const computedQty = items.reduce((sum, row) => sum + row.qty + row.freeQty, 0)
+          if (printedTotQty !== computedQty) {
+            return { error: 'The quantities in this PDF do not add up to the printed total quantity, so it was not converted. Please send this bill to support.' }
+          }
         }
       }
 
