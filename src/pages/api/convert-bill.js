@@ -1,38 +1,10 @@
 import fs from 'fs'
 import path from 'path'
-import https from 'https'
 import normalizer from '../../lib/agents/normalizer'
 import smsWriter from '../../lib/agents/smsWriter'
 
-async function fetchWithRetry(options, postData, maxRetries = 3) {
-  let attempt = 0
-  while (attempt < maxRetries) {
-    attempt++
-    const response = await new Promise((resolve) => {
-      const request = https.request(options, (res) => {
-        let data = ''
-        res.on('data', chunk => { data += chunk })
-        res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, body: data }))
-      })
-      request.on('error', e => resolve({ ok: false, status: 500, body: JSON.stringify({ error: { message: e.message } }) }))
-      request.write(postData)
-      request.end()
-    })
-
-    if (response.ok) return response
-
-    // Retry on 503 (temporary high demand) or 429 (rate limit)
-    if ((response.status === 503 || response.status === 429) && attempt < maxRetries) {
-      const delay = Math.pow(2, attempt) * 1000 + Math.random() * 500
-      console.warn(`[Gemini API] Attempt ${attempt} failed with status ${response.status}. Retrying in ${delay.toFixed(0)}ms...`)
-      await new Promise(resolve => setTimeout(resolve, delay))
-      continue
-    }
-    return response
-  }
-}
-
 import patwari from '../../lib/protocols/patwari'
+import patwariPdf from '../../lib/protocols/patwariPdf'
 import medica from '../../lib/protocols/medica'
 import beautyCosmetics from '../../lib/protocols/beauty'
 import manshi from '../../lib/protocols/manshi'
@@ -45,7 +17,7 @@ import medicineHouse from '../../lib/protocols/medicineHouse'
 import navkarPharma from '../../lib/protocols/navkarPharma'
 
 // Check Manshi Leap before Manshi because the Leap PDF also contains shared Manshi footer text.
-const PROTOCOLS = [patwari, medica, cgMarketing, beautyCosmetics, manshiLeap, manshi, navkarNestle, navkar, navkarPharma, abmarketing, medicineHouse]
+const PROTOCOLS = [patwari, patwariPdf, medica, cgMarketing, beautyCosmetics, manshiLeap, manshi, navkarNestle, navkar, navkarPharma, abmarketing, medicineHouse]
 export const config = {
   api: {
     bodyParser: false,
@@ -62,9 +34,10 @@ async function getRawBody(req) {
   })
 }
 
-function detectProtocol(text) {
+function detectProtocol(text, isPDF = false) {
   const upper = text.toUpperCase()
   for (const protocol of PROTOCOLS) {
+    if (protocol.pdfOnly && !isPDF) continue
     // ALL patterns must match (AND), not just one (OR)
     const allMatch = protocol.identifyPatterns.every(pattern =>
       upper.includes(pattern.toUpperCase())
@@ -85,124 +58,6 @@ function parseCSV(csvText) {
     return row
   }).filter(row => Object.values(row).some(v => v))
 }
-
-async function convertViaGemini(fileBuffer, mimeType, fileName, res) {
-  let apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured — cannot auto-identify distributor.' })
-  apiKey = apiKey.replace(/['"]/g, '').trim()
-
-  const base64Data = fileBuffer.toString('base64')
-
-  const promptText = `You are a highly precise pharmaceutical invoice data extractor.
-Locate the invoice's line items table and extract all items.
-IMPORTANT DIRECTIVES FOR VISUAL AND COLUMN ACCURACY:
-1. Distributor (Seller) Disambiguation: Identify the DISTRIBUTOR (the company SELLING the products). This is always the main company branding at the very top of the invoice.
-   - ⚠️ NEVER confuse this with the Customer/Buyer (e.g. "RATAN MEDICAL" or "RATAN STORES") which is listed in the "To" / "Ship To" billing section.
-2. Product Volume / Sizes: Products with different volume sizes MUST be treated as completely separate, unique products.
-3. Quantity Columns: Systematically locate the "Qty" (Billed Quantity) column and the "Free" (Free/Scheme Quantity) column. Do not mix them up.
-4. Discount vs GST Column Alignment: Extract discount % to "discountPer" and GST % to "gstPer". NEVER confuse them. The CD% column (Cash Discount %) MUST be extracted into the discountPer field. For this invoice CD=7.18 means discountPer=7.18.
-5. Pack Size: Extract the pack size to the "pack" field.
-
-For the metadata, extract the distributor's name, invoice number, and invoice date.
-Represent the output exactly in the requested JSON structure.`
-
-  const payload = {
-    contents: [{
-      parts: [
-        { text: promptText },
-        { inlineData: { mimeType, data: base64Data } }
-      ]
-    }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: 'OBJECT',
-        properties: {
-          metadata: {
-            type: 'OBJECT',
-            properties: {
-              partyCode: { type: 'STRING', description: '3-letter uppercase CARE party code. If the distributor is MEDICINE HOUSE use MDH. If A B MARKETING use ABM. If MANSHI AGENCIES use MNS. If PATWARI PHARMA use PWP. If PREM AGENCY use PPH. If C G MARKETING use CGM. If BEAUTY COSMETICS use BCS. If NAVKAR use NVK.' },
-              partyName: { type: 'STRING', description: 'Distributor (Seller) Name. Do NOT use the buyer/customer name.' },
-              invoiceNo: { type: 'STRING', description: 'Invoice Number' },
-              date: { type: 'STRING', description: 'Invoice Date (DD/MM/YYYY or original)' }
-            },
-            required: ['partyCode', 'partyName', 'invoiceNo', 'date']
-          },
-          items: {
-            type: 'ARRAY',
-            items: {
-              type: 'OBJECT',
-              properties: {
-                productName: { type: 'STRING' },
-                qty: { type: 'NUMBER' },
-                freeQty: { type: 'NUMBER' },
-                rate: { type: 'NUMBER' },
-                rawRate: { type: 'NUMBER' },
-                mrp: { type: 'NUMBER' },
-                pack: { type: 'STRING' },
-                hsn: { type: 'STRING' },
-                discountPer: { 
-                  type: 'NUMBER', 
-                  description: "Discount % for THIS specific line item from the CDA or CD% column. Read the value from this item's own row — do NOT apply a global discount to all rows. If this row's CDA column is blank or 0.00, return 0." 
-                },
-                gstPer: { type: 'NUMBER' },
-                taxable: { type: 'NUMBER' },
-                netAmt: { type: 'NUMBER' }
-              },
-              required: ['productName', 'qty', 'rate', 'mrp']
-            }
-          }
-        },
-        required: ['metadata', 'items']
-      }
-    }
-  }
-
-  const postData = JSON.stringify(payload)
-  const options = {
-    hostname: 'generativelanguage.googleapis.com',
-    port: 443,
-    path: '/v1beta/models/gemini-2.5-flash:generateContent',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }
-  }
-  const apiResponse = await fetchWithRetry(options, postData)
-
-  if (!apiResponse.ok) {
-    return res.status(500).json({ error: `Gemini AI fallback failed: ${apiResponse.body}` })
-  }
-
-  const resJson = JSON.parse(apiResponse.body)
-  const responseText = resJson.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!responseText) return res.status(500).json({ error: 'Gemini returned empty content.' })
-
-  const parsedData = JSON.parse(responseText)
-  if (!parsedData.items || parsedData.items.length === 0) {
-    return res.status(400).json({ error: 'No items were parsed from this invoice by the AI.' })
-  }
-
-  let finalPartyCode = String(parsedData.metadata.partyCode || 'GEN').padEnd(3, ' ').toUpperCase().substring(0, 3)
-
-  const normalizedRecords = normalizer.normalize(parsedData.items, {
-    partyCode: finalPartyCode,
-    partyName: parsedData.metadata.partyName || 'UNKNOWN',
-    invoiceNo: parsedData.metadata.invoiceNo || '000000',
-    date: parsedData.metadata.date || ''
-  })
-
-
-  const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
-  const templateBuffer = fs.readFileSync(templatePath)
-  const smsBuffer = smsWriter.generate(normalizedRecords, templateBuffer)
-  const invNo = String(parseInt(parsedData.metadata.invoiceNo.replace(/[^0-9]/g, '')) || 0)
-  const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
-
-  res.setHeader('Content-Type', 'application/octet-stream')
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-  return res.send(smsBuffer)
-}
-
-
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -269,22 +124,38 @@ export default async function handler(req, res) {
       textContent = fileBuffer.toString('utf-8')
     }
 
-    const protocol = detectProtocol(textContent)
+    const protocol = detectProtocol(textContent, isPDF)
 
-    // ── AUTO-FALLBACK: only for PDFs (e.g. image-based PDF logo) — never for CSV ──
     if (!protocol) {
       if (!isPDF) {
-        console.log('[convert-bill] CSV protocol not identified — rejecting without Gemini fallback')
         return res.status(400).json({ error: 'Could not identify distributor for this CSV file. Please check the file matches a supported distributor format.' })
       }
-      console.log('[convert-bill] PDF protocol not identified — auto-routing to Gemini AI fallback')
-      return await convertViaGemini(fileBuffer, 'application/pdf', fileName, res)
+      return res.status(400).json({ error: 'Could not identify the distributor for this PDF. Please upload the distributor CSV file if available, or contact support.' })
     }
 
     // For PDFs — pass raw text to protocol
     // For CSVs — parse into rows
     let rows
     if (isPDF) {
+      if (protocol.mapPDFBuffer) {
+        const parsed = await protocol.mapPDFBuffer(fileBuffer)
+        if (parsed.error) return res.status(400).json({ error: parsed.error })
+        const items = parsed.items
+        const metadata = parsed.metadata
+        let finalPartyCode = String(metadata.partyCode || 'GEN').toUpperCase().substring(0, 3)
+        const records = normalizer.normalize(items, { ...metadata, partyCode: finalPartyCode })
+        const templatePath = path.join(process.cwd(), 'public', 'templates', 'RATADEH_MMPCRB7556.sms')
+        const templateBuffer = fs.readFileSync(templatePath)
+        const smsBuffer = smsWriter.generate(records, templateBuffer)
+        const rawInvNo = String(metadata.invoiceNo || '0').replace(/[^0-9]/g, '')
+        const invNo = rawInvNo ? rawInvNo.slice(-6) : '000000'
+        const filename = `RATADEH_${finalPartyCode}CRB${invNo}.sms`
+
+        res.setHeader('Content-Type', 'application/octet-stream')
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+        return res.send(smsBuffer)
+      }
+
       // NOTE: Do NOT filter out blank lines here!
       // Manshi and ManshiLeap parsers use blank lines as field separators.
       // Only trim each line — keep empty lines as empty strings.

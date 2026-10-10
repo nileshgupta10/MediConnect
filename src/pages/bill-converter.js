@@ -152,7 +152,7 @@ export default function BillConverter() {
         <div style={{ ...st.infoBox, marginTop: 12 }}>
           <p style={st.infoTitle}>Your privacy</p>
           <p style={st.infoText}>
-            We do not save your bill file or the items, prices or quantities in it. We only remember the distributor&apos;s name, your last invoice number and the bill&apos;s column layout, so the next conversion is quicker. PDF bills may be read by an AI service (Google Gemini) only to convert them. See our <a href="/privacy-policy" style={{ color: '#0e9090', fontWeight: 700 }}>Privacy Policy</a>.
+            We do not save your bill file or the items, prices or quantities in it. We only remember the distributor&apos;s name, your last invoice number and the bill&apos;s column layout, so the next conversion is quicker. See our <a href="/privacy-policy" style={{ color: '#0e9090', fontWeight: 700 }}>Privacy Policy</a>.
           </p>
         </div>
       </div>
