@@ -163,7 +163,25 @@ module.exports = {
         })
       }
 
-      if (Math.abs(sumNet - grandTotal) > 1.0) {
+      // Items total check. A bill can have "Returns Adjusted In This Invoice" (credit note),
+      // so Grand Total can be lower than the items. Compare with the printed Taxable + GST Tax
+      // from the summary box (right side, label x >= 690) instead. Fall back to Grand Total
+      // if those two boxes cannot be read.
+      const readBoxAmount = (label) => {
+        const labs = allItems.filter(it => it.x >= 690 && it.s.toLowerCase().startsWith(label))
+        const lab = labs[labs.length - 1]
+        if (!lab) return null
+        const cand = allItems
+          .filter(it => it.page === lab.page && Math.abs(it.y - lab.y) <= 3 && it.x > lab.x && /^-?[\d,]+\.\d+$/.test(it.s))
+          .sort((a, b) => a.x - b.x)[0]
+        return cand ? parseCleanFloat(cand.s) : null
+      }
+      const printedTaxable = readBoxAmount('taxable')
+      const printedGst = readBoxAmount('gst tax')
+      const expectedItemsTotal = (printedTaxable !== null && printedGst !== null)
+        ? round2(printedTaxable + printedGst)
+        : grandTotal
+      if (Math.abs(sumNet - expectedItemsTotal) > 1.0) {
         return { error: 'The items in this PDF do not add up to the bill total, so it was not converted. Please send this bill to support.' }
       }
 
